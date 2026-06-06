@@ -1,6 +1,7 @@
+import { mockTransactions } from "@/data/mock";
 import type { Transaction } from "@/types";
 
-let transactions: Transaction[] = [];
+let transactions: Transaction[] = [...mockTransactions];
 
 export function getTransactions(type?: Transaction["type"]): Transaction[] {
   if (type) {
