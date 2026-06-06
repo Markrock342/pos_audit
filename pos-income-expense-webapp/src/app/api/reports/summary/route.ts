@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { mockReportSummary } from "@/data/mock";
+import { getReportSummary } from "@/lib/store";
 
 export async function GET() {
-  return NextResponse.json({ data: mockReportSummary });
+  return NextResponse.json({ data: getReportSummary() });
 }
