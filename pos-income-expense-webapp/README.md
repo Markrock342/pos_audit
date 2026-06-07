@@ -160,6 +160,8 @@ docs/<topic>
 
 - [docs/scope.md](./docs/scope.md) — ขอบเขต MVP
 - [docs/workflow.md](./docs/workflow.md) — User workflow
+- [docs/frontend-tasks.md](./docs/frontend-tasks.md) — งานที่ Frontend ควรทำ (checklist ราย phase)
+- [docs/backend-tasks.md](./docs/backend-tasks.md) — งานที่ Backend ควรทำ (API, DB, reports)
 - [docs/hardware-plan.md](./docs/hardware-plan.md) — แผนเชื่อม hardware
 - [docs/team-workflow.md](./docs/team-workflow.md) — แบ่งงานทีม
 
