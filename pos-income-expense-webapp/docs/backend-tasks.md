@@ -11,11 +11,12 @@
 
 | ส่วน | สถานะ | หมายเหตุ |
 |------|--------|----------|
+| Tech Stack | ✅ **Supabase (PostgreSQL)** | เปลี่ยนจาก Firebase แล้ว |
 | Types (`src/types/index.ts`) | ✅ ครบ | `transactionDate`, `status`, `organizationId`, `receiptNo`, `isPrinted`, `voidReason`, `voidedAt`, `voidedBy` ฯลฯ |
 | In-memory store (`lib/store`) | ⚠️ ยังอยู่ | Frontend ยังใช้ — ต้องแทนที่ด้วย API ในภายหลัง |
 | Supabase client (`lib/db/supabase.ts`) | ✅ init จริง | `createClient()` + อ่าน `NEXT_PUBLIC_SUPABASE_*` จาก `.env.local` |
 | DB Provider (`lib/db/index.ts`) | ✅ "supabase" | `DB_PROVIDER = "supabase"` |
-| API `/api/transactions` | ✅ GET/POST | `/api/transactions/route.ts` — รองรับ `type`, `startDate`, `endDate`, `status` query |
+| API `/api/transactions` | ✅ GET/POST | รองรับ `type`, `startDate`, `endDate`, `status` query |
 | API `/api/transactions/[id]` | ❌ ยังไม่มี | ต้องสร้าง: GET, PUT, DELETE, `/void` |
 | API `/api/categories` | ✅ GET/POST | `/api/categories/route.ts` |
 | API `/api/categories/[id]` | ❌ ยังไม่มี | ต้องสร้าง: PUT, DELETE |
@@ -35,9 +36,11 @@
 | Auth | ❌ ยังไม่มี | `/api/auth/login`, `/api/auth/me`, `middleware.ts` |
 | Seed script | ✅ รันสำเร็จ | `npx tsx src/scripts/seed.ts` — ข้อมูลเข้า Supabase จริง |
 | Export CSV/Excel | ❌ ยังไม่มี | Phase 5 |
-| `.env.example` | ✅ มีแล้ว | Template สำหรับทีม |
-| `.gitignore` | ✅ อัปเดทแล้ว | Ignore `.env*` ยกเว้น `.env.example` |
+| `.gitignore` | ✅ อัปเดทแล้ว | Ignore `.env*` (ไม่มี exception) |
 | Row Level Security | ⚠️ มี SQL แต่เปิด "Allow all" | ต้องปรับ policies จริงตอน production |
+| Frontend compatibility | ✅ คง `Receipt` type ไว้ | UI ไม่พัง |
+| Build + Lint | ✅ ผ่าน | `npm run build` + `npm run lint` |
+| Git Branch | ✅ `feature/backend-supabase` | Pushed รอ PR review |
 
 ---
 
@@ -94,10 +97,12 @@ src/
 │       └── index.ts
 ├── types/index.ts                # ✅ ครบทุก type
 ├── scripts/
-│   └── seed.ts                   # ✅ รันสำเร็จ
+│   └── seed.ts                   # ✅ รันสำเร็จ + dotenv โหลด .env.local
 └── data/mock/                    # ✅ คงไว้สำหรับ dev/test
 docs/
-└── supabase-schema.sql           # ✅ SQL Schema 5 tables + constraints + index + RLS
+├── database-design.md            # 🧠 ความจำกลาง (Central Memory)
+├── supabase-schema.sql           # ✅ SQL Schema 5 tables + constraints + index + RLS
+└── backend-tasks.md              # เอกสารนี้
 ```
 
 ---
@@ -122,9 +127,9 @@ docs/
 
 ### 1.3 Environment ✅
 
-- [x] `.env.example` — `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- [x] `.env.local` — ใส่ key จริง (ignored by git)
-- [x] `.gitignore` — ignore `.env*` ยกเว้น `.env.example`
+- [x] `.env.local` — ใส่ key จริง (ignored by git, ไม่ถูก push)
+- [x] `.gitignore` — ignore `.env*` (ไม่มี exception)
+- [x] `dotenv` — seed script โหลด `.env.local` อัตโนมัติ
 
 ---
 
@@ -354,3 +359,24 @@ status = balanced (0) | short (<0) | overage (>0)
 | 🟢 P2 | Validation | เชื่อม Zod เข้า API routes |
 | 🟢 P2 | npm scripts | `db:seed`, `db:migrate` |
 | 🟢 P2 | Error handling | `src/lib/utils/apiError.ts` |
+
+---
+
+## 🚫 ข้อจำกัดของ Devin (ห้ามยุ่งเกี่ยว)
+
+> **กฎเหล็ก:** Devin **ห้าม** เข้าถึง แก้ไข หรือยุ่งเกี่ยวกับสิ่งต่อไปนี้โดยเด็ดขาด
+
+| สิ่งที่ห้าม | เหตุผล |
+|-------------|--------|
+| `.env.local` | เก็บ Supabase API Key / credentials จริง — ข้อมูลลับ |
+| `.env` ใดๆ | เก็บ secrets, passwords, tokens |
+| Supabase Dashboard / Project Settings | ไม่มีสิทธิ์เข้าถึง console จริง |
+| API Keys / Service Role Key / JWT | ข้อมูล sensitive |
+| ไฟล์ credentials ใดๆ | SSH keys, database passwords |
+| Firebase / Google Cloud Console | ไม่ใช่ส่วนที่มีสิทธิ์จัดการ |
+
+**สิ่งที่ Devin ทำได้แทน:**
+- เขียน `.env.example` (template ไม่มีค่าจริง) ✅
+- แนะนำขั้นตอนว่าต้องไปเอา key จากไหน ✅
+- เขียนโค้ดที่อ่านค่าจาก `process.env` ✅
+- อ่าน/แก้ไขโค้ดทั่วไปที่ไม่มีข้อมูลลับ ✅
