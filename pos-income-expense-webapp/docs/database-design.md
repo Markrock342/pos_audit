@@ -4,7 +4,78 @@
 > **ไม่ใช่ POS ร้านอาหาร** — เก็บแค่รายรับ-รายจ่ายและสิ่งที่ช่วยค้นหา/สรุป/ตรวจสอบ
 
 ---
+## 🧠 ความจำกลาง (Central Memory)
 
+> **กฎการใช้ความจำ:**
+> 1. ทุกครั้งที่เริ่มงานหรือเริ่มแชทใหม่ **ต้องอ่านไฟล์นี้ก่อนเสมอ**
+> 2. เมื่อมีการปรับแก้ไขหรือแก้บัค **ต้องจดบันทึกลงส่วนนี้ทุกครั้ง**
+> 3. หลังจากบันทึกเสร็จ **ต้องอ่านไฟล์นี้อีกครั้งเพื่อยืนยันว่าจดครบ**
+> 4. ต้องรายงานสถานะ: ทำอะไรแล้ว / แก้อะไร / อัปเดทส่วนใด / สถานะปัจจุบัน
+
+### สถานะปัจจุบัน
+
+| ส่วนงาน | สถานะ |
+|---------|--------|
+| Tech Stack สำหรับ Database | ✅ **Supabase (PostgreSQL)** |
+| ไม่สร้าง receipts collection แยก | ✅ เก็บ `receipt_no` + `is_printed` ใน `transactions` |
+| `settings` รวมใน `organizations` | ✅ `receipt_config` + `hardware_config` (object) |
+| จำนวนผู้ใช้ MVP | ✅ 1 คน (role=`admin` default) |
+| Schema Supabase จริง | ✅ อัปเดท types + services + API routes |
+| Seed Data | ✅ เขียน seed script (`src/scripts/seed.ts`) รอ env vars |
+| API CRUD | ✅ transactions, categories, organizations, users, **cash_counts** |
+| Table `cash_counts` | ✅ นับเงินสดประจำวัน (openingBalance, expected, actual, variance, status) |
+| Row Level Security / Policies | ⏳ ยังไม่ทำ |
+| Build + Lint | ✅ ผ่าน |
+| Frontend compatibility | ✅ คง `Receipt` type ไว้สำหรับ UI |
+
+### Checklist งาน
+
+#### ✅ เสร็จแล้ว (Done)
+- [x] ตัดสินใจ Tech Stack: **Supabase (PostgreSQL)** + Node.js + Next.js + React + Tailwind CSS
+- [x] ออกแบบโครงสร้าง Tables: users, organizations, categories, transactions, cash_counts
+- [x] ยืนยันไม่สร้าง receipts table แยก (เก็บใน transactions)
+- [x] ยืนยัน settings รวมใน organizations (receipt_config, hardware_config)
+- [x] กำหนด fields สำหรับ users (MVP 1 คน)
+- [x] ติดตั้ง `@supabase/supabase-js` (ลบ Firebase ออก)
+- [x] เขียน `src/lib/db/supabase.ts` (initialize client)
+- [x] อัปเดท `src/types/index.ts` ให้ตรงกับ Supabase schema
+- [x] สร้าง services CRUD: organizations, users, categories, transactions, cash_counts
+- [x] สร้าง API Routes: `/api/organizations`, `/api/users`, `/api/categories`, `/api/transactions`, `/api/cash-counts`
+- [x] อัปเดท `/api/reports/summary` ให้ query จาก Supabase
+- [x] สร้าง `cash_counts` service: CRUD + คำนวณ `expectedBalance` จาก transactions real-time
+- [x] สร้าง seed script (`src/scripts/seed.ts`) สำหรับ Supabase
+- [x] สร้าง SQL Schema (`docs/supabase-schema.sql`) — CREATE TABLE + Constraints + Index + RLS
+- [x] อัปเดท mock data ให้เป็นข้อมูลธุรกิจทั่วไป (ไม่ใช่ร้านกาแฟ)
+- [x] อัปเดท constants: payment methods ให้ตรงกับ design (cash, transfer, cheque, card, other)
+- [x] ผ่าน `npm run build`
+- [x] ผ่าน `npm run lint`
+
+#### 🔄 กำลังทำ (In Progress)
+- [ ] รอคำสั่งต่อไปจากคุณ
+
+#### ⏳ ยังไม่ทำ (Pending)
+- [ ] สร้าง Supabase Project / สร้าง Tables จริง (ต้องมี env vars)
+- [ ] รัน seed script กับ Supabase จริง
+- [ ] ตั้งค่า Row Level Security + Policies
+- [ ] เชื่อม API กับ Frontend (ตอนนี้ API ใช้ Supabase services แล้ว)
+- [ ] ทดสอบ end-to-end กับ Supabase จริง
+
+### 📝 บันทึกการแก้ไข (Change Log)
+
+| วันที่ | เรื่อง | รายละเอียด | ผู้บันทึก |
+|--------|--------|------------|----------|
+| 2026-06-07 | สร้างความจำกลาง | เพิ่มส่วน Central Memory + Checklist ในไฟล์นี้ | Devin |
+| 2026-06-07 | ตัดสินใจ Tech Stack | ใช้ Firebase (Firestore) แทน PostgreSQL | Devin |
+| 2026-06-07 | ยืนยัน Schema | receipts ไม่ต้องสร้าง collection แยก, settings รวมใน organizations | Devin |
+| 2026-06-07 | Implement Firestore Backend | ติดตั้ง Firebase SDK, สร้าง services + API routes + seed script, อัปเดท types + mock data + constants | Devin |
+| 2026-06-07 | Fix build errors | เพิ่ม `Receipt` type คืนเพื่อ backward compatibility กับ UI, แก้ Query type ใน services | Devin |
+| 2026-06-07 | Fix lint warnings | ลบ unused imports ใน organizations route และ services | Devin |
+| 2026-06-07 | เพิ่ม `cash_counts` collection | สร้าง service + API route สำหรับการนับเงินสดประจำวัน (openingBalance, expected, actual, variance, status) คำนวณ expectedBalance จาก transactions real-time | Devin |
+| 2026-06-07 | **เปลี่ยน Database เป็น Supabase** | ลบ Firebase + Firestore ออก ติดตั้ง `@supabase/supabase-js` แก้ services ทั้งหมดใช้ Supabase client (`.from().select().insert()`) แก้ seed script, ลบ `firebase.ts`, build + lint ผ่าน | Devin |
+| 2026-06-07 | สร้าง SQL Schema | เขียน `docs/supabase-schema.sql` — CREATE TABLE 5 ตาราง (organizations, users, categories, transactions, cash_counts) + Constraints + Index + RLS Policies | Devin |
+| 2026-06-07 | Rename services folder | เปลี่ยนชื่อ `src/lib/services/firestore/` → `src/lib/services/db/` + อัปเดท imports ทุกไฟล์ | Devin |
+
+---
 ## สรุปสั้น — เก็บ 5 กลุ่มหลัก
 
 | กลุ่ม | เก็บอะไร | ทำไมต้องเก็บ |
