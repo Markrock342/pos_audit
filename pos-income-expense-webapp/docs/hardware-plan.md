@@ -4,18 +4,43 @@
 
 | อุปกรณ์ | รายละเอียด |
 |---------|------------|
-| Thermal Printer | 80mm, รองรับ ESC/POS |
-| Cash Drawer | เชื่อมผ่าน RJ11 ที่เครื่องพิมพ์ |
+| Thermal Printer | 80mm, รองรับ ESC/POS, USB หรือ LAN |
+| Cash Drawer | ต่อช่อง **DK (Drawer Kick)** ที่เครื่องพิมพ์ ผ่านสาย **RJ11 หรือ RJ12** |
+| Client | Android Tablet — ติดตั้งเว็บเป็น **PWA** (Add to Home screen) |
+
+## สถาปัตยกรรม (Tablet + Printer + ลิ้นชัก)
+
+```
+Android Tablet (PWA)
+    │  HTTP (Wi‑Fi LAN)
+    ▼
+Local Bridge (Node.js บน tablet / PC ในร้าน)
+    │  TCP :9100 หรือ USB
+    ▼
+Thermal Printer (ESC/POS)
+    │  DK port — สาย RJ11 / RJ12
+    ▼
+Cash Drawer
+```
+
+**สำคัญ:** Tablet **ไม่ต่อ** RJ12 โดยตรง — สายลิ้นชักต่อที่ **เครื่องพิมพ์** เท่านั้น
+
+## PWA (Progressive Web App)
+
+- Deploy Web App บน HTTPS (เช่น Vercel)
+- ผู้ใช้เปิด Chrome บน Android → **ติดตั้งแอป** / Add to Home screen
+- เปิดเต็มจอเหมือนแอป ไม่ต้องลง Play Store
+- การพิมพ์/ลิ้นชักยังต้องผ่าน **Local Bridge** (PWA คุย USB โดยตรงไม่ได้)
 
 ## ข้อจำกัดของ Web Browser
 
-Web App ทั่วไป **ไม่สามารถเข้าถึง USB / Serial / Bluetooth โดยตรง** ได้อย่างเสถียรในทุก browser
+Web App / PWA **ไม่สามารถเข้าถึง USB / Serial โดยตรง** ได้อย่างเสถียร
 
-ทางเลือกในอนาคต:
+ทางเลือก:
 
-1. **Local Bridge Service** — Node/Electron app รันบนเครื่อง POS รับคำสั่งจาก Web App ผ่าน WebSocket/HTTP localhost
-2. **Electron Wrapper** — ห่อ Web App ด้วย Electron เพื่อเข้าถึง hardware APIs
-3. **Network Printer** — ส่ง raw ESC/POS ผ่าน TCP/IP (ต้องมี proxy บนเครื่อง local)
+1. **Local Bridge** — Node app รับคำสั่งจาก PWA ผ่าน `http://192.168.x.x:9101`
+2. **Network Printer** — Bridge ส่ง raw ESC/POS ไป `printer-ip:9100`
+3. **Electron / Capacitor** — ทางเลือกอนาคตถ้าต้องการแอป native บน tablet
 
 ## ESC/POS Commands (อ้างอิง)
 
@@ -26,52 +51,82 @@ Web App ทั่วไป **ไม่สามารถเข้าถึง US
 | `GS V` | Cut paper |
 | `ESC p m t1 t2` | Kick cash drawer |
 
-Implementation อยู่ใน:
+Implementation:
 
-- `/src/lib/hardware/printer.ts`
-- `/src/lib/hardware/cashDrawer.ts`
+- `src/lib/hardware/printer.ts`
+- `src/lib/hardware/cashDrawer.ts`
 
-## Cash Drawer (RJ11)
+## Cash Drawer — RJ11 / RJ12
 
-ลิ้นชักเก็บเงินมักเชื่อมกับเครื่องพิมพ์ผ่านสาย RJ11
+| ประเภท | ขา | หมายเหตุ |
+|--------|-----|----------|
+| RJ11 | 6P4C (4 ขาใช้งาน) | พบบ่อยในร้านค้า |
+| RJ12 | 6P6C (6 ขาใช้งาน) | **ลูกค้าใช้รุ่นนี้** — เสียบช่อง DK ที่ printer ได้เหมือนกัน |
 
-- ส่ง pulse command ผ่าน printer kick port
-- คำสั่งมาตรฐาน: `ESC p 0 50 50` (pin 2, 50ms on/off)
+คำสั่งเด้งลิ้นชัก (เหมือนกันทั้ง RJ11/RJ12):
+
+```
+ESC p m t1 t2
+```
+
+| `m` | ความหมาย |
+|-----|----------|
+| `0` | Pulse ไป **pin 2** (ลองก่อน) |
+| `1` | Pulse ไป **pin 5** (ถ้า pin 2 ไม่เด้ง — บางลิ้นชัก RJ12) |
+
+ตัวอย่าง byte (pin 2, 50ms on/off):
+
+```
+1B 70 00 32 32
+```
+
+ตั้งค่า pin ได้ในหน้า **ตั้งค่า → อุปกรณ์ POS** และใน `buildDrawerKickCommand({ pin: "pin2" | "pin5" })`
+
+### ขั้นตอนทดสอบเมื่อของมาถึง
+
+1. ต่อลิ้นชัก RJ12 → ช่อง DK ที่เครื่องพิมพ์
+2. กด **ทดสอบลิ้นชัก** ในหน้าตั้งค่า (pin 2)
+3. ถ้าไม่เด้ง → เปลี่ยนเป็น pin 5 แล้วทดสอบใหม่
+4. ทดสอบพิมพ์ใบเสร็จ + เด้งลิ้นชักหลังบันทึกรายรับเงินสด
 
 ## แผนการพัฒนา
 
 ### Phase 1 — Scaffold (ปัจจุบัน)
 
-- [x] สร้าง interface และ placeholder functions
+- [x] Interface และ placeholder functions
 - [x] Receipt template สำหรับ preview
-- [x] เอกสารแผน hardware
+- [x] รองรับ RJ11/RJ12 + เลือก pin 2 / pin 5 ในโค้ดและ Settings
+- [x] เอกสารแผน hardware + PWA
 
-### Phase 2 — Local Bridge Prototype
+### Phase 2 — Local Bridge + PWA
 
-- [ ] สร้าง local service รับคำสั่ง print/openDrawer
-- [ ] ทดสอบกับเครื่องพิมพ์ 80mm จริง 1 รุ่น
-- [ ] ทดสอบ cash drawer ผ่าน RJ11
+- [ ] ตั้งค่า PWA (manifest, icons, service worker)
+- [ ] สร้าง `hardware-bridge/` รับ print / drawer
+- [ ] ทดสอบกับเครื่องพิมพ์ 80mm จริง
+- [ ] ทดสอบลิ้นชัก RJ12 (pin 2 แล้ว pin 5)
 
-### Phase 3 — Production Integration
+### Phase 3 — Production
 
 - [ ] Error handling และ retry
-- [ ] ตั้งค่า printer ในหน้า Settings
-- [ ] Log การพิมพ์และสถานะ drawer
+- [ ] บันทึก log การพิมพ์
+- [ ] Flow บันทึกรายรับ → พิมพ์ → เด้งลิ้นชักอัตโนมัติ
 
 ## ข้อควรระวัง
 
 > **ต้องทดสอบกับอุปกรณ์จริงก่อนยืนยัน 100%**
 
-- แต่ละรุ่น printer อาจใช้ command set ต่างกันเล็กน้อย
-- Browser security policy อาจเปลี่ยน — Local Bridge เป็นทางเลือกที่ยืดหยุ่นกว่า
-- ควรมี fallback: preview + manual print หาก hardware ล้มเหลว
+- แต่ละรุ่น printer / ลิ้นชัก อาจใช้ pin ต่างกัน
+- ค่าอุปกรณ์แยกจากค่าพัฒนา Web App
+- Fallback: แสดง preview ใบเสร็จบนจอ หากพิมพ์ไม่สำเร็จ
 
 ## ไฟล์ที่เกี่ยวข้อง
 
 ```
 src/lib/hardware/
-├── printer.ts      # printReceipt, buildEscPosPayload
-└── cashDrawer.ts   # openCashDrawer, buildDrawerKickCommand
+├── printer.ts
+└── cashDrawer.ts      # buildDrawerKickCommand({ pin: "pin2" | "pin5" })
+
+src/app/settings/page.tsx   # ตั้งค่า connector + drawer pin
 
 src/receipt-templates/
 └── default-receipt.tsx
