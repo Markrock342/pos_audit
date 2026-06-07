@@ -47,6 +47,16 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
   const [amountString, setAmountString] = useState("0");
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const amount = watch("amount") || 0;
+
+  const formatDisplay = (val: string) => {
+    if (val === "0" || val === "") return "0";
+    const parts = val.split(".");
+    const intPart = parts[0];
+    const decPart = parts[1] ?? "";
+    const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return decPart !== "" ? `${formattedInt}.${decPart}` : formattedInt;
+  };
+
   const selectedCategoryId = watch("categoryId");
   const selectedPaymentMethod = watch("paymentMethod");
 
@@ -184,7 +194,7 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
               }`}>
                 <span className={`text-4xl font-bold ${errors.amount ? "text-error" : "text-text-muted"}`}>฿</span>
                 <span className={`ml-3 text-5xl font-bold ${errors.amount ? "text-error" : "text-text-main"}`}>
-                  {amountString}
+                  {formatDisplay(amountString)}
                 </span>
               </div>
               {errors.amount && (
