@@ -52,7 +52,7 @@ Login → Dashboard → เพิ่มรายรับ/รายจ่าย 
 
 ### 7. ในอนาคต — สั่งลิ้นชักเด้ง
 
-- เมื่อรับเงินสด ระบบส่ง pulse command ผ่าน printer RJ11
+- เมื่อรับเงินสด ระบบส่ง pulse command ผ่าน printer DK port (RJ11/RJ12)
 - ลิ้นชักเก็บเงินเปิดอัตโนมัติ
 - ดูรายละเอียดใน `hardware-plan.md`
 

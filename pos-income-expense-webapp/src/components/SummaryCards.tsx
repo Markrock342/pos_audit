@@ -32,7 +32,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
       <StatCard
         title="จำนวนรายการ"
         value={String(summary.transactionCount)}
-        subtitle="รายการทั้งหมด (mock)"
+        subtitle="รายการทั้งหมด"
         icon={FileText}
         trend="neutral"
       />

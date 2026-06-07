@@ -4,8 +4,7 @@ import {
   createCategory,
 } from "@/lib/services/db/categories";
 import type { Category } from "@/types";
-
-const DEFAULT_ORG_ID = "default-org"; // MVP: single organization
+import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

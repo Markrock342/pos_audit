@@ -15,7 +15,7 @@ export function TransactionTable({ transactions, categories }: TransactionTableP
     {
       key: "createdAt",
       header: "วันที่",
-      render: (row: Transaction) => formatDateShort(row.createdAt),
+      render: (row: Transaction) => formatDateShort(row.transactionDate || row.createdAt),
     },
     {
       key: "title",

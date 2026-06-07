@@ -8,25 +8,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { mockCategories, mockTransactions } from "@/data/mock";
+import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/utils/format";
 import { ArrowDownCircle, TrendingDown, CreditCard } from "lucide-react";
 
 export default function ExpenseListPage() {
   const [search, setSearch] = useState("");
-  const expenseTransactions = mockTransactions.filter((t) => t.type === "expense");
+  const { transactions, categories, loading, error } = useTransactions("expense");
+
   const filtered = search
-    ? expenseTransactions.filter(
+    ? transactions.filter(
         (t) =>
           t.title.toLowerCase().includes(search.toLowerCase()) ||
           t.note?.toLowerCase().includes(search.toLowerCase())
       )
-    : expenseTransactions;
+    : transactions;
   const totalExpense = filtered.reduce((sum, t) => sum + t.amount, 0);
 
   return (
     <AppLayout title="รายจ่าย">
       <div className="space-y-6">
+        {error && (
+          <p className="rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">
+            {error} — ตรวจสอบว่ารัน SQL schema และ seed ใน Supabase แล้ว
+          </p>
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <Card className="xl:col-span-1 border-t-4 border-t-expense">
             <CardContent className="flex flex-col justify-center min-h-[160px]">
@@ -36,10 +43,12 @@ export default function ExpenseListPage() {
                 </div>
                 <p className="text-lg font-bold text-text-secondary">ยอดรวมรายจ่ายทั้งหมด</p>
               </div>
-              <p className="text-5xl font-black text-expense tracking-tight">{formatCurrency(totalExpense)}</p>
+              <p className="text-5xl font-black text-expense tracking-tight">
+                {loading ? "..." : formatCurrency(totalExpense)}
+              </p>
               <div className="mt-3 flex items-center gap-2 text-sm font-bold text-expense">
                 <TrendingDown size={18} />
-                <span>{filtered.length} รายการ</span>
+                <span>{loading ? "..." : `${filtered.length} รายการ`}</span>
               </div>
             </CardContent>
           </Card>
@@ -68,18 +77,17 @@ export default function ExpenseListPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {filtered.length === 0 ? (
+                {loading ? (
+                  <p className="text-center text-text-muted py-12">กำลังโหลด...</p>
+                ) : filtered.length === 0 ? (
                   <EmptyState
                     title="ไม่พบรายการ"
-                    message={`ไม่พบ "${search}" ในรายการรายจ่าย`}
+                    message={search ? `ไม่พบ "${search}" ในรายการรายจ่าย` : "ยังไม่มีรายจ่าย — เริ่มบันทึกรายการแรก"}
                     actionHref="/expense/add"
                     actionLabel="+ เพิ่มรายจ่าย"
                   />
                 ) : (
-                  <TransactionTable
-                    transactions={filtered}
-                    categories={mockCategories}
-                  />
+                  <TransactionTable transactions={filtered} categories={categories} />
                 )}
               </CardContent>
             </Card>

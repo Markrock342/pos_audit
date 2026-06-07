@@ -2,10 +2,12 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
 
 interface AuthContextValue {
   isLoggedIn: boolean;
   isReady: boolean;
+  session: KioskSession | null;
   login: () => void;
   logout: () => void;
 }
@@ -14,17 +16,31 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const AUTH_KEY = "kiosk-auth";
 
+function readSession(): KioskSession | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(KIOSK_SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as KioskSession;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [session, setSession] = useState<KioskSession | null>(null);
 
   useEffect(() => {
     try {
       const stored = typeof window !== "undefined" && localStorage.getItem(AUTH_KEY);
       setIsLoggedIn(!!stored);
+      setSession(readSession());
     } catch {
       setIsLoggedIn(false);
+      setSession(null);
     }
     setIsReady(true);
 
@@ -40,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(() => {
     try {
       localStorage.setItem(AUTH_KEY, "1");
+      setSession(readSession());
     } catch {}
     setIsLoggedIn(true);
   }, []);
@@ -48,13 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.removeItem(AUTH_KEY);
       localStorage.removeItem("kiosk-current-user");
+      localStorage.removeItem(KIOSK_SESSION_KEY);
     } catch {}
     setIsLoggedIn(false);
+    setSession(null);
     router.push("/login");
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, isReady, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, isReady, session, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

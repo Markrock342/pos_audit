@@ -10,7 +10,8 @@ export interface PrintReceiptOptions {
  *
  * Future implementation plan:
  * - Send ESC/POS commands to thermal printer
- * - Support USB / Network / Bluetooth via Local Bridge or Electron
+ * - Support USB / LAN via Local Bridge (PWA on Android tablet)
+ * - Cash drawer kick via printer DK port (RJ11/RJ12) after print
  * - Format receipt from template in /receipt-templates
  *
  * ESC/POS reference commands (examples):

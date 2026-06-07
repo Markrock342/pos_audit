@@ -143,7 +143,7 @@ export default function CategoriesPage() {
             <div className="space-y-4">
               <Input
                 label="ชื่อหมวดหมู่"
-                placeholder="เช่น เครื่องดื่ม"
+                placeholder="เช่น วัสดุก่อสร้าง"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />

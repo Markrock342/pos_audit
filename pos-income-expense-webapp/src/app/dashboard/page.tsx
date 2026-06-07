@@ -6,24 +6,27 @@ import { IncomeExpenseChart } from "@/components/charts/IncomeExpenseChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ArrowUpCircle, ArrowDownCircle, TrendingUp } from "lucide-react";
-import { getCategories } from "@/lib/store";
-import {
-  mockChartData,
-  mockDashboardSummary,
-  mockTransactions,
-} from "@/data/mock";
+import { loadCategories, loadTransactions } from "@/lib/data/loader";
+import { buildChartData, buildDashboardSummary } from "@/lib/reports/summary";
 
-export default function DashboardPage() {
-  const recentTransactions = mockTransactions.slice(0, 5);
+export default async function DashboardPage() {
+  const [transactions, categories] = await Promise.all([
+    loadTransactions({ status: "active" }),
+    loadCategories(),
+  ]);
+
+  const summary = buildDashboardSummary(transactions);
+  const chartData = buildChartData(transactions);
+  const recentTransactions = transactions.slice(0, 5);
 
   return (
     <AppLayout title="Dashboard">
       <div className="space-y-6">
-        <SummaryCards summary={mockDashboardSummary} />
+        <SummaryCards summary={summary} />
 
         <div className="grid grid-cols-2 gap-4">
           <Link href="/income/add">
-            <Button size="lg" className="w-full gap-3 text-xl font-black">
+            <Button variant="income" size="lg" className="w-full gap-3 text-xl font-black">
               <ArrowUpCircle size={28} />
               เพิ่มรายรับ
             </Button>
@@ -45,7 +48,7 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <IncomeExpenseChart data={mockChartData} />
+              <IncomeExpenseChart data={chartData} />
             </CardContent>
           </Card>
 
@@ -59,10 +62,14 @@ export default function DashboardPage() {
               </Link>
             </CardHeader>
             <CardContent>
-              <RecentTransactionList
-                transactions={recentTransactions}
-                categories={getCategories()}
-              />
+              {recentTransactions.length === 0 ? (
+                <p className="text-center text-text-muted py-8">ยังไม่มีรายการ — เริ่มบันทึกรายรับ/รายจ่ายได้เลย</p>
+              ) : (
+                <RecentTransactionList
+                  transactions={recentTransactions}
+                  categories={categories}
+                />
+              )}
             </CardContent>
           </Card>
         </div>

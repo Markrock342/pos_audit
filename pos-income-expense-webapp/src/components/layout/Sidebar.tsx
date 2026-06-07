@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_ITEMS, APP_NAME } from "@/constants";
+import { NAV_ITEMS, APP_NAME, SHOP_NAME } from "@/constants";
 import { cn } from "@/lib/utils/cn";
 
 export function Sidebar() {
@@ -13,11 +13,11 @@ export function Sidebar() {
       <div className="border-b border-border-default px-6 py-8">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand shadow-[0_2px_8px_rgba(255,107,53,0.4)]">
-            <span className="text-lg font-black text-text-inverse">P</span>
+            <span className="text-lg font-black text-text-inverse">บ</span>
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-text-muted">
-              Coffee POS
+              {SHOP_NAME}
             </p>
             <h1 className="text-lg font-black text-text-main leading-tight">{APP_NAME}</h1>
           </div>

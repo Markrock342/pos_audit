@@ -6,7 +6,7 @@ export const transactionSchema = z.object({
   title: z.string().min(1, "กรุณากรอกรายการ").max(100),
   amount: z.number().positive("จำนวนเงินต้องมากกว่า 0"),
   note: z.string().max(500).optional(),
-  paymentMethod: z.enum(["cash", "transfer", "card", "qr"]),
+  paymentMethod: z.enum(["cash", "transfer", "cheque", "card", "other"]),
   date: z.string().optional(),
 });
 

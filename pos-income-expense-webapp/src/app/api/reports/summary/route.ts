@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getTransactions } from "@/lib/services/db/transactions";
 import type { ReportSummary } from "@/types";
 
-const DEFAULT_ORG_ID = "default-org";
+import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

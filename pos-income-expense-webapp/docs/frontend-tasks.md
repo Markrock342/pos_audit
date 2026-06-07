@@ -9,7 +9,7 @@
 
 ## เป้าหมาย Frontend
 
-Web App ต้องรองรับ workflow หลัก:
+Web App ต้องรองรับ workflow หลัก:image.png
 
 ```
 เข้าระบบ → บันทึกรายรับ/รายจ่าย → บันทึก DB

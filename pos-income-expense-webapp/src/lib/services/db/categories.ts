@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db/supabase";
+import { mapCategory } from "@/lib/utils/dbMap";
 import type { Category } from "@/types";
 
 const TABLE = "categories";
@@ -10,7 +11,7 @@ export async function getCategory(id: string): Promise<Category | null> {
     .eq("id", id)
     .single();
   if (error || !data) return null;
-  return data as Category;
+  return mapCategory(data as Record<string, unknown>);
 }
 
 export async function getCategories(
@@ -23,7 +24,7 @@ export async function getCategories(
   }
   const { data, error } = await q;
   if (error || !data) return [];
-  return data as Category[];
+  return (data as Record<string, unknown>[]).map(mapCategory);
 }
 
 export async function createCategory(
