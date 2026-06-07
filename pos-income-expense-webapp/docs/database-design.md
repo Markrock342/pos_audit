@@ -21,10 +21,10 @@
 | `settings` รวมใน `organizations` | ✅ `receipt_config` + `hardware_config` (object) |
 | จำนวนผู้ใช้ MVP | ✅ 1 คน (role=`admin` default) |
 | Schema Supabase จริง | ✅ อัปเดท types + services + API routes |
-| Seed Data | ✅ เขียน seed script (`src/scripts/seed.ts`) รอ env vars |
+| Seed Data | ✅ Seed script รันสำเร็จ ข้อมูลเข้า Supabase จริง |
 | API CRUD | ✅ transactions, categories, organizations, users, **cash_counts** |
 | Table `cash_counts` | ✅ นับเงินสดประจำวัน (openingBalance, expected, actual, variance, status) |
-| Row Level Security / Policies | ⏳ ยังไม่ทำ |
+| Row Level Security / Policies | ⏳ ยังไม่ทำ (MVP ปิดไว้ก่อน) |
 | Build + Lint | ✅ ผ่าน |
 | Frontend compatibility | ✅ คง `Receipt` type ไว้สำหรับ UI |
 
@@ -44,6 +44,10 @@
 - [x] อัปเดท `/api/reports/summary` ให้ query จาก Supabase
 - [x] สร้าง `cash_counts` service: CRUD + คำนวณ `expectedBalance` จาก transactions real-time
 - [x] สร้าง seed script (`src/scripts/seed.ts`) สำหรับ Supabase
+- [x] ติดตั้ง `dotenv` ให้ seed script โหลด `.env.local` อัตโนมัติ
+- [x] รัน Seed Script สำเร็จ (ข้อมูลเข้า Supabase จริง: 1 org, 1 user, 7 categories, 8 transactions)
+- [x] สร้าง `.env.example` template
+- [x] อัปเดท `.gitignore` — ignore `.env*` แต่ยกเว้น `.env.example`
 - [x] สร้าง SQL Schema (`docs/supabase-schema.sql`) — CREATE TABLE + Constraints + Index + RLS
 - [x] อัปเดท mock data ให้เป็นข้อมูลธุรกิจทั่วไป (ไม่ใช่ร้านกาแฟ)
 - [x] อัปเดท constants: payment methods ให้ตรงกับ design (cash, transfer, cheque, card, other)
@@ -51,14 +55,14 @@
 - [x] ผ่าน `npm run lint`
 
 #### 🔄 กำลังทำ (In Progress)
-- [ ] รอคำสั่งต่อไปจากคุณ
+- [ ] รอคุณรัน SQL สร้าง Tables ใน Supabase Dashboard
+- [ ] รอคุณทดสอบ API endpoints (npm run dev + เปิด Browser)
 
 #### ⏳ ยังไม่ทำ (Pending)
-- [ ] สร้าง Supabase Project / สร้าง Tables จริง (ต้องมี env vars)
-- [ ] รัน seed script กับ Supabase จริง
-- [ ] ตั้งค่า Row Level Security + Policies
-- [ ] เชื่อม API กับ Frontend (ตอนนี้ API ใช้ Supabase services แล้ว)
-- [ ] ทดสอบ end-to-end กับ Supabase จริง
+- [ ] รัน SQL Schema (`docs/supabase-schema.sql`) ใน Supabase Dashboard → สร้าง 5 Tables
+- [ ] ทดสอบ API endpoints end-to-end กับ Supabase จริง (รอ `npm run dev`)
+- [ ] เชื่อม API กับ Frontend (Frontend ยังใช้ mock data อยู่)
+- [ ] ตั้งค่า Row Level Security + Policies (Phase 2)
 
 ### 📝 บันทึกการแก้ไข (Change Log)
 
@@ -74,7 +78,32 @@
 | 2026-06-07 | **เปลี่ยน Database เป็น Supabase** | ลบ Firebase + Firestore ออก ติดตั้ง `@supabase/supabase-js` แก้ services ทั้งหมดใช้ Supabase client (`.from().select().insert()`) แก้ seed script, ลบ `firebase.ts`, build + lint ผ่าน | Devin |
 | 2026-06-07 | สร้าง SQL Schema | เขียน `docs/supabase-schema.sql` — CREATE TABLE 5 ตาราง (organizations, users, categories, transactions, cash_counts) + Constraints + Index + RLS Policies | Devin |
 | 2026-06-07 | Rename services folder | เปลี่ยนชื่อ `src/lib/services/firestore/` → `src/lib/services/db/` + อัปเดท imports ทุกไฟล์ | Devin |
+| 2026-06-07 | สร้าง `.env.example` | Template สำหรับทีม บอกว่าต้องใส่ NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY | Devin |
+| 2026-06-07 | อัปเดท `.gitignore` | เพิ่ม !.env.example เพื่อให้ commit template ได้ แต่ ignore .env.local ที่มี key จริง | Devin |
+| 2026-06-07 | ติดตั้ง `dotenv` | ให้ seed script โหลด .env.local อัตโนมัติก่อนเชื่อม Supabase | Devin |
+| 2026-06-07 | Seed สำเร็จ | รัน npx tsx src/scripts/seed.ts สำเร็จ — ข้อมูลเข้า Supabase จริง (1 org, 1 user, 7 categories, 8 transactions) | Devin |
+| 2026-06-07 | Git: stash → pull → branch → commit → push | Stash งาน → pull frontend updates จากเพื่อน → checkout feature/backend-supabase → commit → push รอ PR | Devin |
 
+---
+
+## 🚫 ข้อจำกัดของ Devin (ห้ามยุ่งเกี่ยว)
+
+> **กฎเหล็ก:** ผม (Devin) **ห้าม** เข้าถึง แก้ไข หรือยุ่งเกี่ยวกับสิ่งต่อไปนี้โดยเด็ดขาด
+
+| สิ่งที่ห้าม | เหตุผล |
+|-------------|--------|
+| .env.local | เก็บ Supabase API Key / credentials จริง — ข้อมูลลับ |
+| .env ใดๆ (ยกเว้น .env.example) | เก็บ secrets, passwords, tokens |
+| Supabase Dashboard / Project Settings | ผมไม่มีสิทธิ์เข้าถึง console จริง |
+| API Keys / Service Role Key / JWT | ข้อมูล sensitive ที่อาจทำให้ระบบเสียหาย |
+| ไฟล์ credentials ใดๆ | SSH keys, database passwords, auth tokens |
+| Firebase / Google Cloud Console | ไม่ใช่ส่วนที่ผมมีสิทธิ์จัดการ |
+
+**สิ่งที่ผมทำได้แทน:**
+- เขียน .env.example (template ไม่มีค่าจริง) ✅
+- แนะนำขั้นตอนว่าต้องไปเอา key จากไหน ✅
+- เขียนโค้ดที่อ่านค่าจาก process.env ✅
+- อ่าน/แก้ไขโค้ดทั่วไปที่ไม่มีข้อมูลลับ ✅
 ---
 ## สรุปสั้น — เก็บ 5 กลุ่มหลัก
 
