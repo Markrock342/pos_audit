@@ -1,35 +1,73 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { SHOP_NAME } from "@/constants";
 import { Button } from "@/components/ui/Button";
+import { ArrowLeft, Moon, Sun } from "lucide-react";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 interface HeaderProps {
   title: string;
-  onMenuClick: () => void;
 }
 
-export function Header({ title, onMenuClick }: HeaderProps) {
+export function Header({ title }: HeaderProps) {
+  const { theme, setTheme } = useTheme();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [time, setTime] = useState("");
+
+  const isHome = pathname === "/dashboard";
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      setTime(
+        now.toLocaleTimeString("th-TH", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      );
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-stone-200 bg-white/95 px-4 backdrop-blur sm:px-6">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="lg:hidden"
-          onClick={onMenuClick}
-          aria-label="เปิดเมนู"
-        >
-          ☰
-        </Button>
+    <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-border-default bg-surface-elevated px-6 shadow-[0_1px_6px_rgba(15,23,42,0.06)]">
+      <div className="flex items-center gap-4">
+        {!isHome && (
+          <Button
+            variant="ghost"
+            onClick={() => router.back()}
+            className="min-h-[56px]"
+            aria-label="ย้อนกลับ"
+          >
+            <ArrowLeft size={24} />
+          </Button>
+        )}
         <div>
-          <p className="text-xs text-stone-500">{SHOP_NAME}</p>
-          <h2 className="text-base font-semibold text-stone-900">{title}</h2>
+          <p className="text-base font-semibold text-text-secondary">{SHOP_NAME}</p>
+          <h2 className="text-xl font-bold text-text-main">{title}</h2>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="hidden text-sm text-stone-600 sm:inline">ผู้ใช้: Staff</span>
-        <Button variant="outline" size="sm">
+      <div className="flex items-center gap-4">
+        <span className="text-2xl font-bold tabular-nums text-text-main tracking-tight">
+          {time}
+        </span>
+        <Button
+          variant="ghost"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="min-h-[56px]"
+          aria-label="เปลี่ยนธีม"
+        >
+          {theme === "dark" ? <Sun size={24} /> : <Moon size={24} />}
+        </Button>
+        <span className="text-lg font-medium text-text-secondary">ผู้ใช้: Staff</span>
+        <Button variant="outline" className="min-h-[56px]">
           ออกจากระบบ
         </Button>
       </div>

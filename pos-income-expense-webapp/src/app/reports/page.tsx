@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { mockChartData, mockReportSummary } from "@/data/mock";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
+import { Coins, Wallet, TrendingUp } from "lucide-react";
 
 export default function ReportsPage() {
   const { totalIncome, totalExpense, netProfit, dateRange } = mockReportSummary;
@@ -24,19 +25,19 @@ export default function ReportsPage() {
                 title="รายรับรวม"
                 value={formatCurrency(totalIncome)}
                 trend="up"
-                icon="💰"
+                icon={Coins}
               />
               <StatCard
                 title="รายจ่ายรวม"
                 value={formatCurrency(totalExpense)}
                 trend="down"
-                icon="💸"
+                icon={Wallet}
               />
               <StatCard
                 title="กำไรสุทธิ"
                 value={formatCurrency(netProfit)}
                 trend={netProfit >= 0 ? "up" : "down"}
-                icon="📈"
+                icon={TrendingUp}
               />
             </div>
           </CardContent>
@@ -56,7 +57,7 @@ export default function ReportsPage() {
             <CardTitle>รายงานเพิ่มเติม (Coming Soon)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="list-inside list-disc space-y-1 text-sm text-stone-600">
+            <ul className="list-inside list-disc space-y-1 text-sm text-text-secondary">
               <li>ส่งออก PDF / Excel</li>
               <li>กรองตามหมวดหมู่และช่องทางชำระเงิน</li>
               <li>รายงานรายวัน / รายเดือน / รายปี</li>
