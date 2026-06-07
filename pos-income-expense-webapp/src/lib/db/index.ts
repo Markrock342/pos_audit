@@ -4,8 +4,4 @@
  */
 export type DbProvider = "firebase" | "supabase" | "postgres" | "mock";
 
-export const DB_PROVIDER: DbProvider = "mock";
-
-export { firebaseConfig } from "./firebase";
-export { supabaseConfig } from "./supabase";
-export { postgresConfig } from "./postgres";
+export const DB_PROVIDER: DbProvider = "supabase";
