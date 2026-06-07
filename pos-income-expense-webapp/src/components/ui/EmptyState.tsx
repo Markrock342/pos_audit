@@ -6,6 +6,7 @@ interface EmptyStateProps {
   message?: string;
   actionHref?: string;
   actionLabel?: string;
+  actionVariant?: "brand" | "income";
 }
 
 export function EmptyState({
@@ -13,6 +14,7 @@ export function EmptyState({
   message = "เริ่มต้นบันทึกรายการแรกของคุณ",
   actionHref,
   actionLabel = "+ เพิ่มรายการ",
+  actionVariant = "brand",
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border-default bg-surface-elevated py-16 px-6 text-center">
@@ -24,7 +26,11 @@ export function EmptyState({
       {actionHref && (
         <Link
           href={actionHref}
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-3 text-lg font-bold text-text-inverse shadow-md active:shadow-lg active:scale-95 transition-transform"
+          className={`mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-lg font-bold text-text-inverse shadow-md active:shadow-lg active:scale-95 transition-transform ${
+            actionVariant === "income"
+              ? "bg-income active:bg-income-hover shadow-[0_2px_8px_rgba(16,185,129,0.35)]"
+              : "bg-brand active:bg-brand-hover"
+          }`}
         >
           <Plus size={20} />
           {actionLabel}

@@ -4,7 +4,7 @@ import {
   updateOrganization,
 } from "@/lib/services/db/organizations";
 
-const DEFAULT_ORG_ID = "default-org"; // MVP: single organization
+import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
 export async function GET() {
   const org = await getOrganization(DEFAULT_ORG_ID);

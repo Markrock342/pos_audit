@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { DatabaseSettings } from "@/components/settings/DatabaseSettings";
 import { SHOP_NAME } from "@/constants";
 
 export default function SettingsPage() {
@@ -73,18 +74,8 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>ฐานข้อมูล (เตรียมไว้)</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Select
-              label="Database Provider"
-              options={[
-                { value: "supabase", label: "Supabase (ปัจจุบัน)" },
-                { value: "mock", label: "Mock Data (ทดสอบ offline)" },
-              ]}
-              defaultValue="supabase"
-            />
-            <p className="text-xs text-text-muted">
-              ตั้งค่า NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_ANON_KEY ใน .env.local
-            </p>
+          <CardContent>
+            <DatabaseSettings />
           </CardContent>
         </Card>
       </div>

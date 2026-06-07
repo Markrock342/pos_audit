@@ -3,8 +3,7 @@ import {
   getCashCounts,
   createCashCount,
 } from "@/lib/services/db/cashCounts";
-
-const DEFAULT_ORG_ID = "default-org"; // MVP: single organization
+import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
 export async function GET() {
   const data = await getCashCounts(DEFAULT_ORG_ID);

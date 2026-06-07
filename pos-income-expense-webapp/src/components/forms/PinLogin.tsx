@@ -3,6 +3,12 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Delete, Loader2 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import {
+  findKioskAccount,
+  isHiddenFromProfiles,
+  KIOSK_SESSION_KEY,
+  toKioskSession,
+} from "@/constants/kioskUsers";
 
 const MAX_PIN = 4;
 const PIN_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "backspace"];
@@ -61,7 +67,7 @@ function getSavedProfiles(): string[] {
 }
 
 function addSavedProfile(username: string) {
-  if (username === "lcs") return; // secret user, don't show in dropdown
+  if (isHiddenFromProfiles(username)) return;
   try {
     const profiles = getSavedProfiles();
     if (!profiles.includes(username)) {
@@ -141,14 +147,17 @@ export function PinLogin() {
     const match = users.find(
       (u) => u.username === trimmedUser && u.pin === pin
     );
+    const builtin = findKioskAccount(trimmedUser, pin);
 
-    // hardcoded user: lcs
-    const isHardcoded = trimmedUser === "lcs" && pin === "5689";
-
-    if (match || isHardcoded) {
+    if (match || builtin) {
       setErrorMsg("");
       try {
         localStorage.setItem(CURRENT_USER_KEY, trimmedUser);
+        if (builtin) {
+          localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(toKioskSession(builtin)));
+        } else {
+          localStorage.removeItem(KIOSK_SESSION_KEY);
+        }
       } catch {}
       addSavedProfile(trimmedUser);
       setSavedProfiles(getSavedProfiles());
@@ -174,19 +183,19 @@ export function PinLogin() {
   return (
     <div className="flex flex-col items-center gap-2 w-full max-w-lg mx-auto">
       {/* Saved Profiles Dropdown */}
-      {savedProfiles.filter((n) => n !== "lcs").length > 0 && (
+      {savedProfiles.filter((n) => !isHiddenFromProfiles(n)).length > 0 && (
         <div className="w-full relative" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => setShowProfiles((p) => !p)}
             className="w-full flex items-center justify-between rounded-2xl border-2 border-border-default bg-surface-elevated py-2 px-4 text-base font-bold text-text-secondary shadow-sm active:scale-[0.98] transition-all duration-150"
           >
-            <span>เลือกโปรไฟล์ที่บันทึกไว้ ({savedProfiles.filter((n) => n !== "lcs").length})</span>
+            <span>เลือกโปรไฟล์ที่บันทึกไว้ ({savedProfiles.filter((n) => !isHiddenFromProfiles(n)).length})</span>
             <span className={`transition-transform duration-150 ${showProfiles ? "rotate-180" : ""}`}>▼</span>
           </button>
           {showProfiles && (
             <div className="absolute z-20 mt-1 w-full rounded-2xl border-2 border-border-default bg-surface-elevated shadow-lg overflow-hidden">
-              {savedProfiles.filter((n) => n !== "lcs").map((name) => (
+              {savedProfiles.filter((n) => !isHiddenFromProfiles(n)).map((name) => (
                 <div
                   key={name}
                   className="flex items-center justify-between px-4 py-2 hover:bg-surface-hover active:bg-surface-hover cursor-pointer transition-colors"

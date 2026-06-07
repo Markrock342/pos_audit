@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Delete, Save, UserCheck } from "lucide-react";
 import { SHOP_NAME } from "@/constants";
+import { isBuiltinUsername } from "@/constants/kioskUsers";
 
 const MAX_PIN = 4;
 const PIN_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "backspace"];
@@ -99,6 +100,11 @@ export default function SetPasswordPage() {
   const handleNext = () => {
     const trimmed = username.trim();
     if (!trimmed || pin.length !== MAX_PIN) return;
+
+    if (isBuiltinUsername(trimmed)) {
+      setErrorMsg(`"${trimmed}" เป็นชื่อระบบ (ลูกค้า/dev) — ใช้ชื่ออื่น`);
+      return;
+    }
 
     const duplicate = existingUsers.find((u) => u.username === trimmed);
     if (duplicate) {

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUsers } from "@/lib/services/db/users";
-
-const DEFAULT_ORG_ID = "default-org"; // MVP: single organization
+import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
 export async function GET() {
   const data = await getUsers(DEFAULT_ORG_ID);

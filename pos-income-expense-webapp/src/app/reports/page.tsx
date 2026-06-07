@@ -2,12 +2,38 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { IncomeExpenseChart } from "@/components/charts/IncomeExpenseChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
-import { mockChartData, mockReportSummary } from "@/data/mock";
+import { loadTransactions } from "@/lib/data/loader";
+import { buildChartData } from "@/lib/reports/summary";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
 import { Coins, Wallet, TrendingUp } from "lucide-react";
 
-export default function ReportsPage() {
-  const { totalIncome, totalExpense, netProfit, dateRange } = mockReportSummary;
+function getFirstDayOfMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function getToday() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export default async function ReportsPage() {
+  const start = getFirstDayOfMonth();
+  const end = getToday();
+
+  const transactions = await loadTransactions({
+    startDate: start,
+    endDate: end,
+    status: "active",
+  });
+
+  const totalIncome = transactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const totalExpense = transactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const netProfit = totalIncome - totalExpense;
+  const chartData = buildChartData(transactions);
 
   return (
     <AppLayout title="รายงาน">
@@ -15,24 +41,13 @@ export default function ReportsPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              ช่วงวันที่: {formatDateShort(dateRange.start)} —{" "}
-              {formatDateShort(dateRange.end)}
+              ช่วงวันที่: {formatDateShort(start)} — {formatDateShort(end)}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-3">
-              <StatCard
-                title="รายรับรวม"
-                value={formatCurrency(totalIncome)}
-                trend="up"
-                icon={Coins}
-              />
-              <StatCard
-                title="รายจ่ายรวม"
-                value={formatCurrency(totalExpense)}
-                trend="down"
-                icon={Wallet}
-              />
+              <StatCard title="รายรับรวม" value={formatCurrency(totalIncome)} trend="up" icon={Coins} />
+              <StatCard title="รายจ่ายรวม" value={formatCurrency(totalExpense)} trend="down" icon={Wallet} />
               <StatCard
                 title="กำไรสุทธิ"
                 value={formatCurrency(netProfit)}
@@ -48,7 +63,7 @@ export default function ReportsPage() {
             <CardTitle>กราฟรายรับ-รายจ่าย</CardTitle>
           </CardHeader>
           <CardContent>
-            <IncomeExpenseChart data={mockChartData} />
+            <IncomeExpenseChart data={chartData} />
           </CardContent>
         </Card>
 

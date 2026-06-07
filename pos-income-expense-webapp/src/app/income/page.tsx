@@ -9,26 +9,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { mockCategories, mockTransactions } from "@/data/mock";
+import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/utils/format";
 import { ArrowUpCircle, TrendingUp, Wallet } from "lucide-react";
 
 export default function IncomeListPage() {
   const [search, setSearch] = useState("");
-  const incomeTransactions = mockTransactions.filter((t) => t.type === "income");
+  const { transactions, categories, loading, error } = useTransactions("income");
+
   const filtered = search
-    ? incomeTransactions.filter(
+    ? transactions.filter(
         (t) =>
           t.title.toLowerCase().includes(search.toLowerCase()) ||
           t.note?.toLowerCase().includes(search.toLowerCase())
       )
-    : incomeTransactions;
+    : transactions;
   const totalIncome = filtered.reduce((sum, t) => sum + t.amount, 0);
-  const sampleTransaction = incomeTransactions[0];
+  const sampleTransaction = transactions[0];
 
   return (
     <AppLayout title="รายรับ">
       <div className="space-y-6">
+        {error && (
+          <p className="rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">
+            {error} — ตรวจสอบว่ารัน SQL schema และ seed ใน Supabase แล้ว
+          </p>
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <Card className="xl:col-span-1 border-t-4 border-t-income">
             <CardContent className="flex flex-col justify-center min-h-[160px]">
@@ -38,10 +45,12 @@ export default function IncomeListPage() {
                 </div>
                 <p className="text-lg font-bold text-text-secondary">ยอดรวมรายรับทั้งหมด</p>
               </div>
-              <p className="text-5xl font-black text-income tracking-tight">{formatCurrency(totalIncome)}</p>
+              <p className="text-5xl font-black text-income tracking-tight">
+                {loading ? "..." : formatCurrency(totalIncome)}
+              </p>
               <div className="mt-3 flex items-center gap-2 text-sm font-bold text-income">
                 <TrendingUp size={18} />
-                <span>{filtered.length} รายการ</span>
+                <span>{loading ? "..." : `${filtered.length} รายการ`}</span>
               </div>
             </CardContent>
           </Card>
@@ -55,7 +64,7 @@ export default function IncomeListPage() {
                 wrapperClassName="flex-1"
               />
               <Link href="/income/add">
-                <Button size="lg" className="gap-2 whitespace-nowrap">
+                <Button variant="income" size="lg" className="gap-2 whitespace-nowrap">
                   <ArrowUpCircle size={22} />
                   เพิ่มรายรับ
                 </Button>
@@ -70,18 +79,18 @@ export default function IncomeListPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {filtered.length === 0 ? (
+                {loading ? (
+                  <p className="text-center text-text-muted py-12">กำลังโหลด...</p>
+                ) : filtered.length === 0 ? (
                   <EmptyState
                     title="ไม่พบรายการ"
-                    message={`ไม่พบ "${search}" ในรายการรายรับ`}
+                    message={search ? `ไม่พบ "${search}" ในรายการรายรับ` : "ยังไม่มีรายรับ — เริ่มบันทึกรายการแรก"}
                     actionHref="/income/add"
                     actionLabel="+ เพิ่มรายรับ"
+                    actionVariant="income"
                   />
                 ) : (
-                  <TransactionTable
-                    transactions={filtered}
-                    categories={mockCategories}
-                  />
+                  <TransactionTable transactions={filtered} categories={categories} />
                 )}
               </CardContent>
             </Card>
@@ -92,9 +101,9 @@ export default function IncomeListPage() {
           <ReceiptPreview
             transaction={sampleTransaction}
             receipt={{
-              id: "rcpt-1",
+              id: "preview",
               transactionId: sampleTransaction.id,
-              receiptNumber: "RCP-2026-0001",
+              receiptNumber: sampleTransaction.receiptNo ?? `R-${sampleTransaction.id.slice(0, 8)}`,
             }}
           />
         )}

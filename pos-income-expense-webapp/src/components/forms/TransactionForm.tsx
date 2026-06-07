@@ -18,7 +18,7 @@ import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 interface TransactionFormProps {
   type: TransactionType;
   categories: Category[];
-  onSubmit?: (data: TransactionFormValues) => void;
+  onSubmit?: (data: TransactionFormValues) => void | Promise<void>;
   onCancel?: () => void;
 }
 
@@ -77,8 +77,7 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
     setValue("amount", parseFloat(newAmount) || 0);
   };
 
-  const handleFormSubmit = (data: TransactionFormValues) => {
-    // Check if required fields are filled
+  const handleFormSubmit = async (data: TransactionFormValues) => {
     if (!data.categoryId) {
       setToast({ type: "error", message: "กรุณาเลือกหมวดหมู่" });
       return;
@@ -92,8 +91,12 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
       return;
     }
 
-    onSubmit?.(data);
-    setToast({ type: "success", message: "บันทึกข้อมูลสำเร็จ (Mock)" });
+    try {
+      await onSubmit?.(data);
+      setToast({ type: "success", message: "บันทึกข้อมูลสำเร็จ" });
+    } catch {
+      setToast({ type: "error", message: "บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง" });
+    }
   };
 
   return (

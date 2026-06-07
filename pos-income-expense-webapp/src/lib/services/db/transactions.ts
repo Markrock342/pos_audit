@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db/supabase";
+import { mapTransaction, toTransactionInsert } from "@/lib/utils/dbMap";
 import type { Transaction, TransactionType } from "@/types";
 
 const TABLE = "transactions";
@@ -10,7 +11,7 @@ export async function getTransaction(id: string): Promise<Transaction | null> {
     .eq("id", id)
     .single();
   if (error || !data) return null;
-  return data as Transaction;
+  return mapTransaction(data as Record<string, unknown>);
 }
 
 export async function getTransactions(
@@ -43,25 +44,19 @@ export async function getTransactions(
 
   const { data, error } = await q;
   if (error || !data) return [];
-  return data as Transaction[];
+  return (data as Record<string, unknown>[]).map(mapTransaction);
 }
 
 export async function createTransaction(
   data: Omit<Transaction, "id" | "createdAt" | "status" | "isPrinted">
 ): Promise<Transaction> {
-  const txn = {
-    ...data,
-    status: "active",
-    is_printed: false,
-    created_at: new Date().toISOString(),
-  };
   const { data: inserted, error } = await getDb()
     .from(TABLE)
-    .insert(txn)
+    .insert(toTransactionInsert(data))
     .select()
     .single();
   if (error) throw error;
-  return inserted as Transaction;
+  return mapTransaction(inserted as Record<string, unknown>);
 }
 
 export async function updateTransaction(
