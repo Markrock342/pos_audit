@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { TransactionForm } from "@/components/forms/TransactionForm";
-import { mockCategories } from "@/data/mock";
+import { getCategories } from "@/lib/store";
 
 export default function AddIncomePage() {
   const router = useRouter();
@@ -12,7 +12,7 @@ export default function AddIncomePage() {
     <AppLayout title="เพิ่มรายรับ">
       <TransactionForm
         type="income"
-        categories={mockCategories}
+        categories={getCategories()}
         onCancel={() => router.back()}
       />
     </AppLayout>

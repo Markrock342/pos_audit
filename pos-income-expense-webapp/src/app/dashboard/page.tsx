@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SummaryCards } from "@/components/SummaryCards";
-import { TransactionTable } from "@/components/tables/TransactionTable";
+import { RecentTransactionList } from "@/components/RecentTransactionList";
 import { IncomeExpenseChart } from "@/components/charts/IncomeExpenseChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ArrowUpCircle, ArrowDownCircle, TrendingUp } from "lucide-react";
+import { getCategories } from "@/lib/store";
 import {
-  mockCategories,
   mockChartData,
   mockDashboardSummary,
   mockTransactions,
@@ -52,16 +52,16 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-xl font-black">รายการล่าสุด</CardTitle>
-              <Link href="/income">
+              <Link href="/reports">
                 <Button variant="ghost" className="font-bold text-brand">
                   ดูทั้งหมด
                 </Button>
               </Link>
             </CardHeader>
             <CardContent>
-              <TransactionTable
+              <RecentTransactionList
                 transactions={recentTransactions}
-                categories={mockCategories}
+                categories={getCategories()}
               />
             </CardContent>
           </Card>
