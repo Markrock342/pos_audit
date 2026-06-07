@@ -23,7 +23,7 @@ export function TransactionTable({ transactions, categories }: TransactionTableP
       render: (row: Transaction) => (
         <div>
           <p className="font-medium">{row.title}</p>
-          {row.note && <p className="text-xs text-stone-500">{row.note}</p>}
+          {row.note && <p className="text-xs text-text-muted">{row.note}</p>}
         </div>
       ),
     },
@@ -58,7 +58,7 @@ export function TransactionTable({ transactions, categories }: TransactionTableP
       render: (row: Transaction) => (
         <span
           className={
-            row.type === "income" ? "font-semibold text-green-700" : "font-semibold text-red-700"
+            row.type === "income" ? "font-semibold text-income" : "font-semibold text-expense"
           }
         >
           {row.type === "income" ? "+" : "-"}

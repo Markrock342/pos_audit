@@ -18,10 +18,10 @@ export function ReceiptPreview({ transaction, receipt }: ReceiptPreviewProps) {
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+        <div className="rounded-lg border border-border-default bg-surface-inset p-4">
           <DefaultReceiptTemplate transaction={transaction} receipt={receipt} />
         </div>
-        <p className="mt-3 text-xs text-stone-500">
+        <p className="mt-3 text-xs text-text-muted">
           * การพิมพ์จริงจะเชื่อมต่อ Thermal Printer ผ่าน /lib/hardware ในอนาคต
         </p>
       </CardContent>

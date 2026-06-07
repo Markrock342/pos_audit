@@ -6,20 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-amber-50 to-stone-100 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface p-4">
       <div className="w-full max-w-md">
-        <div className="mb-6 text-center">
-          <p className="text-sm font-medium text-amber-700">{SHOP_NAME}</p>
-          <h1 className="mt-1 text-2xl font-bold text-stone-900">{APP_NAME}</h1>
-          <p className="mt-2 text-sm text-stone-600">เข้าสู่ระบบเพื่อจัดการรายรับ-รายจ่าย</p>
+        <div className="mb-8 text-center">
+          <p className="text-base font-bold text-text-secondary tracking-wide">{SHOP_NAME}</p>
+          <h1 className="mt-2 text-3xl font-bold text-text-main">{APP_NAME}</h1>
+          <p className="mt-3 text-base text-text-secondary font-medium">เข้าสู่ระบบเพื่อจัดการรายรับ-รายจ่าย</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Login</CardTitle>
+            <CardTitle className="text-xl">Login</CardTitle>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4">
+            <form className="space-y-5">
               <Input
                 label="อีเมล"
                 type="email"
@@ -33,12 +33,12 @@ export default function LoginPage() {
                 autoComplete="current-password"
               />
               <Link href="/dashboard" className="block">
-                <Button type="button" className="w-full">
+                <Button type="button" size="lg" className="w-full text-xl font-bold">
                   เข้าสู่ระบบ (Mock)
                 </Button>
               </Link>
             </form>
-            <p className="mt-4 text-center text-xs text-stone-500">
+            <p className="mt-6 text-center text-sm text-text-muted font-medium">
               * ยังไม่มีระบบ Auth จริง — กดปุ่มเพื่อเข้า Dashboard
             </p>
           </CardContent>

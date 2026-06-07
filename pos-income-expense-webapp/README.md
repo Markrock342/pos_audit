@@ -1,19 +1,21 @@
-# pos-income-expense-webapp
+# POS Income Expense — Coffee Shop Kiosk
 
-Web App สำหรับร้านกาแฟ — บันทึกรายรับ-รายจ่าย ดูสรุปยอด พิมพ์ใบเสร็จ และเตรียมรองรับ Thermal Printer / Cash Drawer ในอนาคต
+ระบบบันทึกรายรับ-รายจ่ายสำหรับร้านกาแฟ ออกแบบสำหรับ **Desktop POS Swan 2** (Android 13 Kiosk, 15.6" 1080p Touchscreen)
 
-## Project Overview
+> **สถานะ:** MVP UI/UX พร้อมใช้งาน / Mock Data / ยังไม่เชื่อม Database และ Hardware
 
-ระบบ POS / บันทึกรายรับ-รายจ่าย ออกแบบให้ทีมพัฒนา 3 คนเริ่มงานได้ทันที โดยรอบแรกเป็น **scaffold + placeholder UI + mock data** ยังไม่เชื่อม database และ hardware จริง
+## Target Device
 
-### ฟีเจอร์เป้าหมาย (MVP)
+| Spec | Detail |
+|------|--------|
+| **Device** | Desktop POS Swan 2 |
+| **Display** | 15.6" Full HD 1920x1080 Touchscreen |
+| **OS** | Android 13 (Kiosk Browser Mode) |
+| **RAM** | 4GB |
+| **CPU** | Octa-core A55 2.0GHz |
+| **Speaker** | 15W |
 
-- บันทึกรายรับ / รายจ่าย
-- จัดการหมวดหมู่
-- Dashboard สรุปยอด
-- รายงานและกราฟ
-- พิมพ์ใบเสร็จ (เตรียม template)
-- เชื่อม Printer / Cash Drawer (อนาคต)
+---
 
 ## Tech Stack
 
@@ -161,9 +163,71 @@ docs/<topic>
 - [docs/hardware-plan.md](./docs/hardware-plan.md) — แผนเชื่อม hardware
 - [docs/team-workflow.md](./docs/team-workflow.md) — แบ่งงานทีม
 
-## Next Steps
+## สิ่งที่ทำแล้ว (UI/UX + Kiosk)
 
-1. Frontend — ปรับ UI ให้สมบูรณ์และเชื่อม API จริง
-2. Backend — เลือก database และ implement CRUD
-3. Hardware — พัฒนา Local Bridge สำหรับ printer/drawer
-4. Auth — เพิ่มระบบ login จริง
+### Visual Design
+- [x] **Color palette** สดใส friendly (Brand `#FF6B35`, Income `#10B981`, Expense `#EF4444`)
+- [x] **Rounded corners** `16px` ทุก card, button, input
+- [x] **Soft shadow** `rgba(15,23,42,0.06)` บน card
+- [x] **System font** (`system-ui`, `Noto Sans Thai`) สำหรับ Android 13
+
+### Kiosk Touch Optimizations
+- [x] **Tap target** `56-64px` ขั้นต่ำทุกปุ่ม/แถว
+- [x] **No hover** — ใช้ `active:` แทนทั้งระบบ (`active:scale-[0.97]`)
+- [x] **Transition** จำกัด `max 150ms`
+- [x] **Viewport lock** `user-scalable=no`
+- [x] **Touch action** `manipulation`
+
+### Layout (1080p เต็มจอ)
+- [x] **Dashboard** 2 คอลัมน์: Chart ซ้าย + Recent ขวา
+- [x] **Income/Expense** 2 คอลัมน์: Summary ซ้าย + Table ขวา
+- [x] **Sidebar** แสดงตลอด (`w-72`)
+- [x] **Header** Back button + Live clock `HH:MM`
+
+### Components ใหม่
+- [x] `Dialog` — Confirm modal
+- [x] `ToastProvider` — Toast queue (`useToast()`)
+- [x] `Skeleton` / `SkeletonCard` / `SkeletonTable` / `SkeletonChart`
+- [x] `EmptyState` — ตารางว่างมี icon + action
+- [x] `SearchBar` — Touch-friendly search
+
+### Form UX
+- [x] **Numpad** `88px` ต่อปุ่ม
+- [x] **Category grid** กดเลือก
+- [x] **Payment method grid** กดเลือก
+- [x] **Date picker** `type="date"`
+- [x] **Card top border** สีตาม type
+- [x] **Amount display** `text-5xl` อ่านจาก 50cm
+
+### Dashboard
+- [x] Action buttons มี icon (`ArrowUpCircle`, `ArrowDownCircle`)
+- [x] Stat cards (`border-l-4`, icon bg สี, `text-4xl font-black`)
+- [x] Search + Filter บน `/income`, `/expense`
+
+### Build
+- [x] `output: "standalone"` สำหรับ deploy บน kiosk
+
+---
+
+## สิ่งที่เหลือ (Next Steps)
+
+### UX/UI
+- [ ] **PIN Login** — numpad 4 หลัก แทน email/password
+- [ ] **Date filter chips** — `วันนี้ / สัปดาห์นี้ / เดือนนี้`
+- [ ] **Sticky bottom action bar** — ปุ่มบันทึกติดด้านล่างฟอร์ม
+- [ ] **Row actions** — Edit/Delete/Receipt ต่อแถวตาราง
+- [ ] **Pagination / Load more** — ตารางข้อมูลเยอะ
+- [ ] **Receipt print layout** — ฟอร์แมตเหมือนใบเสร็จจริง
+- [ ] **Badge status** — `ชำระแล้ว / รอดำเนินการ`
+- [ ] **Sound feedback** — เมื่อบันทึกสำเร็จ (speaker 15W)
+- [ ] **Auto-lock** — หลัง inactive
+
+### Backend & Infrastructure
+- [ ] Connect real database (Firebase / Supabase / PostgreSQL)
+- [ ] Authentication system (JWT / OAuth)
+- [ ] Real API endpoints (CRUD)
+
+### Hardware
+- [ ] Thermal Printer integration
+- [ ] Cash Drawer integration
+- [ ] Local Bridge service

@@ -10,22 +10,22 @@ export function Input({ className, label, error, id, ...props }: InputProps) {
   const inputId = id ?? label?.replace(/\s/g, "-").toLowerCase();
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-stone-700">
+        <label htmlFor={inputId} className="block text-base font-medium text-text-secondary">
           {label}
         </label>
       )}
       <input
         id={inputId}
         className={cn(
-          "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-600/20",
-          error && "border-red-500 focus:border-red-500 focus:ring-red-500/20",
+          "w-full rounded-xl border-2 border-border-default bg-surface-elevated px-4 py-4 text-base text-text-main placeholder:text-text-muted focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-brand-ring",
+          error && "border-error focus:border-error focus:ring-error-ring",
           className
         )}
         {...props}
       />
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-sm text-error font-medium">{error}</p>}
     </div>
   );
 }

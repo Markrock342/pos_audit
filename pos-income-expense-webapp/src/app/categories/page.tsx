@@ -29,8 +29,8 @@ export default function CategoriesPage() {
         <span
           className={
             row.type === "income"
-              ? "rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800"
-              : "rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-800"
+              ? "rounded-full bg-income-light px-2 py-0.5 text-xs text-income"
+              : "rounded-full bg-expense-light px-2 py-0.5 text-xs text-expense"
           }
         >
           {row.type === "income" ? "รายรับ" : "รายจ่าย"}
@@ -41,7 +41,7 @@ export default function CategoriesPage() {
       key: "color",
       header: "สี",
       render: (row: Category) => (
-        <code className="rounded bg-stone-100 px-2 py-1 text-xs">{row.color}</code>
+        <code className="rounded bg-surface-hover px-2 py-1 text-xs text-text-secondary">{row.color}</code>
       ),
     },
   ];
