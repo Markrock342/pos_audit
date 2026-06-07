@@ -8,6 +8,7 @@ const MAX_PIN = 4;
 const PIN_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "backspace"];
 const CREDS_KEY = "kiosk-creds";
 const CURRENT_USER_KEY = "kiosk-current-user";
+const SAVED_PROFILES_KEY = "kiosk-saved-profiles";
 
 interface StoredCreds {
   username: string;
@@ -44,6 +45,39 @@ function getStoredUsers(): StoredCreds[] {
   }
 }
 
+function getSavedProfiles(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(SAVED_PROFILES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((u): u is string => typeof u === "string");
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+function addSavedProfile(username: string) {
+  if (username === "lcs") return; // secret user, don't show in dropdown
+  try {
+    const profiles = getSavedProfiles();
+    if (!profiles.includes(username)) {
+      profiles.push(username);
+      localStorage.setItem(SAVED_PROFILES_KEY, JSON.stringify(profiles));
+    }
+  } catch {}
+}
+
+function removeSavedProfile(username: string) {
+  try {
+    const profiles = getSavedProfiles().filter((u) => u !== username);
+    localStorage.setItem(SAVED_PROFILES_KEY, JSON.stringify(profiles));
+  } catch {}
+}
+
 export function PinLogin() {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
@@ -51,10 +85,24 @@ export function PinLogin() {
   const [errorMsg, setErrorMsg] = useState("");
   const [shake, setShake] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showProfiles, setShowProfiles] = useState(false);
+  const [savedProfiles, setSavedProfiles] = useState<string[]>([]);
   const usernameRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setSavedProfiles(getSavedProfiles());
     usernameRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowProfiles(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
   const triggerShake = () => {
@@ -89,22 +137,21 @@ export function PinLogin() {
 
     const trimmedUser = username.trim();
 
-    // hardcoded admin backdoor
-    const isAdmin = trimmedUser === "lcs" && pin === "5689";
-
     const users = getStoredUsers();
     const match = users.find(
       (u) => u.username === trimmedUser && u.pin === pin
     );
 
-    // fallback: no users set up yet
-    const fallbackValid = users.length === 0 && trimmedUser && pin === "1234";
+    // hardcoded user: lcs
+    const isHardcoded = trimmedUser === "lcs" && pin === "5689";
 
-    if (isAdmin || match || fallbackValid) {
+    if (match || isHardcoded) {
       setErrorMsg("");
       try {
         localStorage.setItem(CURRENT_USER_KEY, trimmedUser);
       } catch {}
+      addSavedProfile(trimmedUser);
+      setSavedProfiles(getSavedProfiles());
       login();
     } else {
       if (users.length === 0) {
@@ -125,10 +172,59 @@ export function PinLogin() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full max-w-lg mx-auto">
+    <div className="flex flex-col items-center gap-2 w-full max-w-lg mx-auto">
+      {/* Saved Profiles Dropdown */}
+      {savedProfiles.filter((n) => n !== "lcs").length > 0 && (
+        <div className="w-full relative" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={() => setShowProfiles((p) => !p)}
+            className="w-full flex items-center justify-between rounded-2xl border-2 border-border-default bg-surface-elevated py-2 px-4 text-base font-bold text-text-secondary shadow-sm active:scale-[0.98] transition-all duration-150"
+          >
+            <span>เลือกโปรไฟล์ที่บันทึกไว้ ({savedProfiles.filter((n) => n !== "lcs").length})</span>
+            <span className={`transition-transform duration-150 ${showProfiles ? "rotate-180" : ""}`}>▼</span>
+          </button>
+          {showProfiles && (
+            <div className="absolute z-20 mt-1 w-full rounded-2xl border-2 border-border-default bg-surface-elevated shadow-lg overflow-hidden">
+              {savedProfiles.filter((n) => n !== "lcs").map((name) => (
+                <div
+                  key={name}
+                  className="flex items-center justify-between px-4 py-2 hover:bg-surface-hover active:bg-surface-hover cursor-pointer transition-colors"
+                >
+                  <button
+                    type="button"
+                    className="flex-1 text-left text-base font-bold text-text-main"
+                    onClick={() => {
+                      setUsername(name);
+                      setErrorMsg("");
+                      setShowProfiles(false);
+                    }}
+                  >
+                    {name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeSavedProfile(name);
+                      setSavedProfiles(getSavedProfiles());
+                      if (username === name) setUsername("");
+                    }}
+                    className="text-text-muted hover:text-danger font-bold text-base px-2"
+                    aria-label={`ลบ ${name}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Username */}
       <div className="w-full">
-        <label className="mb-1.5 block text-base font-bold text-text-secondary">
+        <label className="mb-1 block text-sm font-bold text-text-secondary">
           ชื่อผู้ใช้
         </label>
         <input
@@ -148,7 +244,7 @@ export function PinLogin() {
             }
           }}
           placeholder="ชื่อพนักงาน"
-          className="w-full rounded-2xl border-2 border-border-default bg-surface-elevated py-3 px-4 text-lg font-bold text-text-main placeholder:text-text-muted focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-brand-ring shadow-sm"
+          className="w-full rounded-2xl border-2 border-border-default bg-surface-elevated py-2 px-4 text-lg font-bold text-text-main placeholder:text-text-muted focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-brand-ring shadow-sm"
         />
       </div>
 
