@@ -6,6 +6,7 @@ import { SHOP_NAME } from "@/constants";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface HeaderProps {
   title: string;
@@ -13,9 +14,11 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const { theme, setTheme } = useTheme();
+  const { logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [time, setTime] = useState("");
+  const [currentUser, setCurrentUser] = useState("Staff");
 
   const isHome = pathname === "/dashboard";
 
@@ -33,6 +36,13 @@ export function Header({ title }: HeaderProps) {
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("kiosk-current-user");
+      if (stored) setCurrentUser(stored);
+    } catch {}
   }, []);
 
   return (
@@ -66,8 +76,8 @@ export function Header({ title }: HeaderProps) {
         >
           {theme === "dark" ? <Sun size={24} /> : <Moon size={24} />}
         </Button>
-        <span className="text-lg font-medium text-text-secondary">ผู้ใช้: Staff</span>
-        <Button variant="outline" className="min-h-[56px]">
+        <span className="text-lg font-medium text-text-secondary">ผู้ใช้: {currentUser}</span>
+        <Button variant="outline" onClick={logout} className="min-h-[56px] gap-2 font-bold">
           ออกจากระบบ
         </Button>
       </div>
