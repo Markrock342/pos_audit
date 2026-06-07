@@ -8,8 +8,8 @@ import {
   Settings,
 } from "lucide-react";
 
-export const APP_NAME = "POS Income Expense";
-export const SHOP_NAME = "ร้านค้า";
+export const APP_NAME = "สมุดรายรับ-รายจ่าย";
+export const SHOP_NAME = "บัญชีร้าน";
 
 export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "cash", label: "เงินสด" },
