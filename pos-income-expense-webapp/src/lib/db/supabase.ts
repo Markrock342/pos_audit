@@ -1,13 +1,17 @@
 /**
- * Supabase placeholder — configure when connecting to Supabase.
- * Docs: https://supabase.com/docs
+ * Supabase client initialization.
+ * Uses environment variables for configuration.
  */
-export const supabaseConfig = {
-  url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-  anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-};
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-export async function getSupabaseClient() {
-  // TODO: create and return Supabase client
-  throw new Error("Supabase not configured. Set env vars and implement getSupabaseClient.");
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+
+let client: SupabaseClient | null = null;
+
+export function getDb(): SupabaseClient {
+  if (!client) {
+    client = createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return client;
 }

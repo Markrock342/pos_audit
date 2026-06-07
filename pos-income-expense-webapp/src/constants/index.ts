@@ -14,8 +14,9 @@ export const SHOP_NAME = "บัญชีร้าน";
 export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "cash", label: "เงินสด" },
   { value: "transfer", label: "โอนเงิน" },
+  { value: "cheque", label: "เช็ค" },
   { value: "card", label: "บัตรเครดิต/เดบิต" },
-  { value: "qr", label: "QR Payment" },
+  { value: "other", label: "อื่นๆ" },
 ];
 
 export const NAV_ITEMS = [
