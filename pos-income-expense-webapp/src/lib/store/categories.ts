@@ -20,3 +20,9 @@ export function addCategory(data: Omit<Category, "id">): Category {
   categories = [...categories, newCategory];
   return newCategory;
 }
+
+export function deleteCategory(id: string): boolean {
+  const initialLength = categories.length;
+  categories = categories.filter((category) => category.id !== id);
+  return categories.length < initialLength;
+}

@@ -42,7 +42,7 @@ export default function SettingsPage() {
               ]}
               defaultValue="none"
             />
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-text-muted">
               การเชื่อมต่อจริงจะพัฒนาใน /lib/hardware — ดู docs/hardware-plan.md
             </p>
           </CardContent>
@@ -63,7 +63,7 @@ export default function SettingsPage() {
               ]}
               defaultValue="mock"
             />
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-text-muted">
               ตั้งค่าจริงใน /lib/db เมื่อพร้อมเชื่อมต่อ
             </p>
           </CardContent>

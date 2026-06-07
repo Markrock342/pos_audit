@@ -1,13 +1,20 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { TransactionForm } from "@/components/forms/TransactionForm";
-import { mockCategories } from "@/data/mock";
+import { getCategories } from "@/lib/store";
 
 export default function AddIncomePage() {
+  const router = useRouter();
+
   return (
     <AppLayout title="เพิ่มรายรับ">
-      <div className="mx-auto max-w-xl">
-        <TransactionForm type="income" categories={mockCategories} />
-      </div>
+      <TransactionForm
+        type="income"
+        categories={getCategories()}
+        onCancel={() => router.back()}
+      />
     </AppLayout>
   );
 }

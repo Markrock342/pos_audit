@@ -1,19 +1,144 @@
 @import "tailwindcss";
 
+/* ─── Light Mode ─── */
 :root {
-  --background: #fafaf9;
-  --foreground: #1c1917;
+  --surface: #f8fafc;
+  --surface-elevated: #ffffff;
+  --surface-inset: #f1f5f9;
+  --surface-hover: #e2e8f0;
+
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-inverse: #ffffff;
+
+  --border-default: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --border-focus: #FF6B35;
+
+  --brand: #FF6B35;
+  --brand-hover: #E85A28;
+  --brand-light: rgba(255, 107, 53, 0.12);
+  --brand-ring: rgba(255, 107, 53, 0.25);
+
+  --income: #10B981;
+  --income-hover: #059669;
+  --income-light: rgba(16, 185, 129, 0.12);
+  --income-ring: rgba(16, 185, 129, 0.25);
+
+  --expense: #EF4444;
+  --expense-hover: #DC2626;
+  --expense-light: rgba(239, 68, 68, 0.12);
+  --expense-ring: rgba(239, 68, 68, 0.25);
+
+  --error: #EF4444;
+  --error-light: #FEF2F2;
+  --error-ring: rgba(239, 68, 68, 0.25);
+}
+
+/* ─── Dark Mode ─── */
+.dark {
+  --surface: #0f172a;
+  --surface-elevated: #1e293b;
+  --surface-inset: #1e293b;
+  --surface-hover: #334155;
+
+  --text-main: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-inverse: #0f172a;
+
+  --border-default: #334155;
+  --border-subtle: #1e293b;
+  --border-focus: #FF8F5A;
+
+  --brand: #FF8F5A;
+  --brand-hover: #FFA87A;
+  --brand-light: rgba(255, 143, 90, 0.15);
+  --brand-ring: rgba(255, 143, 90, 0.3);
+
+  --income: #34D399;
+  --income-hover: #6EE7B7;
+  --income-light: rgba(52, 211, 153, 0.15);
+  --income-ring: rgba(52, 211, 153, 0.3);
+
+  --expense: #F87171;
+  --expense-hover: #FCA5A5;
+  --expense-light: rgba(248, 113, 113, 0.15);
+  --expense-ring: rgba(248, 113, 113, 0.3);
+
+  --error: #F87171;
+  --error-light: rgba(248, 113, 113, 0.1);
+  --error-ring: rgba(248, 113, 113, 0.3);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-inset: var(--surface-inset);
+  --color-surface-hover: var(--surface-hover);
+
+  --color-text-main: var(--text-main);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-inverse: var(--text-inverse);
+
+  --color-border-default: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-light: var(--brand-light);
+  --color-brand-ring: var(--brand-ring);
+
+  --color-income: var(--income);
+  --color-income-hover: var(--income-hover);
+  --color-income-light: var(--income-light);
+  --color-income-ring: var(--income-ring);
+
+  --color-expense: var(--expense);
+  --color-expense-hover: var(--expense-hover);
+  --color-expense-light: var(--expense-light);
+  --color-expense-ring: var(--expense-ring);
+
+  --color-error: var(--error);
+  --color-error-light: var(--error-light);
+  --color-error-ring: var(--error-ring);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background: var(--surface);
+  color: var(--text-main);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  cursor: default;
+}
+
+/* ─── Kiosk Touch Optimizations ─── */
+button, a, [role="button"] {
+  -webkit-touch-callout: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+input, textarea {
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
+/* Remove default input styling on mobile */
+input, textarea, button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Smooth scrolling for touch */
+html {
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
 }

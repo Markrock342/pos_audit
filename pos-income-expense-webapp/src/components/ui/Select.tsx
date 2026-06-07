@@ -27,15 +27,15 @@ export function Select({
   return (
     <div className="space-y-1">
       {label && (
-        <label htmlFor={selectId} className="block text-sm font-medium text-stone-700">
+        <label htmlFor={selectId} className="block text-sm font-medium text-text-secondary">
           {label}
         </label>
       )}
       <select
         id={selectId}
         className={cn(
-          "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-600/20",
-          error && "border-red-500 focus:border-red-500 focus:ring-red-500/20",
+          "w-full rounded-lg border border-border-default bg-surface-elevated px-3 py-2 text-sm text-text-main focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-brand-ring",
+          error && "border-error focus:border-error focus:ring-error-ring",
           className
         )}
         {...props}
@@ -51,7 +51,7 @@ export function Select({
           </option>
         ))}
       </select>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-error">{error}</p>}
     </div>
   );
 }
