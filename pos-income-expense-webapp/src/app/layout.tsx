@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { AuthProvider } from "@/components/providers/AuthProvider";
+import { AuthGuard } from "@/components/providers/AuthGuard";
 
 export const metadata: Metadata = {
-  title: "POS Income Expense | Coffee Shop",
-  description: "ระบบบันทึกรายรับ-รายจ่ายสำหรับร้านกาแฟ",
+  title: "สมุดรายรับ-รายจ่าย | บัญชีร้าน",
+  description: "ระบบบันทึกรายรับ-รายจ่ายสำหรับร้านค้า",
 };
 
 export const viewport: Viewport = {
@@ -23,7 +25,11 @@ export default function RootLayout({
   return (
     <html lang="th" className="h-full">
       <body className="min-h-full select-none antialiased">
-        <ThemeProvider>{children}</ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <AuthGuard>{children}</AuthGuard>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
