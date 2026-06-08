@@ -18,6 +18,7 @@ export function Header({ title }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [time, setTime] = useState("");
+  const [date, setDate] = useState("");
   const [currentUser, setCurrentUser] = useState("Staff");
 
   const isHome = pathname === "/dashboard";
@@ -30,6 +31,14 @@ export function Header({ title }: HeaderProps) {
           hour: "2-digit",
           minute: "2-digit",
           hour12: false,
+        })
+      );
+      setDate(
+        now.toLocaleDateString("th-TH", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
         })
       );
     };
@@ -65,9 +74,14 @@ export function Header({ title }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-4">
-        <span className="text-2xl font-bold tabular-nums text-text-main tracking-tight">
-          {time}
-        </span>
+        <div className="text-right">
+          <span className="block text-2xl font-bold tabular-nums text-text-main tracking-tight">
+            {time}
+          </span>
+          <span className="block text-sm font-bold text-text-muted">
+            {date}
+          </span>
+        </div>
         <Button
           variant="ghost"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
