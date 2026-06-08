@@ -32,9 +32,9 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
       />
       <Link href="/cash-count" className="block active:scale-[0.98] transition-transform">
         <StatCard
-          title="ยอดเงินสดคาดหวัง"
+          title="เงินสดวันนี้ (ควรมี)"
           value={formatCurrency(summary.expectedCashBalance ?? 0)}
-          subtitle="แตะเพื่อปิดยอด"
+          subtitle="ไปนับเงินสด"
           icon={Wallet}
           trend="neutral"
         />

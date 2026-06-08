@@ -10,9 +10,10 @@ import { useAuth } from "@/components/providers/AuthProvider";
 
 interface HeaderProps {
   title: string;
+  subtitle?: string;
 }
 
-export function Header({ title }: HeaderProps) {
+export function Header({ title, subtitle }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { logout, session } = useAuth();
   const { shopName } = useOrganization();
@@ -62,6 +63,9 @@ export function Header({ title }: HeaderProps) {
         <div>
           <p className="text-base font-semibold text-text-secondary">{shopName}</p>
           <h2 className="text-xl font-bold text-text-main">{title}</h2>
+          {subtitle && (
+            <p className="text-sm font-medium text-text-muted">{subtitle}</p>
+          )}
         </div>
       </div>
 

@@ -9,6 +9,8 @@ export function DatabaseSettings() {
       </p>
       <p className="text-xs text-text-muted">
         ตั้งค่า NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_ANON_KEY ใน .env.local
+        <br />
+        ถ้าใช้ฟีเจอร์ยอดยกมา ให้รัน <code className="text-xs">docs/supabase-finance-config.sql</code> ใน Supabase ด้วย
       </p>
     </div>
   );

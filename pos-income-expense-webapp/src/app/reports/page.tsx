@@ -19,7 +19,7 @@ export default async function ReportsPage() {
   });
 
   return (
-    <AppLayout title="รายงาน">
+    <AppLayout title="รายงาน" subtitle="กราฟ / ส่งออก CSV">
       <ReportsView initialTransactions={transactions} />
     </AppLayout>
   );

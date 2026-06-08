@@ -49,6 +49,15 @@ export interface Category {
   createdAt?: string;
 }
 
+export interface FinanceConfig {
+  /** ยอดเงินยกมา — เงินสดในลิ้นชัก */
+  openingCashBalance?: number;
+  /** ยอดเงินยกมา — เงินเก็บ/บัญชี */
+  openingSavingsBalance?: number;
+  /** เดือนที่ตั้งยอดยกมา (YYYY-MM) */
+  openingBalanceMonth?: string;
+}
+
 export interface Organization {
   id: string;
   name: string;
@@ -58,7 +67,23 @@ export interface Organization {
   currency: string;
   receiptConfig?: ReceiptConfig;
   hardwareConfig?: HardwareConfig;
+  financeConfig?: FinanceConfig;
   createdAt?: string;
+}
+
+export interface BalanceSummary {
+  dateRange: { start: string; end: string };
+  openingCash: number;
+  openingSavings: number;
+  totalIncome: number;
+  totalExpense: number;
+  cashIncome: number;
+  cashExpense: number;
+  savingsIncome: number;
+  savingsExpense: number;
+  cashBalance: number;
+  savingsBalance: number;
+  totalBalance: number;
 }
 
 export interface ReceiptConfig {

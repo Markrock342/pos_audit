@@ -111,7 +111,7 @@ export default function CashCountPage() {
   const statusLabel = variance === 0 ? "ตรงยอด" : variance < 0 ? "ขาดเงิน" : "เกินเงิน";
 
   return (
-    <AppLayout title="ปิดยอดเงินสด">
+    <AppLayout title="ปิดยอดเงินสด" subtitle="เช้าใส่ยอดเปิดร้าน · เย็นนับเงินจริง">
       <div className="mx-auto max-w-5xl space-y-6">
         {message && (
           <p

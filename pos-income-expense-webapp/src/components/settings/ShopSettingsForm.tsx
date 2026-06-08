@@ -15,6 +15,8 @@ export function ShopSettingsForm() {
   const [taxId, setTaxId] = useState("");
   const [receiptHeader, setReceiptHeader] = useState("");
   const [receiptFooter, setReceiptFooter] = useState("");
+  const [openingCash, setOpeningCash] = useState("0");
+  const [openingSavings, setOpeningSavings] = useState("0");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -29,6 +31,8 @@ export function ShopSettingsForm() {
       setTaxId(org.taxId ?? "");
       setReceiptHeader(org.receiptConfig?.header ?? org.name);
       setReceiptFooter(org.receiptConfig?.footer ?? "");
+      setOpeningCash(String(org.financeConfig?.openingCashBalance ?? 0));
+      setOpeningSavings(String(org.financeConfig?.openingSavingsBalance ?? 0));
     } catch {
       setMessage("โหลดข้อมูลร้านไม่สำเร็จ");
     } finally {
@@ -44,6 +48,9 @@ export function ShopSettingsForm() {
     setSaving(true);
     setMessage(null);
     try {
+      const now = new Date();
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
       await updateOrganizationApi({
         name: name.trim(),
         address: address.trim() || undefined,
@@ -52,6 +59,11 @@ export function ShopSettingsForm() {
         receiptConfig: {
           header: receiptHeader.trim() || name.trim(),
           footer: receiptFooter.trim() || undefined,
+        },
+        financeConfig: {
+          openingCashBalance: parseFloat(openingCash) || 0,
+          openingSavingsBalance: parseFloat(openingSavings) || 0,
+          openingBalanceMonth: month,
         },
       });
       setMessage("บันทึกข้อมูลร้านแล้ว");
@@ -99,6 +111,30 @@ export function ShopSettingsForm() {
         onChange={(e) => setReceiptFooter(e.target.value)}
         placeholder="ขอบคุณที่ใช้บริการ"
       />
+
+      <div className="border-t border-border-default pt-4">
+        <h3 className="mb-1 text-base font-bold text-text-main">ยอดเงินยกมา (ต้นเดือน)</h3>
+        <p className="mb-3 text-sm text-text-muted">สำหรับหน้ายอดคงเหลือ ต้นเดือน</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="เงินสดยกมา (บาท)"
+            type="number"
+            min="0"
+            step="0.01"
+            value={openingCash}
+            onChange={(e) => setOpeningCash(e.target.value)}
+          />
+          <Input
+            label="เงินเก็บ/บัญชียกมา (บาท)"
+            type="number"
+            min="0"
+            step="0.01"
+            value={openingSavings}
+            onChange={(e) => setOpeningSavings(e.target.value)}
+          />
+        </div>
+      </div>
+
       <Button type="button" onClick={handleSave} disabled={saving || !name.trim()}>
         {saving ? "กำลังบันทึก..." : "บันทึกข้อมูลร้าน"}
       </Button>

@@ -14,6 +14,7 @@ CREATE TABLE organizations (
   currency VARCHAR(3) NOT NULL DEFAULT 'THB',
   receipt_config JSONB DEFAULT '{}',
   hardware_config JSONB DEFAULT '{}',
+  finance_config JSONB NOT NULL DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

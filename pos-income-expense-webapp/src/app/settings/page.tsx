@@ -5,7 +5,7 @@ import { ShopSettingsForm } from "@/components/settings/ShopSettingsForm";
 
 export default function SettingsPage() {
   return (
-    <AppLayout title="ตั้งค่า">
+    <AppLayout title="ตั้งค่า" subtitle="ข้อมูลร้าน · ยอดยกมา">
       <div className="mx-auto max-w-4xl space-y-6">
         <Card>
           <CardHeader>

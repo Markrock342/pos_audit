@@ -1,6 +1,8 @@
 import { getTransactions } from "./transactions";
+import { getOrganization } from "./organizations";
 import { getDb } from "@/lib/db/supabase";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
+import type { BalanceSummary } from "@/types";
 
 export interface DashboardData {
   todayIncome: number;
@@ -174,5 +176,63 @@ export async function getDashboard(): Promise<DashboardData> {
     netProfit: monthIncome - monthExpense,
     expectedCashBalance,
     transactionCount: monthTransactions.length,
+  };
+}
+
+export async function getBalanceSummary(
+  startDate: string,
+  endDate: string
+): Promise<BalanceSummary> {
+  const org = await getOrganization(DEFAULT_ORG_ID);
+  const finance = org?.financeConfig;
+  const periodMonth = startDate.slice(0, 7);
+  const applyOpening =
+    startDate.endsWith("-01") &&
+    (!finance?.openingBalanceMonth || finance.openingBalanceMonth === periodMonth);
+
+  const openingCash = applyOpening ? (finance?.openingCashBalance ?? 0) : 0;
+  const openingSavings = applyOpening ? (finance?.openingSavingsBalance ?? 0) : 0;
+
+  const transactions = await getTransactions(DEFAULT_ORG_ID, {
+    startDate,
+    endDate,
+    status: "active",
+  });
+
+  let totalIncome = 0;
+  let totalExpense = 0;
+  let cashIncome = 0;
+  let cashExpense = 0;
+  let savingsIncome = 0;
+  let savingsExpense = 0;
+
+  for (const t of transactions) {
+    if (t.type === "income") {
+      totalIncome += t.amount;
+      if (t.paymentMethod === "cash") cashIncome += t.amount;
+      else savingsIncome += t.amount;
+    } else {
+      totalExpense += t.amount;
+      if (t.paymentMethod === "cash") cashExpense += t.amount;
+      else savingsExpense += t.amount;
+    }
+  }
+
+  const cashBalance = openingCash + cashIncome - cashExpense;
+  const savingsBalance = openingSavings + savingsIncome - savingsExpense;
+
+  return {
+    dateRange: { start: startDate, end: endDate },
+    openingCash,
+    openingSavings,
+    totalIncome,
+    totalExpense,
+    cashIncome,
+    cashExpense,
+    savingsIncome,
+    savingsExpense,
+    cashBalance,
+    savingsBalance,
+    totalBalance: cashBalance + savingsBalance,
   };
 }

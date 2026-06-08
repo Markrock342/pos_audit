@@ -8,6 +8,7 @@ import {
   Settings,
   Wallet,
   History,
+  Scale,
 } from "lucide-react";
 
 export const APP_NAME = "สมุดรายรับ-รายจ่าย";
@@ -21,13 +22,45 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "other", label: "อื่นๆ" },
 ];
 
-export const NAV_ITEMS = [
-  { href: "/dashboard", label: "ภาพรวม", icon: LayoutDashboard },
-  { href: "/income", label: "รายรับ", icon: DollarSign },
-  { href: "/expense", label: "รายจ่าย", icon: ArrowDownCircle },
-  { href: "/categories", label: "หมวดหมู่", icon: Tag },
-  { href: "/reports", label: "รายงาน", icon: TrendingUp },
-  { href: "/cash-count", label: "ปิดยอดเงินสด", icon: Wallet },
-  { href: "/history", label: "ประวัติรายการ", icon: History },
-  { href: "/settings", label: "ตั้งค่า", icon: Settings },
-] as const;
+export type NavItem = {
+  href: string;
+  label: string;
+  hint: string;
+  icon: typeof LayoutDashboard;
+};
+
+export type NavSection = {
+  title: string;
+  items: NavItem[];
+};
+
+/** เมนูแยกกลุ่ม — ให้ user เข้าใจว่าทำอะไรเมื่อไหร่ */
+export const NAV_SECTIONS: NavSection[] = [
+  {
+    title: "ทำทุกวัน",
+    items: [
+      { href: "/dashboard", label: "ภาพรวม", hint: "ยอดวันนี้", icon: LayoutDashboard },
+      { href: "/income", label: "รายรับ", hint: "บันทึกเงินเข้า", icon: DollarSign },
+      { href: "/expense", label: "รายจ่าย", hint: "บันทึกเงินออก", icon: ArrowDownCircle },
+      { href: "/cash-count", label: "ปิดยอดเงินสด", hint: "นับเงินในลิ้นชัก", icon: Wallet },
+    ],
+  },
+  {
+    title: "สรุปและตรวจสอบ",
+    items: [
+      { href: "/balance", label: "ยอดคงเหลือ", hint: "เงินสด+บัญชี ทั้งเดือน", icon: Scale },
+      { href: "/reports", label: "รายงาน", hint: "กราฟ / ส่งออก CSV", icon: TrendingUp },
+      { href: "/history", label: "ประวัติรายการ", hint: "ดูแก้ไข / ยกเลิก", icon: History },
+    ],
+  },
+  {
+    title: "ตั้งค่า",
+    items: [
+      { href: "/categories", label: "หมวดหมู่", hint: "ชื่อประเภทรายการ", icon: Tag },
+      { href: "/settings", label: "ตั้งค่า", hint: "ยอดยกมา + ข้อมูลร้าน", icon: Settings },
+    ],
+  },
+];
+
+/** flat list สำหรับโค้ดเดิมที่อ้าง NAV_ITEMS */
+export const NAV_ITEMS = NAV_SECTIONS.flatMap((s) => s.items);

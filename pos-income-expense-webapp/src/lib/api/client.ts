@@ -2,6 +2,7 @@ import type { KioskSession } from "@/constants/kioskUsers";
 import type {
   AuditLog,
   AuditLogAction,
+  BalanceSummary,
   CashCount,
   Category,
   DashboardSummary,
@@ -39,6 +40,20 @@ export async function fetchTransactions(type?: "income" | "expense"): Promise<Tr
 export async function fetchCategories(type?: "income" | "expense"): Promise<Category[]> {
   const qs = type ? `?type=${type}` : "";
   const { data } = await parseJson<{ data: Category[] }>(await fetch(`/api/categories${qs}`));
+  return data;
+}
+
+export async function fetchBalanceSummary(
+  start?: string,
+  end?: string
+): Promise<BalanceSummary> {
+  const params = new URLSearchParams();
+  if (start) params.set("start", start);
+  if (end) params.set("end", end);
+  const qs = params.toString() ? `?${params}` : "";
+  const { data } = await parseJson<{ data: BalanceSummary }>(
+    await fetch(`/api/reports/balance-summary${qs}`)
+  );
   return data;
 }
 
@@ -83,7 +98,12 @@ export async function fetchOrganization(): Promise<Organization> {
 }
 
 export async function updateOrganizationApi(
-  body: Partial<Pick<Organization, "name" | "taxId" | "address" | "phone" | "receiptConfig" | "hardwareConfig">>
+  body: Partial<
+    Pick<
+      Organization,
+      "name" | "taxId" | "address" | "phone" | "receiptConfig" | "hardwareConfig" | "financeConfig"
+    >
+  >
 ): Promise<Organization> {
   const { data } = await parseJson<{ data: Organization }>(
     await fetch("/api/organizations", {

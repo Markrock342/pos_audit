@@ -58,6 +58,7 @@ export function mapOrganization(row: Record<string, unknown>): Organization {
     currency: String(row.currency ?? "THB"),
     receiptConfig: row.receipt_config as Organization["receiptConfig"],
     hardwareConfig: row.hardware_config as Organization["hardwareConfig"],
+    financeConfig: row.finance_config as Organization["financeConfig"],
     createdAt: row.created_at as string | undefined,
   };
 }
@@ -73,6 +74,7 @@ export function toOrganizationUpdate(
   if (data.currency !== undefined) result.currency = data.currency;
   if (data.receiptConfig !== undefined) result.receipt_config = data.receiptConfig;
   if (data.hardwareConfig !== undefined) result.hardware_config = data.hardwareConfig;
+  if (data.financeConfig !== undefined) result.finance_config = data.financeConfig;
   return result;
 }
 

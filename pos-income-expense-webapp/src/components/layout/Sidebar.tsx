@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_ITEMS, APP_NAME } from "@/constants";
+import { NAV_SECTIONS, APP_NAME } from "@/constants";
 import { useOrganization } from "@/components/providers/OrganizationProvider";
 import { cn } from "@/lib/utils/cn";
 
@@ -26,27 +26,46 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-2 px-4 py-5">
-        {NAV_ITEMS.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+      <nav className="flex-1 space-y-5 overflow-y-auto px-4 py-5">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.title}>
+            <p className="mb-2 px-3 text-xs font-bold uppercase tracking-wider text-text-muted">
+              {section.title}
+            </p>
+            <div className="space-y-1">
+              {section.items.map((item) => {
+                const isActive =
+                  pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-2xl px-5 py-4 text-base font-bold transition-all duration-150 min-h-[60px]",
-                isActive
-                  ? "bg-brand text-text-inverse shadow-[0_2px_8px_rgba(255,107,53,0.35)]"
-                  : "text-text-secondary active:bg-surface-hover active:text-text-main"
-              )}
-            >
-              <item.icon size={24} />
-              {item.label}
-            </Link>
-          );
-        })}
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex min-h-[56px] items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-150",
+                      isActive
+                        ? "bg-brand text-text-inverse shadow-[0_2px_8px_rgba(255,107,53,0.35)]"
+                        : "text-text-secondary active:bg-surface-hover active:text-text-main"
+                    )}
+                  >
+                    <item.icon size={22} className="shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-base font-bold leading-tight">{item.label}</p>
+                      <p
+                        className={cn(
+                          "truncate text-xs font-medium",
+                          isActive ? "text-text-inverse/80" : "text-text-muted"
+                        )}
+                      >
+                        {item.hint}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="border-t border-border-default px-6 py-5 text-sm font-bold text-text-muted">
