@@ -29,6 +29,7 @@ export default function AddIncomePage() {
 
   return (
     <AppLayout title="เพิ่มรายรับ">
+      <div className="mx-auto w-full max-w-6xl">
       <TransactionForm
         type="income"
         categories={categories}
@@ -38,6 +39,7 @@ export default function AddIncomePage() {
           router.push("/income");
         }}
       />
+      </div>
     </AppLayout>
   );
 }

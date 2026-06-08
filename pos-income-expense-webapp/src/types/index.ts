@@ -117,4 +117,5 @@ export interface DashboardSummary {
   monthExpense: number;
   netProfit: number;
   transactionCount: number;
+  expectedCashBalance?: number;
 }

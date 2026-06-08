@@ -181,26 +181,26 @@ export default function CategoriesPage() {
       header: "จัดการ",
       className: "w-28 text-right",
       render: (row: Category) => (
-        <div className="flex items-center justify-end gap-1">
+        <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={() => startEdit(row)}
-            className={`rounded-xl p-2 transition-colors hover:bg-surface-hover hover:text-brand ${
+            className={`touch-target rounded-xl p-3 transition-colors hover:bg-surface-hover hover:text-brand ${
               editingId === row.id ? "bg-brand/10 text-brand" : "text-text-muted"
             }`}
             aria-label={`แก้ไข ${row.name}`}
             title="แก้ไข"
           >
-            <Pencil size={18} />
+            <Pencil size={22} />
           </button>
           <button
             type="button"
             onClick={() => openDeleteDialog(row.id)}
-            className="rounded-xl p-2 text-text-muted transition-colors hover:bg-error-light hover:text-error"
+            className="touch-target rounded-xl p-3 text-text-muted transition-colors hover:bg-error-light hover:text-error"
             aria-label={`ลบ ${row.name}`}
             title="ลบ"
           >
-            <Trash2 size={18} />
+            <Trash2 size={22} />
           </button>
         </div>
       ),

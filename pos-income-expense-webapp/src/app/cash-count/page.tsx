@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { CashCountHistory } from "@/components/cash-count/CashCountHistory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { AmountDisplay, AmountNumpad } from "@/components/ui/AmountNumpad";
 import {
   fetchCashCountToday,
   saveCashCountApi,
@@ -14,16 +16,20 @@ import { formatCurrency, formatDateShort } from "@/lib/utils/format";
 import type { CashCount } from "@/types";
 import { Wallet, CheckCircle, AlertTriangle } from "lucide-react";
 
+type ActiveField = "opening" | "actual";
+
 export default function CashCountPage() {
   const [countDate, setCountDate] = useState(new Date().toISOString().slice(0, 10));
   const [openingBalance, setOpeningBalance] = useState("0");
-  const [actualBalance, setActualBalance] = useState("");
+  const [actualBalance, setActualBalance] = useState("0");
+  const [activeField, setActiveField] = useState<ActiveField>("actual");
   const [expectedBalance, setExpectedBalance] = useState(0);
   const [existing, setExisting] = useState<CashCount | null>(null);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [historyKey, setHistoryKey] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -31,9 +37,7 @@ export default function CashCountPage() {
     try {
       const today = await fetchCashCountToday();
       const date =
-        today.data?.countDate ??
-        today.countDate ??
-        new Date().toISOString().slice(0, 10);
+        today.data?.countDate ?? today.countDate ?? new Date().toISOString().slice(0, 10);
       setCountDate(date);
       setExpectedBalance(today.data?.expectedBalance ?? today.expectedBalance ?? 0);
       if (today.data) {
@@ -44,8 +48,8 @@ export default function CashCountPage() {
         setExpectedBalance(today.data.expectedBalance);
       } else {
         setExisting(null);
-        setOpeningBalance(String(today.openingBalance));
-        setActualBalance("");
+        setOpeningBalance(String(today.openingBalance ?? 0));
+        setActualBalance("0");
         setNote("");
       }
     } catch (e) {
@@ -59,11 +63,19 @@ export default function CashCountPage() {
     void load();
   }, [load]);
 
+  const handleNumpadChange = (val: string) => {
+    if (activeField === "opening") setOpeningBalance(val);
+    else setActualBalance(val);
+  };
+
+  const numpadValue = activeField === "opening" ? openingBalance : actualBalance;
+
   const handleSave = async () => {
     const opening = parseFloat(openingBalance) || 0;
     const actual = parseFloat(actualBalance);
     if (Number.isNaN(actual) || actual < 0) {
       setMessage("กรุณากรอกยอดเงินสดที่นับได้");
+      setActiveField("actual");
       return;
     }
     setSaving(true);
@@ -84,6 +96,7 @@ export default function CashCountPage() {
         });
       }
       setMessage("บันทึกปิดยอดเงินสดแล้ว");
+      setHistoryKey((k) => k + 1);
       await load();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ");
@@ -92,17 +105,14 @@ export default function CashCountPage() {
     }
   };
 
-  const variance =
-    actualBalance !== ""
-      ? parseFloat(actualBalance) - expectedBalance
-      : existing?.variance ?? 0;
-
-  const statusLabel =
-    variance === 0 ? "ตรงยอด" : variance < 0 ? "ขาดเงิน" : "เกินเงิน";
+  const actualNum = parseFloat(actualBalance);
+  const hasActual = !Number.isNaN(actualNum) && actualBalance !== "0";
+  const variance = hasActual ? actualNum - expectedBalance : existing?.variance ?? 0;
+  const statusLabel = variance === 0 ? "ตรงยอด" : variance < 0 ? "ขาดเงิน" : "เกินเงิน";
 
   return (
     <AppLayout title="ปิดยอดเงินสด">
-      <div className="mx-auto max-w-xl space-y-6">
+      <div className="mx-auto max-w-5xl space-y-6">
         {message && (
           <p
             className={`rounded-xl px-4 py-3 text-sm font-bold ${
@@ -120,74 +130,79 @@ export default function CashCountPage() {
               นับเงินสดประจำวัน
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             {loading ? (
               <p className="text-text-muted">กำลังโหลด...</p>
             ) : (
-              <>
-                <p className="text-sm text-text-secondary">
-                  วันที่: <strong>{formatDateShort(countDate)}</strong>
-                  {existing && " (บันทึกแล้ว — แก้ไขได้)"}
-                </p>
-
-                <div className="rounded-xl bg-surface-inset p-4 space-y-2">
-                  <p className="text-sm text-text-muted">ยอดที่ระบบคาดหวัง (เงินสดวันนี้)</p>
-                  <p className="text-3xl font-black text-brand">{formatCurrency(expectedBalance)}</p>
-                  <p className="text-xs text-text-muted">
-                    คำนวณจาก: ยอดเปิด + รายรับเงินสด − รายจ่ายเงินสด
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:gap-8">
+                <div className="flex flex-col gap-4">
+                  <p className="text-sm text-text-secondary">
+                    วันที่: <strong>{formatDateShort(countDate)}</strong>
+                    {existing && " (บันทึกแล้ว — แก้ไขได้)"}
                   </p>
+
+                  <div className="rounded-xl bg-surface-inset p-4">
+                    <p className="text-sm text-text-muted">ยอดที่ระบบคาดหวัง</p>
+                    <p className="text-3xl font-black text-brand">{formatCurrency(expectedBalance)}</p>
+                    <p className="mt-1 text-xs text-text-muted">
+                      ยอดเปิด + รายรับเงินสด − รายจ่ายเงินสด
+                    </p>
+                  </div>
+
+                  <AmountDisplay
+                    label="ยอดเงินสดเปิดร้าน (เช้า)"
+                    value={openingBalance}
+                    active={activeField === "opening"}
+                    onClick={() => setActiveField("opening")}
+                  />
+
+                  <AmountDisplay
+                    label="ยอดเงินสดที่นับได้จริง (ตอนปิด)"
+                    value={actualBalance}
+                    active={activeField === "actual"}
+                    onClick={() => setActiveField("actual")}
+                  />
+
+                  <Input
+                    label="หมายเหตุ (ถ้ามี)"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="เช่น ทอนไม่พอ, เงินหาย"
+                  />
+
+                  {hasActual && (
+                    <div
+                      className={`flex items-center gap-3 rounded-xl p-4 ${
+                        variance === 0 ? "bg-income-light text-income" : "bg-expense-light text-expense"
+                      }`}
+                    >
+                      {variance === 0 ? <CheckCircle size={22} /> : <AlertTriangle size={22} />}
+                      <div>
+                        <p className="font-bold">{statusLabel}</p>
+                        <p className="text-sm">
+                          ส่วนต่าง: {variance >= 0 ? "+" : ""}
+                          {formatCurrency(variance)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <Input
-                  label="ยอดเงินสดเปิดร้าน (เช้า)"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={openingBalance}
-                  onChange={(e) => setOpeningBalance(e.target.value)}
-                />
-                <Input
-                  label="ยอดเงินสดที่นับได้จริง (ตอนปิด)"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={actualBalance}
-                  onChange={(e) => setActualBalance(e.target.value)}
-                  placeholder="กรอกจำนวนที่นับได้"
-                />
-                <Input
-                  label="หมายเหตุ (ถ้ามี)"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="เช่น ทอนไม่พอ, เงินหาย"
-                />
-
-                {actualBalance !== "" && (
-                  <div
-                    className={`flex items-center gap-3 rounded-xl p-4 ${
-                      variance === 0
-                        ? "bg-income-light text-income"
-                        : "bg-expense-light text-expense"
-                    }`}
-                  >
-                    {variance === 0 ? <CheckCircle size={22} /> : <AlertTriangle size={22} />}
-                    <div>
-                      <p className="font-bold">{statusLabel}</p>
-                      <p className="text-sm">
-                        ส่วนต่าง: {variance >= 0 ? "+" : ""}
-                        {formatCurrency(variance)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <Button className="w-full" size="lg" onClick={handleSave} disabled={saving}>
-                  {saving ? "กำลังบันทึก..." : existing ? "อัปเดตปิดยอด" : "บันทึกปิดยอด"}
-                </Button>
-              </>
+                <div className="flex flex-col gap-4 xl:sticky xl:top-4 xl:self-start">
+                  <p className="text-center text-sm font-bold text-text-muted">
+                    กำลังกรอก: {activeField === "opening" ? "ยอดเปิดร้าน" : "ยอดนับจริง"}
+                  </p>
+                  <AmountNumpad value={numpadValue} onChange={handleNumpadChange} />
+                  <Button className="w-full" size="lg" onClick={handleSave} disabled={saving}>
+                    {saving ? "กำลังบันทึก..." : existing ? "อัปเดตปิดยอด" : "บันทึกปิดยอด"}
+                  </Button>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
+
+        <CashCountHistory refreshKey={historyKey} />
       </div>
     </AppLayout>
   );

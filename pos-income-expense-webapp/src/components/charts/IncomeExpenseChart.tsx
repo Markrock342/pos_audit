@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -22,9 +23,19 @@ interface IncomeExpenseChartProps {
 }
 
 export function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="h-72 min-h-72 w-full min-w-0" />;
+  }
+
   return (
     <div className="h-72 min-h-72 w-full min-w-0">
-      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
           <XAxis dataKey="date" tick={{ fontSize: 12, fill: "var(--text-secondary)" }} />

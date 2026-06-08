@@ -6,7 +6,7 @@ import { ShopSettingsForm } from "@/components/settings/ShopSettingsForm";
 export default function SettingsPage() {
   return (
     <AppLayout title="ตั้งค่า">
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>ข้อมูลร้าน</CardTitle>

@@ -190,7 +190,7 @@ export function PinLogin() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-2 w-full max-w-lg mx-auto">
+    <div className="flex flex-col items-center gap-4 w-full max-w-lg mx-auto">
       {/* Saved Profiles Dropdown */}
       {savedProfiles.filter((n) => !isHiddenFromProfiles(n)).length > 0 && (
         <div className="w-full relative" ref={dropdownRef}>

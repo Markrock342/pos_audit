@@ -21,7 +21,7 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
 ];
 
 export const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "ภาพรวม", icon: LayoutDashboard },
   { href: "/income", label: "รายรับ", icon: DollarSign },
   { href: "/expense", label: "รายจ่าย", icon: ArrowDownCircle },
   { href: "/categories", label: "หมวดหมู่", icon: Tag },

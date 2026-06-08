@@ -1,7 +1,8 @@
+import Link from "next/link";
 import type { DashboardSummary } from "@/types";
 import { formatCurrency } from "@/lib/utils/format";
 import { StatCard } from "@/components/ui/StatCard";
-import { DollarSign, ArrowDownCircle, TrendingUp, FileText } from "lucide-react";
+import { DollarSign, ArrowDownCircle, TrendingUp, Wallet } from "lucide-react";
 
 interface SummaryCardsProps {
   summary: DashboardSummary;
@@ -29,13 +30,15 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
         icon={TrendingUp}
         trend={summary.netProfit >= 0 ? "up" : "down"}
       />
-      <StatCard
-        title="จำนวนรายการ"
-        value={String(summary.transactionCount)}
-        subtitle="รายการทั้งหมด"
-        icon={FileText}
-        trend="neutral"
-      />
+      <Link href="/cash-count" className="block active:scale-[0.98] transition-transform">
+        <StatCard
+          title="ยอดเงินสดคาดหวัง"
+          value={formatCurrency(summary.expectedCashBalance ?? 0)}
+          subtitle="แตะเพื่อปิดยอด"
+          icon={Wallet}
+          trend="neutral"
+        />
+      </Link>
     </div>
   );
 }

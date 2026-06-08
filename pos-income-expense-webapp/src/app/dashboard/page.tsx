@@ -7,20 +7,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ArrowUpCircle, ArrowDownCircle, TrendingUp } from "lucide-react";
 import { loadCategories, loadTransactions } from "@/lib/data/loader";
-import { buildChartData, buildDashboardSummary } from "@/lib/reports/summary";
+import { buildChartData } from "@/lib/reports/summary";
+import { getDashboard } from "@/lib/services/db/reports";
 
 export default async function DashboardPage() {
-  const [transactions, categories] = await Promise.all([
+  const [transactions, categories, dashboardData] = await Promise.all([
     loadTransactions({ status: "active" }),
     loadCategories(),
+    getDashboard(),
   ]);
 
-  const summary = buildDashboardSummary(transactions);
+  const summary = {
+    todayIncome: dashboardData.todayIncome,
+    todayExpense: dashboardData.todayExpense,
+    monthIncome: dashboardData.monthIncome,
+    monthExpense: dashboardData.monthExpense,
+    netProfit: dashboardData.netProfit,
+    transactionCount: dashboardData.transactionCount,
+    expectedCashBalance: dashboardData.expectedCashBalance,
+  };
   const chartData = buildChartData(transactions);
   const recentTransactions = transactions.slice(0, 5);
 
   return (
-    <AppLayout title="Dashboard">
+    <AppLayout title="ภาพรวม">
       <div className="space-y-6">
         <SummaryCards summary={summary} />
 

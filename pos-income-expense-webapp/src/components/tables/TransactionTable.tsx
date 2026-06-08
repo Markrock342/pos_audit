@@ -124,30 +124,30 @@ export function TransactionTable({
       className: "w-28",
       render: (row: Transaction) =>
         row.status === "void" ? null : (
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setEditingTxn(row)}
-              className="rounded-xl p-2 text-text-muted transition-colors hover:bg-surface-hover hover:text-brand"
+              className="touch-target rounded-xl p-3 text-text-muted transition-colors hover:bg-surface-hover hover:text-brand"
               aria-label="แก้ไขรายการ"
             >
-              <Pencil size={18} />
+              <Pencil size={22} />
             </button>
             <button
               type="button"
               onClick={() => setVoidingTxn(row)}
-              className="rounded-xl p-2 text-text-muted transition-colors hover:bg-expense-light hover:text-expense"
+              className="touch-target rounded-xl p-3 text-text-muted transition-colors hover:bg-expense-light hover:text-expense"
               aria-label="ยกเลิกรายการ"
             >
-              <Ban size={18} />
+              <Ban size={22} />
             </button>
             <button
               type="button"
               onClick={() => openDeleteDialog(row.id)}
-              className="rounded-xl p-2 text-text-muted transition-colors hover:bg-error-light hover:text-error"
+              className="touch-target rounded-xl p-3 text-text-muted transition-colors hover:bg-error-light hover:text-error"
               aria-label="ลบรายการ"
             >
-              <Trash2 size={18} />
+              <Trash2 size={22} />
             </button>
           </div>
         ),

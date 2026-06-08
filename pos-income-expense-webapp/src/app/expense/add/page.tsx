@@ -29,6 +29,7 @@ export default function AddExpensePage() {
 
   return (
     <AppLayout title="เพิ่มรายจ่าย">
+      <div className="mx-auto w-full max-w-6xl">
       <TransactionForm
         type="expense"
         categories={categories}
@@ -38,6 +39,7 @@ export default function AddExpensePage() {
           router.push("/expense");
         }}
       />
+      </div>
     </AppLayout>
   );
 }

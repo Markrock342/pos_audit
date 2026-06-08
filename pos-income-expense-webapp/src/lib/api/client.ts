@@ -1,5 +1,12 @@
 import type { KioskSession } from "@/constants/kioskUsers";
-import type { CashCount, Category, Organization, ReportSummary, Transaction } from "@/types";
+import type {
+  CashCount,
+  Category,
+  DashboardSummary,
+  Organization,
+  ReportSummary,
+  Transaction,
+} from "@/types";
 
 export interface CategoryReportItem {
   categoryId: string;
@@ -182,6 +189,18 @@ export async function deleteCategoryApi(id: string): Promise<void> {
   await parseJson<{ data: { success: boolean } }>(
     await fetch(`/api/categories/${id}`, { method: "DELETE" })
   );
+}
+
+export async function fetchCashCounts(): Promise<CashCount[]> {
+  const { data } = await parseJson<{ data: CashCount[] }>(await fetch("/api/cash-counts"));
+  return data;
+}
+
+export async function fetchDashboard(): Promise<DashboardSummary & { expectedCashBalance: number }> {
+  const { data } = await parseJson<{ data: DashboardSummary & { expectedCashBalance: number } }>(
+    await fetch("/api/reports/dashboard")
+  );
+  return data;
 }
 
 export async function fetchCashCountToday(): Promise<{

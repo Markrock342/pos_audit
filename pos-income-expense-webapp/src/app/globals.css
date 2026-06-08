@@ -155,3 +155,12 @@ html {
 .animate-shake {
   animation: shake 0.5s ease-in-out;
 }
+
+/* Minimum 48×48px touch target for kiosk */
+.touch-target {
+  min-height: 48px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -111,23 +111,28 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col gap-6">
+        <form
+          onSubmit={handleSubmit(handleFormSubmit)}
+          className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:gap-8"
+        >
           <input type="hidden" {...register("type")} />
 
+          {/* ซ้าย: ข้อมูลรายการ */}
+          <div className="flex flex-col gap-5">
           {/* Category Grid */}
           <div>
-            <label className="mb-3 block text-lg font-semibold text-text-secondary">
+            <label className="mb-2 block text-lg font-semibold text-text-secondary">
               หมวดหมู่ <span className="text-error">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3">
               {filteredCategories.map((category) => (
                 <button
                   key={category.id}
                   type="button"
                   onClick={() => setValue("categoryId", category.id)}
-                  className={`min-h-[80px] rounded-2xl border-2 p-4 text-center text-lg font-bold shadow-sm text-text-main ${
+                  className={`flex min-h-[72px] flex-col items-center justify-center rounded-2xl border-2 p-3 text-center text-base font-bold leading-snug shadow-sm text-text-main xl:min-h-[80px] xl:text-lg ${
                     selectedCategoryId === category.id
-                      ? "scale-105 shadow-lg"
+                      ? "scale-[1.02] shadow-lg"
                       : "active:bg-surface-hover"
                   } ${errors.categoryId && !selectedCategoryId ? "border-error bg-error-light" : "border-border-default bg-surface-elevated"}`}
                   style={
@@ -140,10 +145,10 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
                   }
                 >
                   <div
-                    className="mb-2 h-4 w-4 rounded-full mx-auto shadow-sm"
+                    className="mb-1.5 h-4 w-4 shrink-0 rounded-full shadow-sm"
                     style={{ backgroundColor: category.color }}
                   />
-                  {category.name}
+                  <span className="line-clamp-2">{category.name}</span>
                 </button>
               ))}
             </div>
@@ -160,7 +165,7 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
             <input
               {...register("title")}
               placeholder="เช่น ขายปูน 50 ถุง, ค่าขนส่งวัสดุ"
-              className={`w-full rounded-2xl border-2 bg-surface-elevated px-4 py-4 text-lg text-text-main placeholder:text-text-muted focus:outline-none focus:ring-4 shadow-sm transition-all ${
+              className={`w-full rounded-2xl border-2 bg-surface-elevated px-4 py-4 text-lg text-text-main placeholder:text-text-muted focus:outline-none focus:ring-4 shadow-sm transition-all min-h-[56px] ${
                 errors.title
                   ? "border-error focus:border-error focus:ring-error-ring"
                   : "border-border-default focus:border-border-focus focus:ring-brand-ring"
@@ -179,77 +184,24 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
             <input
               type="date"
               {...register("transactionDate")}
-              className="w-full rounded-2xl border-2 border-border-default bg-surface-elevated px-4 py-4 text-lg text-text-main focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-brand-ring shadow-sm min-h-[64px]"
+              className="w-full rounded-2xl border-2 border-border-default bg-surface-elevated px-4 py-4 text-lg text-text-main focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-brand-ring shadow-sm min-h-[56px]"
             />
-          </div>
-
-          {/* Amount Display & Numpad */}
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="mb-2 block text-lg font-semibold text-text-secondary">
-                จำนวนเงิน (บาท) <span className="text-error">*</span>
-              </label>
-              <div className={`flex items-center rounded-2xl border-2 px-6 py-5 shadow-md ${
-                errors.amount
-                  ? "border-error bg-error-light"
-                  : "border-border-default bg-surface-elevated"
-              }`}>
-                <span className={`text-4xl font-bold ${errors.amount ? "text-error" : "text-text-muted"}`}>฿</span>
-                <span className={`ml-3 text-5xl font-bold ${errors.amount ? "text-error" : "text-text-main"}`}>
-                  {formatDisplay(amountString)}
-                </span>
-              </div>
-              {errors.amount && (
-                <p className="mt-2 text-sm text-error font-medium">{errors.amount.message}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              {["7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0", "."].map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => handleNumpadClick(key)}
-                  className={`min-h-[88px] rounded-2xl text-3xl font-bold shadow-md active:shadow-lg active:scale-95 text-text-main ${
-                    key === "C"
-                      ? "bg-expense-light text-expense active:bg-expense/20"
-                      : "bg-surface-hover active:bg-border-default"
-                  }`}
-                >
-                  {key}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => handleNumpadClick("⌫")}
-                className="min-h-[88px] rounded-2xl bg-surface-hover text-3xl font-bold text-text-secondary active:bg-border-default shadow-md active:shadow-lg active:scale-95"
-              >
-                ⌫
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNumpadClick("00")}
-                className="min-h-[88px] rounded-2xl bg-surface-hover text-3xl font-bold text-text-main active:bg-border-default shadow-md active:shadow-lg active:scale-95"
-              >
-                00
-              </button>
-            </div>
           </div>
 
           {/* Payment Method Grid */}
           <div>
-            <label className="mb-3 block text-lg font-semibold text-text-secondary">
+            <label className="mb-2 block text-lg font-semibold text-text-secondary">
               ช่องทางชำระเงิน
             </label>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
               {PAYMENT_METHODS.map((method) => (
                 <button
                   key={method.value}
                   type="button"
                   onClick={() => setValue("paymentMethod", method.value as PaymentMethod)}
-                  className={`min-h-[80px] rounded-2xl border-2 p-4 text-center text-lg font-bold shadow-sm ${
+                  className={`min-h-[64px] rounded-2xl border-2 p-3 text-center text-base font-bold shadow-sm xl:min-h-[72px] xl:text-lg ${
                     selectedPaymentMethod === method.value
-                      ? "scale-105 shadow-lg border-text-main bg-text-main text-text-inverse"
+                      ? "scale-[1.02] shadow-lg border-text-main bg-text-main text-text-inverse"
                       : "border-border-default bg-surface-elevated text-text-secondary active:bg-surface-hover active:border-text-muted"
                   }`}
                 >
@@ -277,9 +229,62 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
               <p className="mt-2 text-sm text-error font-medium">{errors.note.message}</p>
             )}
           </div>
+          </div>
+
+          {/* ขวา: จำนวนเงิน + numpad + ปุ่มบันทึก */}
+          <div className="flex flex-col gap-4 xl:sticky xl:top-4 xl:self-start">
+            <div>
+              <label className="mb-2 block text-lg font-semibold text-text-secondary">
+                จำนวนเงิน (บาท) <span className="text-error">*</span>
+              </label>
+              <div className={`flex items-center rounded-2xl border-2 px-6 py-5 shadow-md ${
+                errors.amount
+                  ? "border-error bg-error-light"
+                  : "border-border-default bg-surface-elevated"
+              }`}>
+                <span className={`text-4xl font-bold ${errors.amount ? "text-error" : "text-text-muted"}`}>฿</span>
+                <span className={`ml-3 text-5xl font-bold ${errors.amount ? "text-error" : "text-text-main"}`}>
+                  {formatDisplay(amountString)}
+                </span>
+              </div>
+              {errors.amount && (
+                <p className="mt-2 text-sm text-error font-medium">{errors.amount.message}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {["7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0", "."].map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleNumpadClick(key)}
+                  className={`min-h-[72px] rounded-2xl text-3xl font-bold shadow-md active:shadow-lg active:scale-95 text-text-main xl:min-h-[80px] ${
+                    key === "C"
+                      ? "bg-expense-light text-expense active:bg-expense/20"
+                      : "bg-surface-hover active:bg-border-default"
+                  }`}
+                >
+                  {key}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => handleNumpadClick("⌫")}
+                className="min-h-[72px] rounded-2xl bg-surface-hover text-3xl font-bold text-text-secondary active:bg-border-default shadow-md active:shadow-lg active:scale-95 xl:min-h-[80px]"
+              >
+                ⌫
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNumpadClick("00")}
+                className="min-h-[72px] rounded-2xl bg-surface-hover text-3xl font-bold text-text-main active:bg-border-default shadow-md active:shadow-lg active:scale-95 xl:min-h-[80px]"
+              >
+                00
+              </button>
+            </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-4 pt-6 mt-2">
+          <div className="flex gap-4 pt-2">
             <Button
               type="submit"
               disabled={isSubmitting}
@@ -299,6 +304,7 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
                 ยกเลิก
               </Button>
             )}
+          </div>
           </div>
         </form>
       </CardContent>
