@@ -41,6 +41,7 @@ export function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
           <XAxis dataKey="date" tick={{ fontSize: 12, fill: "var(--text-secondary)" }} />
           <YAxis tick={{ fontSize: 12, fill: "var(--text-secondary)" }} />
           <Tooltip
+            cursor={{ fill: "var(--surface-hover)", fillOpacity: 0.35 }}
             formatter={(value) =>
               typeof value === "number"
                 ? `฿${value.toLocaleString("th-TH")}`
@@ -49,8 +50,12 @@ export function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
             contentStyle={{
               backgroundColor: "var(--surface-elevated)",
               borderColor: "var(--border-default)",
+              borderRadius: "0.75rem",
               color: "var(--text-main)",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.25)",
             }}
+            labelStyle={{ color: "var(--text-secondary)" }}
+            itemStyle={{ color: "var(--text-main)" }}
           />
           <Legend wrapperStyle={{ color: "var(--text-main)" }} />
           <Bar dataKey="income" name="รายรับ" fill="#2a7a3b" radius={[4, 4, 0, 0]} />
