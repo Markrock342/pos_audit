@@ -7,6 +7,8 @@ import {
 import { transactionAuditSnapshot } from "@/lib/utils/auditSnapshot";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
+import { isAdminRequest } from "@/lib/api/requestRole";
+import { assertTransactionDatesAllowed } from "@/lib/api/transactionDateLock";
 import { putTransactionSchema } from "@/lib/validations/transactionApi";
 
 const DEFAULT_USER_ID = KIOSK_ACCOUNTS.find((a) => a.type === "customer")!.userId;
@@ -68,6 +70,14 @@ export async function PUT(
 
     const body = parsed.data;
     const userId = body.updatedBy ?? DEFAULT_USER_ID;
+    const isAdmin = isAdminRequest(request);
+
+    const dateBlocked = await assertTransactionDatesAllowed(
+      [existing.transactionDate, body.transactionDate],
+      isAdmin
+    );
+    if (dateBlocked) return dateBlocked;
+
     const oldSnapshot = transactionAuditSnapshot(existing);
 
     const updated = await updateTransaction(

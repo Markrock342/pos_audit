@@ -158,6 +158,12 @@ export function mapCashCount(row: Record<string, unknown>): CashCount {
     status: row.status as CashCount["status"],
     note: row.note as string | undefined,
     createdAt: row.created_at as string | undefined,
+    closedAt: row.closed_at as string | undefined,
+    autoClosed: row.auto_closed as boolean | undefined,
+    closingType: row.closing_type as CashCount["closingType"],
+    hasManualCount: row.has_manual_count as boolean | undefined,
+    updatedAt: row.updated_at as string | undefined,
+    updatedBy: row.updated_by as string | undefined,
   };
 }
 

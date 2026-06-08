@@ -7,6 +7,8 @@ import {
 import { transactionAuditSnapshot } from "@/lib/utils/auditSnapshot";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
+import { isAdminRequest } from "@/lib/api/requestRole";
+import { assertTransactionDateAllowed } from "@/lib/api/transactionDateLock";
 
 const DEFAULT_USER_ID = KIOSK_ACCOUNTS.find((a) => a.type === "customer")!.userId;
 
@@ -38,6 +40,10 @@ export async function POST(
       { status: 400 }
     );
   }
+
+  const isAdmin = isAdminRequest(request);
+  const dateBlocked = await assertTransactionDateAllowed(existing.transactionDate, isAdmin);
+  if (dateBlocked) return dateBlocked;
 
   const userId = body.voidedBy ?? DEFAULT_USER_ID;
   const oldSnapshot = transactionAuditSnapshot(existing);

@@ -1,4 +1,5 @@
 import type { KioskSession } from "@/constants/kioskUsers";
+import { KIOSK_SESSION_KEY } from "@/constants/kioskUsers";
 import type {
   AuditLog,
   AuditLogAction,
@@ -23,9 +24,32 @@ export interface CategoryReportItem {
 async function parseJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(text || `API error ${res.status}`);
+    try {
+      const json = JSON.parse(text) as { error?: { message?: string | object } };
+      const msg = json.error?.message;
+      if (typeof msg === "string" && msg.trim()) throw new Error(msg);
+    } catch (e) {
+      if (e instanceof Error && !e.message.startsWith("{")) throw e;
+    }
+    throw new Error(text.trim() || `API error ${res.status}`);
   }
   return res.json() as Promise<T>;
+}
+
+function kioskAuthHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(KIOSK_SESSION_KEY);
+    if (!raw) return {};
+    const session = JSON.parse(raw) as KioskSession;
+    return { "X-Kiosk-Role": session.role };
+  } catch {
+    return {};
+  }
+}
+
+function jsonAuthHeaders(): HeadersInit {
+  return { "Content-Type": "application/json", ...kioskAuthHeaders() };
 }
 
 export async function fetchTransactions(type?: "income" | "expense"): Promise<Transaction[]> {
@@ -230,6 +254,8 @@ export async function fetchCashCountToday(): Promise<{
   expectedBalance: number;
   openingBalance: number;
   countDate: string;
+  businessToday?: string;
+  isLocked?: boolean;
 }> {
   return parseJson(await fetch("/api/cash-counts/today"));
 }
@@ -239,11 +265,12 @@ export async function saveCashCountApi(body: {
   openingBalance: number;
   actualBalance: number;
   note?: string;
+  countedBy?: string;
 }): Promise<CashCount> {
   const { data } = await parseJson<{ data: CashCount }>(
     await fetch("/api/cash-counts", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: jsonAuthHeaders(),
       body: JSON.stringify(body),
     })
   );
@@ -256,12 +283,13 @@ export async function updateCashCountApi(
     openingBalance?: number;
     actualBalance?: number;
     note?: string;
+    updatedBy?: string;
   }
 ): Promise<CashCount> {
   const { data } = await parseJson<{ data: CashCount }>(
     await fetch(`/api/cash-counts/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: jsonAuthHeaders(),
       body: JSON.stringify(body),
     })
   );

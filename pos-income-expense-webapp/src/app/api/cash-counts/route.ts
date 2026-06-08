@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   getCashCounts,
+  getCashCountByDate,
   createCashCount,
+  ensureDailyCashCountCycle,
+  isCashCountLocked,
 } from "@/lib/services/db/cashCounts";
+import { getBusinessToday } from "@/lib/utils/businessDate";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
 
@@ -18,8 +22,17 @@ const postSchema = z.object({
 });
 
 export async function GET() {
-  const data = await getCashCounts(DEFAULT_ORG_ID);
-  return NextResponse.json({ data, total: data.length });
+  try {
+    await ensureDailyCashCountCycle(DEFAULT_ORG_ID);
+    const data = await getCashCounts(DEFAULT_ORG_ID);
+    return NextResponse.json({ data, total: data.length });
+  } catch (e) {
+    console.error("[cash-counts GET]", e);
+    return NextResponse.json(
+      { error: { code: "CYCLE_ERROR", message: e instanceof Error ? e.message : "Load failed" } },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: Request) {
@@ -33,7 +46,38 @@ export async function POST(request: Request) {
     );
   }
 
+  const businessToday = getBusinessToday();
+  if (parsed.data.countDate !== businessToday) {
+    return NextResponse.json(
+      { error: { code: "DATE_LOCKED", message: "บันทึกได้เฉพาะวันปัจจุบันเท่านั้น" } },
+      { status: 403 }
+    );
+  }
+
+  await ensureDailyCashCountCycle(DEFAULT_ORG_ID);
+  const existing = await getCashCountByDate(DEFAULT_ORG_ID, businessToday);
+
+  if (existing && isCashCountLocked(existing, businessToday)) {
+    return NextResponse.json(
+      { error: { code: "LOCKED", message: "วันนี้ปิดยอดแล้ว — แก้ไขไม่ได้" } },
+      { status: 403 }
+    );
+  }
+
   const body = parsed.data;
+
+  if (existing) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "ALREADY_EXISTS",
+          message: "มี record วันนี้แล้ว — ใช้ PUT อัปเดต",
+        },
+      },
+      { status: 409 }
+    );
+  }
+
   const newCashCount = await createCashCount({
     organizationId: DEFAULT_ORG_ID,
     countedBy: body.countedBy ?? DEFAULT_USER_ID,

@@ -148,6 +148,12 @@ export interface CashCount {
   status: CashCountStatus;
   note?: string;
   createdAt?: string;
+  closedAt?: string;
+  autoClosed?: boolean;
+  closingType?: "manual" | "auto";
+  hasManualCount?: boolean;
+  updatedAt?: string;
+  updatedBy?: string;
 }
 
 export interface DashboardSummary {

@@ -10,6 +10,9 @@ import type { Transaction } from "@/types";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
 import { getErrorMessage } from "@/lib/utils/errorMessage";
+import { getBusinessToday } from "@/lib/utils/businessDate";
+import { isAdminRequest } from "@/lib/api/requestRole";
+import { assertTransactionDateAllowed } from "@/lib/api/transactionDateLock";
 import { postTransactionSchema } from "@/lib/validations/transactionApi";
 
 const DEFAULT_USER_ID = KIOSK_ACCOUNTS.find((a) => a.type === "customer")!.userId;
@@ -45,6 +48,12 @@ export async function POST(request: Request) {
 
     const body = parsed.data;
     const userId = body.createdBy ?? DEFAULT_USER_ID;
+    const txDate = body.transactionDate ?? getBusinessToday();
+    const isAdmin = isAdminRequest(request);
+
+    const dateBlocked = await assertTransactionDateAllowed(txDate, isAdmin);
+    if (dateBlocked) return dateBlocked;
+
     const newTransaction = await createTransaction(
       {
         type: body.type,
@@ -54,7 +63,7 @@ export async function POST(request: Request) {
         note: body.note,
         paymentMethod: body.paymentMethod,
         referenceNo: body.referenceNo,
-        transactionDate: body.transactionDate ?? new Date().toISOString().slice(0, 10),
+        transactionDate: txDate,
         createdBy: userId,
         organizationId: DEFAULT_ORG_ID,
       },

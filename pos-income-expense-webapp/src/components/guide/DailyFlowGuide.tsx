@@ -25,7 +25,7 @@ export function DailyFlowGuide() {
       </ol>
 
       <p className="rounded-lg bg-surface-inset px-3 py-2 text-sm text-text-secondary">
-        เปิดร้าน + รับ(สด) − จ่าย(สด) = ควรมี → นับจริงเทียบ = ขาด/เกิน
+        เปิดเช้า + รับ(สด) − จ่าย(สด) = ยอดที่ควรมี → นับจริงเทียบ = ผลต่างจากที่บันทึก
       </p>
 
       <div className="space-y-1 border-t border-border-default pt-3 text-sm text-text-muted">

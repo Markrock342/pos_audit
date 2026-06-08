@@ -1,35 +1,43 @@
 import { NextResponse } from "next/server";
-import {
-  getCashCountByDate,
-  calculateExpectedBalance,
-} from "@/lib/services/db/cashCounts";
+import { ensureDailyCashCountCycle } from "@/lib/services/db/cashCounts";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
 export async function GET() {
-  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const cycle = await ensureDailyCashCountCycle(DEFAULT_ORG_ID);
 
-  const existing = await getCashCountByDate(DEFAULT_ORG_ID, today);
+    if (cycle.todayRecord) {
+      return NextResponse.json({
+        data: cycle.todayRecord,
+        expectedBalance: cycle.todayRecord.expectedBalance,
+        openingBalance: cycle.todayRecord.openingBalance,
+        countDate: cycle.todayRecord.countDate,
+        businessToday: cycle.businessToday,
+        isLocked: !!cycle.todayRecord.closedAt,
+      });
+    }
 
-  if (existing) {
     return NextResponse.json({
-      data: existing,
-      expectedBalance: existing.expectedBalance,
-      openingBalance: existing.openingBalance,
-      countDate: existing.countDate,
+      data: null,
+      expectedBalance: cycle.expectedBalance,
+      openingBalance: cycle.openingBalance,
+      countDate: cycle.businessToday,
+      businessToday: cycle.businessToday,
+      isLocked: false,
     });
+  } catch (e) {
+    console.error("[cash-counts/today]", e);
+    return NextResponse.json(
+      {
+        error: {
+          code: "CYCLE_ERROR",
+          message:
+            e instanceof Error
+              ? e.message
+              : "โหลดปิดยอดไม่สำเร็จ — ลองรัน docs/supabase-cash-count-close-rls-fix.sql",
+        },
+      },
+      { status: 500 }
+    );
   }
-
-  // ถ้ายังไม่มี record วันนี้ คำนวณ expectedBalance จาก transactions
-  const expectedBalance = await calculateExpectedBalance(
-    DEFAULT_ORG_ID,
-    today,
-    0 // ยังไม่มี openingBalance ให้ใช้ 0 เป็นค่า default
-  );
-
-  return NextResponse.json({
-    data: null,
-    expectedBalance,
-    openingBalance: 0,
-    countDate: today,
-  });
 }
