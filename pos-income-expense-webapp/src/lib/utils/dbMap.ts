@@ -1,4 +1,4 @@
-import type { Category, Transaction } from "@/types";
+import type { Category, Organization, Transaction } from "@/types";
 
 /** แปลง snake_case จาก Supabase → camelCase สำหรับ frontend */
 export function mapTransaction(row: Record<string, unknown>): Transaction {
@@ -37,6 +37,34 @@ export function mapCategory(row: Record<string, unknown>): Category {
     isActive: row.is_active as boolean | undefined,
     createdAt: row.created_at as string | undefined,
   };
+}
+
+export function mapOrganization(row: Record<string, unknown>): Organization {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    taxId: row.tax_id as string | undefined,
+    address: row.address as string | undefined,
+    phone: row.phone as string | undefined,
+    currency: String(row.currency ?? "THB"),
+    receiptConfig: row.receipt_config as Organization["receiptConfig"],
+    hardwareConfig: row.hardware_config as Organization["hardwareConfig"],
+    createdAt: row.created_at as string | undefined,
+  };
+}
+
+export function toOrganizationUpdate(
+  data: Partial<Omit<Organization, "id" | "createdAt">>
+) {
+  const result: Record<string, unknown> = {};
+  if (data.name !== undefined) result.name = data.name;
+  if (data.taxId !== undefined) result.tax_id = data.taxId;
+  if (data.address !== undefined) result.address = data.address;
+  if (data.phone !== undefined) result.phone = data.phone;
+  if (data.currency !== undefined) result.currency = data.currency;
+  if (data.receiptConfig !== undefined) result.receipt_config = data.receiptConfig;
+  if (data.hardwareConfig !== undefined) result.hardware_config = data.hardwareConfig;
+  return result;
 }
 
 export function toTransactionInsert(

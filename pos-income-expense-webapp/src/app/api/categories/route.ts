@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import {
   getCategories,
   createCategory,
 } from "@/lib/services/db/categories";
 import type { Category } from "@/types";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
+
+const postSchema = z.object({
+  name: z.string().min(1).max(50),
+  type: z.enum(["income", "expense"]),
+  color: z.string().min(1).max(7),
+  sortOrder: z.coerce.number().optional(),
+  isActive: z.boolean().optional(),
+});
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -15,9 +24,18 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  const raw = await request.json();
+  const parsed = postSchema.safeParse(raw);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: { code: "VALIDATION_ERROR", message: parsed.error.format() } },
+      { status: 400 }
+    );
+  }
+
   const newCategory = await createCategory({
-    ...body,
+    ...parsed.data,
     organizationId: DEFAULT_ORG_ID,
   });
 

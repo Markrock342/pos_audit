@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db/supabase";
+import { mapOrganization, toOrganizationUpdate } from "@/lib/utils/dbMap";
 import type { Organization } from "@/types";
 
 const TABLE = "organizations";
@@ -10,20 +11,20 @@ export async function getOrganization(id: string): Promise<Organization | null> 
     .eq("id", id)
     .single();
   if (error || !data) return null;
-  return data as Organization;
+  return mapOrganization(data as Record<string, unknown>);
 }
 
 export async function getOrganizations(): Promise<Organization[]> {
   const { data, error } = await getDb().from(TABLE).select("*");
   if (error || !data) return [];
-  return data as Organization[];
+  return (data as Record<string, unknown>[]).map(mapOrganization);
 }
 
 export async function createOrganization(
   data: Omit<Organization, "id" | "createdAt">
 ): Promise<Organization> {
   const org = {
-    ...data,
+    ...toOrganizationUpdate(data),
     created_at: new Date().toISOString(),
   };
   const { data: inserted, error } = await getDb()
@@ -32,7 +33,7 @@ export async function createOrganization(
     .select()
     .single();
   if (error) throw error;
-  return inserted as Organization;
+  return mapOrganization(inserted as Record<string, unknown>);
 }
 
 export async function updateOrganization(
@@ -41,12 +42,12 @@ export async function updateOrganization(
 ): Promise<Organization> {
   const { data: updated, error } = await getDb()
     .from(TABLE)
-    .update(data)
+    .update(toOrganizationUpdate(data))
     .eq("id", id)
     .select()
     .single();
   if (error) throw error;
-  return updated as Organization;
+  return mapOrganization(updated as Record<string, unknown>);
 }
 
 export async function deleteOrganization(id: string): Promise<void> {

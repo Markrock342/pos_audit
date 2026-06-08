@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import {
   getTransaction,
   updateTransaction,
@@ -7,6 +8,17 @@ import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
 
 const DEFAULT_USER_ID = KIOSK_ACCOUNTS.find((a) => a.type === "customer")!.userId;
+
+const putSchema = z.object({
+  title: z.string().min(1).max(100),
+  amount: z.coerce.number().positive("amount must be > 0"),
+  categoryId: z.string().min(1),
+  paymentMethod: z.enum(["cash", "transfer", "cheque", "card", "other"]),
+  transactionDate: z.string().min(1),
+  note: z.string().max(500).optional(),
+  referenceNo: z.string().max(100).optional(),
+  updatedBy: z.string().optional(),
+});
 
 export async function GET(
   _request: Request,
@@ -22,7 +34,6 @@ export async function GET(
     );
   }
 
-  // ตรวจสอบว่าเป็นรายการของ organization นี้ (MVP: ยังไม่มี auth จริง)
   if (transaction.organizationId && transaction.organizationId !== DEFAULT_ORG_ID) {
     return NextResponse.json(
       { error: { code: "FORBIDDEN", message: "Access denied" } },
@@ -38,7 +49,15 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const body = await request.json();
+  const raw = await request.json();
+  const parsed = putSchema.safeParse(raw);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: { code: "VALIDATION_ERROR", message: parsed.error.format() } },
+      { status: 400 }
+    );
+  }
 
   const existing = await getTransaction(id);
   if (!existing) {
@@ -55,9 +74,10 @@ export async function PUT(
     );
   }
 
+  const body = parsed.data;
   const updated = await updateTransaction(id, {
     title: body.title,
-    amount: Number(body.amount),
+    amount: body.amount,
     categoryId: body.categoryId,
     paymentMethod: body.paymentMethod,
     transactionDate: body.transactionDate,
