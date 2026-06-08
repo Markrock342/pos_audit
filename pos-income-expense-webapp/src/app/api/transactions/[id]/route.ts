@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  deleteTransaction,
   getTransaction,
   updateTransaction,
 } from "@/lib/services/db/transactions";
@@ -87,4 +88,29 @@ export async function PUT(
   });
 
   return NextResponse.json({ data: updated });
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const transaction = await getTransaction(id);
+
+  if (!transaction) {
+    return NextResponse.json(
+      { error: { code: "NOT_FOUND", message: "Transaction not found" } },
+      { status: 404 }
+    );
+  }
+
+  if (transaction.organizationId && transaction.organizationId !== DEFAULT_ORG_ID) {
+    return NextResponse.json(
+      { error: { code: "FORBIDDEN", message: "Access denied" } },
+      { status: 403 }
+    );
+  }
+
+  await deleteTransaction(id);
+  return NextResponse.json({ data: { success: true } });
 }

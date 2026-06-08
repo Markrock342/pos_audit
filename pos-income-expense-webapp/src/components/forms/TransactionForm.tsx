@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Toast } from "@/components/ui/Toast";
-import { formatCurrency } from "@/lib/utils/format";
+import type { PaymentMethod } from "@/types";
 import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 
 interface TransactionFormProps {
@@ -46,7 +46,6 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
 
   const [amountString, setAmountString] = useState("0");
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const amount = watch("amount") || 0;
 
   const formatDisplay = (val: string) => {
     if (val === "0" || val === "") return "0";
@@ -160,7 +159,7 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
             </label>
             <input
               {...register("title")}
-              placeholder="เช่น ลาเต้ร้อน, ซื้อนมสด"
+              placeholder="เช่น ขายปูน 50 ถุง, ค่าขนส่งวัสดุ"
               className={`w-full rounded-2xl border-2 bg-surface-elevated px-4 py-4 text-lg text-text-main placeholder:text-text-muted focus:outline-none focus:ring-4 shadow-sm transition-all ${
                 errors.title
                   ? "border-error focus:border-error focus:ring-error-ring"
@@ -247,7 +246,7 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
                 <button
                   key={method.value}
                   type="button"
-                  onClick={() => setValue("paymentMethod", method.value as any)}
+                  onClick={() => setValue("paymentMethod", method.value as PaymentMethod)}
                   className={`min-h-[80px] rounded-2xl border-2 p-4 text-center text-lg font-bold shadow-sm ${
                     selectedPaymentMethod === method.value
                       ? "scale-105 shadow-lg border-text-main bg-text-main text-text-inverse"

@@ -15,7 +15,7 @@ import { ArrowUpCircle, TrendingUp, Wallet } from "lucide-react";
 
 export default function IncomeListPage() {
   const [search, setSearch] = useState("");
-  const { transactions, categories, loading, error } = useTransactions("income");
+  const { transactions, categories, loading, error, reload } = useTransactions("income");
 
   const filtered = search
     ? transactions.filter(
@@ -90,7 +90,11 @@ export default function IncomeListPage() {
                     actionVariant="income"
                   />
                 ) : (
-                  <TransactionTable transactions={filtered} categories={categories} />
+                  <TransactionTable
+                    transactions={filtered}
+                    categories={categories}
+                    onChanged={reload}
+                  />
                 )}
               </CardContent>
             </Card>

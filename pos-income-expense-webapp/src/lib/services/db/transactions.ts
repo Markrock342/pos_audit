@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db/supabase";
-import { mapTransaction, toTransactionInsert } from "@/lib/utils/dbMap";
+import { mapTransaction, toTransactionInsert, toTransactionUpdate } from "@/lib/utils/dbMap";
 import type { Transaction, TransactionType } from "@/types";
 
 const TABLE = "transactions";
@@ -65,7 +65,7 @@ export async function updateTransaction(
 ): Promise<Transaction> {
   const { data: updated, error } = await getDb()
     .from(TABLE)
-    .update({ ...data, updated_at: new Date().toISOString() })
+    .update(toTransactionUpdate(data))
     .eq("id", id)
     .select()
     .single();

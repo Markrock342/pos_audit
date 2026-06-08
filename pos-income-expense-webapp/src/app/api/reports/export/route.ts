@@ -18,10 +18,9 @@ export async function GET(request: Request) {
   const categoryNames = new Map(categories.map((c) => [c.id, c.name]));
 
   const csv = transactionsToCsv(transactions, categoryNames);
+  const filename = `report_${start}_${end}.csv`;
 
-  const filename = `รายงาน_${start}_${end}.csv`;
-
-  return new NextResponse(csv, {
+  return new NextResponse("\uFEFF" + csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,

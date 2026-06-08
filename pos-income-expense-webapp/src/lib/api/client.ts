@@ -1,6 +1,14 @@
-import type { Category, ReportSummary, Transaction } from "@/types";
-import { getClientDataSource } from "@/lib/dataSource";
-import { mockCategories, mockTransactions } from "@/data/mock";
+import type { KioskSession } from "@/constants/kioskUsers";
+import type { CashCount, Category, Organization, ReportSummary, Transaction } from "@/types";
+
+export interface CategoryReportItem {
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  type: "income" | "expense";
+  total: number;
+  count: number;
+}
 
 async function parseJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -11,19 +19,12 @@ async function parseJson<T>(res: Response): Promise<T> {
 }
 
 export async function fetchTransactions(type?: "income" | "expense"): Promise<Transaction[]> {
-  if (getClientDataSource() === "mock") {
-    const data = mockTransactions.filter((t) => t.status === "active");
-    return type ? data.filter((t) => t.type === type) : data;
-  }
   const qs = type ? `?type=${type}` : "";
   const { data } = await parseJson<{ data: Transaction[] }>(await fetch(`/api/transactions${qs}`));
   return data;
 }
 
 export async function fetchCategories(type?: "income" | "expense"): Promise<Category[]> {
-  if (getClientDataSource() === "mock") {
-    return type ? mockCategories.filter((c) => c.type === type) : mockCategories;
-  }
   const qs = type ? `?type=${type}` : "";
   const { data } = await parseJson<{ data: Category[] }>(await fetch(`/api/categories${qs}`));
   return data;
@@ -38,15 +39,166 @@ export async function fetchReportSummary(start?: string, end?: string): Promise<
   return data;
 }
 
+export async function fetchByCategoryReport(
+  start?: string,
+  end?: string
+): Promise<CategoryReportItem[]> {
+  const params = new URLSearchParams();
+  if (start) params.set("start", start);
+  if (end) params.set("end", end);
+  const qs = params.toString() ? `?${params}` : "";
+  const { data } = await parseJson<{ data: CategoryReportItem[] }>(
+    await fetch(`/api/reports/by-category${qs}`)
+  );
+  return data;
+}
+
+export async function downloadReportCsv(start: string, end: string): Promise<void> {
+  const res = await fetch(`/api/reports/export?start=${start}&end=${end}`);
+  if (!res.ok) throw new Error("ส่งออก CSV ไม่สำเร็จ");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `report_${start}_${end}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function fetchOrganization(): Promise<Organization> {
+  const { data } = await parseJson<{ data: Organization }>(await fetch("/api/organizations"));
+  return data;
+}
+
+export async function updateOrganizationApi(
+  body: Partial<Pick<Organization, "name" | "taxId" | "address" | "phone" | "receiptConfig" | "hardwareConfig">>
+): Promise<Organization> {
+  const { data } = await parseJson<{ data: Organization }>(
+    await fetch("/api/organizations", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  );
+  return data;
+}
+
+export async function loginApi(username: string, pin: string): Promise<KioskSession> {
+  const { data } = await parseJson<{ data: KioskSession }>(
+    await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, pin }),
+    })
+  );
+  return data;
+}
+
 export async function createTransactionApi(
   body: Record<string, unknown>
 ): Promise<Transaction> {
-  if (getClientDataSource() === "mock") {
-    throw new Error("โหมด Mock — บันทึกลง Supabase ไม่ได้ สลับกลับเป็น Supabase ก่อน");
-  }
   const { data } = await parseJson<{ data: Transaction }>(
     await fetch("/api/transactions", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  );
+  return data;
+}
+
+export async function updateTransactionApi(
+  id: string,
+  body: Record<string, unknown>
+): Promise<Transaction> {
+  const { data } = await parseJson<{ data: Transaction }>(
+    await fetch(`/api/transactions/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  );
+  return data;
+}
+
+export async function voidTransactionApi(
+  id: string,
+  voidReason: string,
+  voidedBy?: string
+): Promise<Transaction> {
+  const { data } = await parseJson<{ data: Transaction }>(
+    await fetch(`/api/transactions/${id}/void`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voidReason, voidedBy }),
+    })
+  );
+  return data;
+}
+
+export async function deleteTransactionApi(id: string): Promise<void> {
+  await parseJson<{ data: { success: boolean } }>(
+    await fetch(`/api/transactions/${id}`, { method: "DELETE" })
+  );
+}
+
+export async function createCategoryApi(body: {
+  name: string;
+  type: "income" | "expense";
+  color: string;
+}): Promise<Category> {
+  const { data } = await parseJson<{ data: Category }>(
+    await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  );
+  return data;
+}
+
+export async function deleteCategoryApi(id: string): Promise<void> {
+  await parseJson<{ data: { success: boolean } }>(
+    await fetch(`/api/categories/${id}`, { method: "DELETE" })
+  );
+}
+
+export async function fetchCashCountToday(): Promise<{
+  data: CashCount | null;
+  expectedBalance: number;
+  openingBalance: number;
+  countDate: string;
+}> {
+  return parseJson(await fetch("/api/cash-counts/today"));
+}
+
+export async function saveCashCountApi(body: {
+  countDate: string;
+  openingBalance: number;
+  actualBalance: number;
+  note?: string;
+}): Promise<CashCount> {
+  const { data } = await parseJson<{ data: CashCount }>(
+    await fetch("/api/cash-counts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  );
+  return data;
+}
+
+export async function updateCashCountApi(
+  id: string,
+  body: {
+    openingBalance?: number;
+    actualBalance?: number;
+    note?: string;
+  }
+): Promise<CashCount> {
+  const { data } = await parseJson<{ data: CashCount }>(
+    await fetch(`/api/cash-counts/${id}`, {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     })

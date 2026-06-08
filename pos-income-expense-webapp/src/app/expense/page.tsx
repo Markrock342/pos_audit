@@ -14,7 +14,7 @@ import { ArrowDownCircle, TrendingDown, CreditCard } from "lucide-react";
 
 export default function ExpenseListPage() {
   const [search, setSearch] = useState("");
-  const { transactions, categories, loading, error } = useTransactions("expense");
+  const { transactions, categories, loading, error, reload } = useTransactions("expense");
 
   const filtered = search
     ? transactions.filter(
@@ -87,7 +87,11 @@ export default function ExpenseListPage() {
                     actionLabel="+ เพิ่มรายจ่าย"
                   />
                 ) : (
-                  <TransactionTable transactions={filtered} categories={categories} />
+                  <TransactionTable
+                    transactions={filtered}
+                    categories={categories}
+                    onChanged={reload}
+                  />
                 )}
               </CardContent>
             </Card>

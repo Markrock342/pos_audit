@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db/supabase";
+import { mapCashCount, toCashCountInsert } from "@/lib/utils/dbMap";
 import { getTransactions } from "./transactions";
 import type { CashCount, CashCountStatus } from "@/types";
 
@@ -16,11 +17,11 @@ export async function calculateExpectedBalance(
   });
 
   const income = transactions
-    .filter((t) => t.type === "income")
+    .filter((t) => t.type === "income" && t.paymentMethod === "cash")
     .reduce((sum, t) => sum + t.amount, 0);
 
   const expense = transactions
-    .filter((t) => t.type === "expense")
+    .filter((t) => t.type === "expense" && t.paymentMethod === "cash")
     .reduce((sum, t) => sum + t.amount, 0);
 
   return openingBalance + income - expense;
@@ -39,7 +40,7 @@ export async function getCashCount(id: string): Promise<CashCount | null> {
     .eq("id", id)
     .single();
   if (error || !data) return null;
-  return data as CashCount;
+  return mapCashCount(data as Record<string, unknown>);
 }
 
 export async function getCashCounts(organizationId: string): Promise<CashCount[]> {
@@ -49,7 +50,7 @@ export async function getCashCounts(organizationId: string): Promise<CashCount[]
     .eq("organization_id", organizationId)
     .order("count_date", { ascending: false });
   if (error || !data) return [];
-  return data as CashCount[];
+  return (data as Record<string, unknown>[]).map(mapCashCount);
 }
 
 export async function getCashCountByDate(
@@ -61,38 +62,32 @@ export async function getCashCountByDate(
     .select("*")
     .eq("organization_id", organizationId)
     .eq("count_date", countDate)
-    .single();
+    .maybeSingle();
   if (error || !data) return null;
-  return data as CashCount;
+  return mapCashCount(data as Record<string, unknown>);
 }
 
 export async function createCashCount(
   data: Omit<CashCount, "id" | "expectedBalance" | "variance" | "status" | "createdAt">
 ): Promise<CashCount> {
+  const orgId = data.organizationId ?? "";
   const expectedBalance = await calculateExpectedBalance(
-    data.organizationId ?? "",
+    orgId,
     data.countDate,
     data.openingBalance
   );
-
   const variance = data.actualBalance - expectedBalance;
   const status = determineStatus(variance);
 
-  const cashCount = {
-    ...data,
-    expected_balance: expectedBalance,
-    variance,
-    status,
-    created_at: new Date().toISOString(),
-  };
-
   const { data: inserted, error } = await getDb()
     .from(TABLE)
-    .insert(cashCount)
+    .insert(
+      toCashCountInsert(data, { expectedBalance, variance, status })
+    )
     .select()
     .single();
   if (error) throw error;
-  return inserted as CashCount;
+  return mapCashCount(inserted as Record<string, unknown>);
 }
 
 export async function updateCashCount(
@@ -111,23 +106,27 @@ export async function updateCashCount(
     countDate,
     openingBalance
   );
-
   const variance = actualBalance - expectedBalance;
   const status = determineStatus(variance);
 
+  const patch: Record<string, unknown> = {
+    expected_balance: expectedBalance,
+    variance,
+    status,
+  };
+  if (data.openingBalance !== undefined) patch.opening_balance = data.openingBalance;
+  if (data.actualBalance !== undefined) patch.actual_balance = data.actualBalance;
+  if (data.countDate !== undefined) patch.count_date = data.countDate;
+  if (data.note !== undefined) patch.note = data.note;
+
   const { data: updated, error } = await getDb()
     .from(TABLE)
-    .update({
-      ...data,
-      expected_balance: expectedBalance,
-      variance,
-      status,
-    })
+    .update(patch)
     .eq("id", id)
     .select()
     .single();
   if (error) throw error;
-  return updated as CashCount;
+  return mapCashCount(updated as Record<string, unknown>);
 }
 
 export async function deleteCashCount(id: string): Promise<void> {

@@ -1,4 +1,4 @@
-import type { Category, Organization, Transaction } from "@/types";
+import type { CashCount, Category, Organization, Transaction } from "@/types";
 
 /** แปลง snake_case จาก Supabase → camelCase สำหรับ frontend */
 export function mapTransaction(row: Record<string, unknown>): Transaction {
@@ -67,6 +67,22 @@ export function toOrganizationUpdate(
   return result;
 }
 
+export function toTransactionUpdate(
+  data: Partial<Omit<Transaction, "id" | "createdAt" | "createdBy">>
+) {
+  const patch: Record<string, unknown> = {};
+  if (data.title !== undefined) patch.title = data.title;
+  if (data.amount !== undefined) patch.amount = data.amount;
+  if (data.categoryId !== undefined) patch.category_id = data.categoryId;
+  if (data.note !== undefined) patch.note = data.note;
+  if (data.paymentMethod !== undefined) patch.payment_method = data.paymentMethod;
+  if (data.referenceNo !== undefined) patch.reference_no = data.referenceNo;
+  if (data.transactionDate !== undefined) patch.transaction_date = data.transactionDate;
+  if (data.updatedBy !== undefined) patch.updated_by = data.updatedBy;
+  patch.updated_at = new Date().toISOString();
+  return patch;
+}
+
 export function toTransactionInsert(
   data: Omit<Transaction, "id" | "createdAt" | "status" | "isPrinted">
 ) {
@@ -83,6 +99,52 @@ export function toTransactionInsert(
     status: "active",
     is_printed: false,
     created_by: data.createdBy || null,
+    created_at: new Date().toISOString(),
+  };
+}
+
+export function mapCashCount(row: Record<string, unknown>): CashCount {
+  return {
+    id: String(row.id),
+    organizationId: row.organization_id as string | undefined,
+    countedBy: String(row.counted_by ?? ""),
+    countDate: String(row.count_date),
+    openingBalance: Number(row.opening_balance ?? 0),
+    expectedBalance: Number(row.expected_balance ?? 0),
+    actualBalance: Number(row.actual_balance ?? 0),
+    variance: Number(row.variance ?? 0),
+    status: row.status as CashCount["status"],
+    note: row.note as string | undefined,
+    createdAt: row.created_at as string | undefined,
+  };
+}
+
+export function toCashCountInsert(
+  data: Omit<CashCount, "id" | "expectedBalance" | "variance" | "status" | "createdAt">,
+  computed: { expectedBalance: number; variance: number; status: CashCount["status"] }
+) {
+  return {
+    organization_id: data.organizationId,
+    counted_by: data.countedBy || null,
+    count_date: data.countDate,
+    opening_balance: data.openingBalance,
+    actual_balance: data.actualBalance,
+    expected_balance: computed.expectedBalance,
+    variance: computed.variance,
+    status: computed.status,
+    note: data.note ?? null,
+    created_at: new Date().toISOString(),
+  };
+}
+
+export function toCategoryInsert(data: Omit<Category, "id" | "createdAt">) {
+  return {
+    organization_id: data.organizationId,
+    name: data.name,
+    type: data.type,
+    color: data.color,
+    sort_order: data.sortOrder ?? 0,
+    is_active: data.isActive ?? true,
     created_at: new Date().toISOString(),
   };
 }

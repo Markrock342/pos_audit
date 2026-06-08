@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Delete, Save, UserCheck } from "lucide-react";
 import { SHOP_NAME } from "@/constants";
@@ -68,12 +68,8 @@ export default function SetPasswordPage() {
   const [confirmPin, setConfirmPin] = useState("");
   const [step, setStep] = useState<1 | 2>(1);
   const [saved, setSaved] = useState(false);
-  const [existingUsers, setExistingUsers] = useState<StoredCreds[]>([]);
+  const [existingUsers, setExistingUsers] = useState<StoredCreds[]>(() => getStoredUsers());
   const [errorMsg, setErrorMsg] = useState("");
-
-  useEffect(() => {
-    setExistingUsers(getStoredUsers());
-  }, []);
 
   const handleKey = useCallback(
     (key: string) => {

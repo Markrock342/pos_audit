@@ -2,8 +2,6 @@ import { getTransactions } from "./transactions";
 import { getDb } from "@/lib/db/supabase";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
-const TABLE = "transactions";
-
 export interface DashboardData {
   todayIncome: number;
   todayExpense: number;

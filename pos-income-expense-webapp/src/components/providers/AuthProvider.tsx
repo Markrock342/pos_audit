@@ -29,21 +29,18 @@ function readSession(): KioskSession | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const [session, setSession] = useState<KioskSession | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return !!localStorage.getItem(AUTH_KEY);
+    } catch {
+      return false;
+    }
+  });
+  const [isReady] = useState(true);
+  const [session, setSession] = useState<KioskSession | null>(() => readSession());
 
   useEffect(() => {
-    try {
-      const stored = typeof window !== "undefined" && localStorage.getItem(AUTH_KEY);
-      setIsLoggedIn(!!stored);
-      setSession(readSession());
-    } catch {
-      setIsLoggedIn(false);
-      setSession(null);
-    }
-    setIsReady(true);
-
     const onStorage = (e: StorageEvent) => {
       if (e.key === AUTH_KEY) {
         setIsLoggedIn(!!e.newValue);

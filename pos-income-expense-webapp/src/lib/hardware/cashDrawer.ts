@@ -21,9 +21,6 @@ export interface DrawerKickOptions {
   offMs?: number;
 }
 
-const DEFAULT_ON = 0x32; // 50ms
-const DEFAULT_OFF = 0x32;
-
 export async function openCashDrawer(
   options?: DrawerKickOptions
 ): Promise<{ success: boolean; message: string }> {

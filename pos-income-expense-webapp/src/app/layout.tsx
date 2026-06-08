@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { AuthGuard } from "@/components/providers/AuthGuard";
+import { OrganizationProvider } from "@/components/providers/OrganizationProvider";
 
 export const metadata: Metadata = {
   title: "สมุดรายรับ-รายจ่าย | บัญชีร้าน",
@@ -26,9 +27,11 @@ export default function RootLayout({
     <html lang="th" className="h-full">
       <body className="min-h-full select-none antialiased">
         <AuthProvider>
-          <ThemeProvider>
-            <AuthGuard>{children}</AuthGuard>
-          </ThemeProvider>
+          <OrganizationProvider>
+            <ThemeProvider>
+              <AuthGuard>{children}</AuthGuard>
+            </ThemeProvider>
+          </OrganizationProvider>
         </AuthProvider>
       </body>
     </html>

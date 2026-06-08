@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Category, Transaction } from "@/types";
 import { fetchCategories, fetchTransactions } from "@/lib/api/client";
 
@@ -10,7 +10,7 @@ export function useTransactions(type?: "income" | "expense") {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -27,17 +27,11 @@ export function useTransactions(type?: "income" | "expense") {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    load();
   }, [type]);
 
   useEffect(() => {
-    const reload = () => load();
-    window.addEventListener("data-source-change", reload);
-    return () => window.removeEventListener("data-source-change", reload);
-  }, [type]);
+    void load();
+  }, [load]);
 
   return { transactions, categories, loading, error, reload: load };
 }

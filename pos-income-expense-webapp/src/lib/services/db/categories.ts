@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db/supabase";
-import { mapCategory } from "@/lib/utils/dbMap";
+import { mapCategory, toCategoryInsert } from "@/lib/utils/dbMap";
 import type { Category } from "@/types";
 
 const TABLE = "categories";
@@ -30,13 +30,9 @@ export async function getCategories(
 export async function createCategory(
   data: Omit<Category, "id" | "createdAt">
 ): Promise<Category> {
-  const cat = {
-    ...data,
-    created_at: new Date().toISOString(),
-  };
   const { data: inserted, error } = await getDb()
     .from(TABLE)
-    .insert(cat)
+    .insert(toCategoryInsert(data))
     .select()
     .single();
   if (error) throw error;
@@ -47,9 +43,15 @@ export async function updateCategory(
   id: string,
   data: Partial<Omit<Category, "id" | "createdAt">>
 ): Promise<Category> {
+  const patch: Record<string, unknown> = {};
+  if (data.name !== undefined) patch.name = data.name;
+  if (data.type !== undefined) patch.type = data.type;
+  if (data.color !== undefined) patch.color = data.color;
+  if (data.sortOrder !== undefined) patch.sort_order = data.sortOrder;
+  if (data.isActive !== undefined) patch.is_active = data.isActive;
   const { data: updated, error } = await getDb()
     .from(TABLE)
-    .update(data)
+    .update(patch)
     .eq("id", id)
     .select()
     .single();

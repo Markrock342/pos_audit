@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_ITEMS, APP_NAME, SHOP_NAME } from "@/constants";
+import { NAV_ITEMS, APP_NAME } from "@/constants";
+import { useOrganization } from "@/components/providers/OrganizationProvider";
 import { cn } from "@/lib/utils/cn";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { shopName } = useOrganization();
 
   return (
     <aside className="flex w-72 flex-col bg-surface-elevated shadow-[2px_0_12px_rgba(15,23,42,0.08)]">
@@ -17,7 +19,7 @@ export function Sidebar() {
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-text-muted">
-              {SHOP_NAME}
+              {shopName}
             </p>
             <h1 className="text-lg font-black text-text-main leading-tight">{APP_NAME}</h1>
           </div>

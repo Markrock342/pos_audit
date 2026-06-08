@@ -68,9 +68,12 @@ export interface ReceiptConfig {
 }
 
 export interface HardwareConfig {
-  printerType?: string;
+  printerType?: "none" | "lan" | "usb";
   ip?: string;
   port?: number;
+  bridgeUrl?: string;
+  drawerType?: "none" | "rj11" | "rj12";
+  drawerPin?: "pin2" | "pin5";
   drawerCommand?: string;
 }
 

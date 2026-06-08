@@ -37,6 +37,8 @@ export async function POST(request: Request) {
   const newCategory = await createCategory({
     ...parsed.data,
     organizationId: DEFAULT_ORG_ID,
+    sortOrder: parsed.data.sortOrder ?? 0,
+    isActive: parsed.data.isActive ?? true,
   });
 
   return NextResponse.json({ data: newCategory }, { status: 201 });

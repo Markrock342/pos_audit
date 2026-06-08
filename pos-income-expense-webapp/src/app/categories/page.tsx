@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DataTable } from "@/components/tables/DataTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Dialog } from "@/components/ui/Dialog";
-import { addCategory, deleteCategory, getCategories } from "@/lib/store";
+import {
+  createCategoryApi,
+  deleteCategoryApi,
+  fetchCategories,
+} from "@/lib/api/client";
 import type { Category } from "@/types";
 import { Trash2 } from "lucide-react";
 
@@ -28,22 +32,53 @@ const PRESET_COLORS = [
 ];
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>(getCategories());
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [type, setType] = useState<"income" | "expense">("income");
   const [selectedColor, setSelectedColor] = useState("#8B5E3C");
+  const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const refresh = () => setCategories(getCategories());
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setCategories(await fetchCategories());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "โหลดหมวดหมู่ไม่สำเร็จ");
+      setCategories([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const handleAdd = () => {
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const handleAdd = async () => {
     if (!name.trim()) return;
-    addCategory({ name: name.trim(), type, color: selectedColor });
-    setName("");
-    setType("income");
-    setSelectedColor("#8B5E3C");
-    refresh();
+    setSaving(true);
+    setError(null);
+    try {
+      await createCategoryApi({
+        name: name.trim(),
+        type,
+        color: selectedColor,
+      });
+      setName("");
+      setType("income");
+      setSelectedColor("#8B5E3C");
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "บันทึกหมวดหมู่ไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openDeleteDialog = (id: string) => {
@@ -51,13 +86,20 @@ export default function CategoriesPage() {
     setDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    if (deletingId) {
-      deleteCategory(deletingId);
-      refresh();
+  const handleConfirmDelete = async () => {
+    if (!deletingId) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteCategoryApi(deletingId);
+      setDialogOpen(false);
+      setDeletingId(null);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "ลบหมวดหมู่ไม่สำเร็จ — อาจมีรายการที่ใช้หมวดนี้อยู่");
+    } finally {
+      setDeleting(false);
     }
-    setDeletingId(null);
-    setDialogOpen(false);
   };
 
   const columns = [
@@ -110,6 +152,7 @@ export default function CategoriesPage() {
       className: "w-16",
       render: (row: Category) => (
         <button
+          type="button"
           onClick={() => openDeleteDialog(row.id)}
           className="rounded-xl p-2 text-text-muted transition-colors hover:bg-error-light hover:text-error"
           aria-label="ลบหมวดหมู่"
@@ -122,16 +165,26 @@ export default function CategoriesPage() {
 
   return (
     <AppLayout title="หมวดหมู่">
+      {error && (
+        <p className="mb-4 rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">
+          {error}
+        </p>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>รายการหมวดหมู่</CardTitle>
-            <Button size="sm" variant="outline" onClick={refresh}>
+            <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
               รีเฟรช
             </Button>
           </CardHeader>
           <CardContent>
-            <DataTable columns={columns} data={categories} />
+            {loading ? (
+              <p className="py-8 text-center text-text-muted">กำลังโหลด...</p>
+            ) : (
+              <DataTable columns={columns} data={categories} />
+            )}
           </CardContent>
         </Card>
 
@@ -182,8 +235,12 @@ export default function CategoriesPage() {
                   สีที่เลือก: <span className="font-mono">{selectedColor}</span>
                 </p>
               </div>
-              <Button className="w-full" onClick={handleAdd} disabled={!name.trim()}>
-                บันทึกหมวดหมู่
+              <Button
+                className="w-full"
+                onClick={handleAdd}
+                disabled={!name.trim() || saving}
+              >
+                {saving ? "กำลังบันทึก..." : "บันทึกหมวดหมู่"}
               </Button>
             </div>
           </CardContent>
@@ -193,13 +250,15 @@ export default function CategoriesPage() {
       <Dialog
         open={dialogOpen}
         title="ยืนยันการลบ"
-        message="คุณต้องการลบหมวดหมู่นี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้"
-        confirmLabel="ลบ"
+        message="ลบหมวดหมู่นี้? ถ้ามีรายการที่ใช้หมวดนี้อยู่จะลบไม่ได้ — ต้องลบรายการนั้นก่อน"
+        confirmLabel={deleting ? "กำลังลบ..." : "ลบ"}
         cancelLabel="ยกเลิก"
         onConfirm={handleConfirmDelete}
         onCancel={() => {
-          setDialogOpen(false);
-          setDeletingId(null);
+          if (!deleting) {
+            setDialogOpen(false);
+            setDeletingId(null);
+          }
         }}
       />
     </AppLayout>

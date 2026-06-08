@@ -9,6 +9,7 @@ import {
   KIOSK_SESSION_KEY,
   toKioskSession,
 } from "@/constants/kioskUsers";
+import { loginApi } from "@/lib/api/client";
 
 const MAX_PIN = 4;
 const PIN_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "backspace"];
@@ -92,12 +93,13 @@ export function PinLogin() {
   const [shake, setShake] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showProfiles, setShowProfiles] = useState(false);
-  const [savedProfiles, setSavedProfiles] = useState<string[]>([]);
+  const [savedProfiles, setSavedProfiles] = useState<string[]>(() =>
+    typeof window === "undefined" ? [] : getSavedProfiles()
+  );
   const usernameRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setSavedProfiles(getSavedProfiles());
     usernameRef.current?.focus();
   }, []);
 
@@ -137,28 +139,35 @@ export function PinLogin() {
     []
   );
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (isLoading) return;
     setIsLoading(true);
 
     const trimmedUser = username.trim();
-
     const users = getStoredUsers();
-    const match = users.find(
-      (u) => u.username === trimmedUser && u.pin === pin
-    );
-    const builtin = findKioskAccount(trimmedUser, pin);
+    let authenticated = false;
 
-    if (match || builtin) {
-      setErrorMsg("");
-      try {
+    try {
+      const session = await loginApi(trimmedUser, pin);
+      localStorage.setItem(CURRENT_USER_KEY, trimmedUser);
+      localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(session));
+      authenticated = true;
+    } catch {
+      const match = users.find((u) => u.username === trimmedUser && u.pin === pin);
+      const builtin = findKioskAccount(trimmedUser, pin);
+      if (match || builtin) {
         localStorage.setItem(CURRENT_USER_KEY, trimmedUser);
         if (builtin) {
           localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(toKioskSession(builtin)));
         } else {
           localStorage.removeItem(KIOSK_SESSION_KEY);
         }
-      } catch {}
+        authenticated = true;
+      }
+    }
+
+    if (authenticated) {
+      setErrorMsg("");
       addSavedProfile(trimmedUser);
       setSavedProfiles(getSavedProfiles());
       login();
