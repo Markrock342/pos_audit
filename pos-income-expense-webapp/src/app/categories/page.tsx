@@ -209,31 +209,32 @@ export default function CategoriesPage() {
 
   return (
     <AppLayout title="หมวดหมู่">
-      {error && (
-        <p className="mb-4 rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">
-          {error}
-        </p>
-      )}
+      <div className="flex flex-col gap-4 xl:h-[calc(100vh-8rem)] xl:max-h-[calc(100vh-8rem)] xl:overflow-hidden">
+        {error && (
+          <p className="shrink-0 rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">
+            {error}
+          </p>
+        )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>รายการหมวดหมู่</CardTitle>
-            <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
-              รีเฟรช
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="py-8 text-center text-text-muted">กำลังโหลด...</p>
-            ) : (
-              <DataTable columns={columns} data={categories} />
-            )}
-          </CardContent>
-        </Card>
+        <div className="grid min-h-0 flex-1 gap-6 overflow-hidden lg:grid-cols-3 lg:items-stretch">
+          <Card className="flex min-h-[400px] flex-col overflow-hidden lg:col-span-2 lg:min-h-0">
+            <CardHeader className="flex shrink-0 flex-row items-center justify-between">
+              <CardTitle>รายการหมวดหมู่</CardTitle>
+              <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
+                รีเฟรช
+              </Button>
+            </CardHeader>
+            <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              {loading ? (
+                <p className="py-8 text-center text-text-muted">กำลังโหลด...</p>
+              ) : (
+                <DataTable columns={columns} data={categories} stickyHeader />
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <Card className="flex min-h-0 flex-col overflow-hidden lg:col-span-1 lg:h-full">
+            <CardHeader className="flex shrink-0 flex-row items-center justify-between">
             <CardTitle>{editingId ? "แก้ไขหมวดหมู่" : "เพิ่มหมวดหมู่"}</CardTitle>
             {editingId && (
               <button
@@ -246,7 +247,7 @@ export default function CategoriesPage() {
               </button>
             )}
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="space-y-4">
               <Input
                 label="ชื่อหมวดหมู่"
@@ -310,6 +311,7 @@ export default function CategoriesPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
 
       <Dialog

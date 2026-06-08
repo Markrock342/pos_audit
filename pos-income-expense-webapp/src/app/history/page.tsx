@@ -171,15 +171,15 @@ export default function HistoryPage() {
 
   return (
     <AppLayout title="ประวัติการทำรายการ">
-      <div className="space-y-6">
+      <div className="flex flex-col gap-4 xl:h-[calc(100vh-8rem)] xl:max-h-[calc(100vh-8rem)] xl:overflow-hidden">
         {error && (
-          <p className="rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">
+          <p className="shrink-0 rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">
             {error}
           </p>
         )}
 
-        <Card>
-          <CardHeader className="flex flex-col gap-4">
+        <Card className="flex min-h-[480px] flex-1 flex-col overflow-hidden xl:min-h-0">
+          <CardHeader className="flex shrink-0 flex-col gap-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="flex items-center gap-2">
                 <History size={22} />
@@ -234,7 +234,7 @@ export default function HistoryPage() {
               </p>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             {loading ? (
               <p className="text-text-muted">กำลังโหลด...</p>
             ) : logs.length === 0 ? (
@@ -245,8 +245,8 @@ export default function HistoryPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[960px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-border-default text-text-muted">
+                  <thead className="sticky top-0 z-10 border-b border-border-default bg-surface-elevated text-text-muted">
+                    <tr>
                       <th className="px-3 py-2 font-medium">วันเวลา</th>
                       <th className="px-3 py-2 font-medium">ผู้ทำ</th>
                       <th className="px-3 py-2 font-medium">ประเภท</th>
