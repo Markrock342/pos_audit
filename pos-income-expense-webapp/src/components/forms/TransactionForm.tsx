@@ -40,7 +40,7 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
       note: "",
       paymentMethod: "cash",
       amount: 0,
-      date: new Date().toISOString().slice(0, 10),
+      transactionDate: new Date().toISOString().slice(0, 10),
     },
   });
 
@@ -179,7 +179,7 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
             </label>
             <input
               type="date"
-              {...register("date")}
+              {...register("transactionDate")}
               className="w-full rounded-2xl border-2 border-border-default bg-surface-elevated px-4 py-4 text-lg text-text-main focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-brand-ring shadow-sm min-h-[64px]"
             />
           </div>

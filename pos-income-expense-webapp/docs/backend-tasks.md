@@ -17,13 +17,13 @@
 | Supabase client (`lib/db/supabase.ts`) | ✅ init จริง | `createClient()` + อ่าน `NEXT_PUBLIC_SUPABASE_*` จาก `.env.local` |
 | DB Provider (`lib/db/index.ts`) | ✅ "supabase" | `DB_PROVIDER = "supabase"` |
 | API `/api/transactions` | ✅ GET/POST | รองรับ `type`, `startDate`, `endDate`, `status` query |
-| API `/api/transactions/[id]` | ❌ ยังไม่มี | ต้องสร้าง: GET, PUT, DELETE, `/void` |
+| API `/api/transactions/[id]` | ✅ มีแล้ว | GET, PUT, `/void` (ไม่มี DELETE — ใช้ void แทน) |
 | API `/api/categories` | ✅ GET/POST | `/api/categories/route.ts` |
-| API `/api/categories/[id]` | ❌ ยังไม่มี | ต้องสร้าง: PUT, DELETE |
+| API `/api/categories/[id]` | ✅ มีแล้ว | PUT, DELETE |
 | API `/api/organizations` | ✅ GET/PUT | `/api/organizations/route.ts` |
 | API `/api/users` | ✅ GET | `/api/users/route.ts` |
 | API `/api/cash-counts` | ✅ GET/POST | `/api/cash-counts/route.ts` + คำนวณ `expectedBalance` real-time |
-| API `/api/cash-counts/today` | ❌ ยังไม่มี | ต้องสร้าง |
+| API `/api/cash-counts/today` | ✅ มีแล้ว | ดึงยอดวันนี้ + คำนวณ expected |
 | API `/api/reports/summary` | ✅ GET | รองรับ `start`, `end` query params |
 | API `/api/reports/dashboard` | ❌ ยังไม่มี | ต้องสร้าง |
 | API `/api/reports/by-category` | ❌ ยังไม่มี | ต้องสร้าง |
@@ -51,11 +51,11 @@ src/
 ├── app/api/
 │   ├── transactions/
 │   │   └── route.ts              # GET list, POST create
-│   │   # TODO: [id]/route.ts (GET, PUT, DELETE)
-│   │   # TODO: [id]/void/route.ts (POST)
+│   │   # [id]/route.ts (GET, PUT) ✅
+│   │   # [id]/void/route.ts (POST) ✅
 │   ├── categories/
 │   │   └── route.ts              # GET list, POST create
-│   │   # TODO: [id]/route.ts (PUT, DELETE)
+│   │   # [id]/route.ts (PUT, DELETE) ✅
 │   ├── organizations/
 │   │   └── route.ts              # GET, PUT
 │   ├── users/
@@ -63,7 +63,7 @@ src/
 │   ├── cash-counts/
 │   │   └── route.ts              # GET list, POST create
 │   │   # TODO: [id]/route.ts
-│   │   # TODO: today/route.ts
+│   │   # today/route.ts ✅
 │   ├── reports/
 │   │   └── summary/route.ts      # GET (start, end)
 │   │   # TODO: dashboard/route.ts
@@ -172,28 +172,31 @@ docs/
 - [x] Body: type, categoryId, title, amount, transactionDate, paymentMethod, referenceNo, note
 - [x] Logic: สร้าง `status: active`, `createdBy`
 
-### 3.3 `GET /api/transactions/[id]` ❌
+### 3.3 `GET /api/transactions/[id]` ✅
 
 - [ ] ดึงรายการเดียว พร้อม category name (join)
 
-### 3.4 `PUT /api/transactions/[id]` ❌
+### 3.4 `PUT /api/transactions/[id]` ✅
 
-- [ ] แก้ไขรายการที่ `status = active` เท่านั้น
-- [ ] บันทึก `updatedBy`, `updatedAt`
+- [ ] แก้ไขรายการที่ `status = active` เท่านั้น (ห้ามแก้ถ้า `status = void`)
+- [ ] รับ fields ที่แก้ได้: `title`, `amount`, `categoryId`, `paymentMethod`, `transactionDate`, `note`, `referenceNo`
+- [ ] บันทึก `updatedBy`, `updatedAt` (DB: `updated_by`, `updated_at`)
+- [ ] Map snake_case ↔ camelCase ใน `src/lib/services/db/transactions.ts`
 
 ### 3.5 `DELETE /api/transactions/[id]` ❌
 
-- [ ] ลบรายการ (หรือ soft delete → `isActive: false`)
+> **ไม่รองรับ hard delete** — DB Schema (`database-design.md`) ไม่มี `is_active` / `deleted_at` บน `transactions`
+> ใช้ `POST /api/transactions/[id]/void` แทน (ยกเลิกรายการ เก็บประวัติไว้ตรวจสอบ)
 
-### 3.6 `POST /api/transactions/[id]/void` ❌
+### 3.6 `POST /api/transactions/[id]/void` ✅
 
 - [ ] ยกเลิกรายการ (ไม่ลบ):
 ```json
 { "voidReason": "จดซ้ำ", "voidedBy": "user-1" }
 ```
-- [ ] ตั้ง `status: void`, `voidedAt`, `voidedBy`, `voidReason`
+- [ ] ตั้ง `status: void`, `voidedAt`, `voidedBy`, `voidReason` (DB: `status`, `voided_at`, `voided_by`, `void_reason`)
 
-### 3.7 Validation ❌
+### 3.7 Validation ⚠️
 
 - [ ] เชื่อม Zod validation (`src/lib/validations/transaction.ts`) เข้ากับ API routes
 
@@ -207,8 +210,8 @@ docs/
 |--------|----------|--------|
 | GET | `/api/categories` | ✅ |
 | POST | `/api/categories` | ✅ |
-| PUT | `/api/categories/[id]` | ❌ |
-| DELETE | `/api/categories/[id]` | ❌ |
+| PUT | `/api/categories/[id]` | ✅ |
+| DELETE | `/api/categories/[id]` | ✅ |
 
 ### 4.2 Organizations ✅
 
@@ -255,13 +258,15 @@ variance = actualBalance - expectedBalance
 status = balanced (0) | short (<0) | overage (>0)
 ```
 
+> **หมายเหตุ DB:** ชื่อ columns ใน Supabase เป็น `snake_case` (`opening_balance`, `expected_balance`, `actual_balance`, `variance`, `counted_by`) ต้อง map ให้ตรงใน service layer
+
 ### 6.2 API ✅/❌
 
 | Method | Endpoint | สถานะ |
 |--------|----------|--------|
 | GET | `/api/cash-counts` | ✅ |
 | POST | `/api/cash-counts` | ✅ |
-| GET | `/api/cash-counts/today` | ❌ |
+| GET | `/api/cash-counts/today` | ✅ |
 
 ---
 
@@ -318,12 +323,11 @@ status = balanced (0) | short (<0) | overage (>0)
 
 ### 9.2 npm Scripts ❌
 
-```json
-{
-  "db:seed": "tsx src/scripts/seed.ts",
-  "db:migrate": "supabase db push"
-}
-```
+- [ ] เพิ่ม `db:seed` ใน `package.json`:
+  ```json
+  "db:seed": "tsx src/scripts/seed.ts"
+  ```
+- [ ] (Optional) `db:migrate`: `supabase db push`
 
 ---
 
@@ -348,16 +352,16 @@ status = balanced (0) | short (<0) | overage (>0)
 
 | Priority | งาน | ไฟล์/Endpoint |
 |----------|------|-------------|
-| 🔴 P0 | Transaction [id] endpoints | `/api/transactions/[id]/route.ts` (GET, PUT, DELETE), `/api/transactions/[id]/void/route.ts` |
-| 🔴 P0 | Category [id] endpoints | `/api/categories/[id]/route.ts` (PUT, DELETE) |
+| ✅ | Transaction [id] endpoints | `/api/transactions/[id]/route.ts` (GET, PUT), `/api/transactions/[id]/void/route.ts` |
+| ✅ | Category [id] endpoints | `/api/categories/[id]/route.ts` (PUT, DELETE) |
 | 🟡 P1 | Dashboard API | `/api/reports/dashboard`, `/api/reports/by-category`, `/api/reports/daily-chart` |
 | 🟡 P1 | Export API | `/api/reports/export` (CSV/Excel) |
-| 🟡 P1 | Cash count today | `/api/cash-counts/today` |
+| ✅ | Cash count today | `/api/cash-counts/today` |
 | 🟢 P2 | Receipt print | `/api/receipts/[id]/print` |
 | 🟢 P2 | Hardware proxy | `/api/hardware/print`, `/api/hardware/drawer` |
 | 🟢 P2 | Auth | `/api/auth/*`, `src/middleware.ts` |
 | 🟢 P2 | Validation | เชื่อม Zod เข้า API routes |
-| 🟢 P2 | npm scripts | `db:seed`, `db:migrate` |
+| 🟢 P2 | npm scripts | `db:seed` |
 | 🟢 P2 | Error handling | `src/lib/utils/apiError.ts` |
 
 ---
