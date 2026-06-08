@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAuditLog } from "@/lib/services/db/auditLogs";
+import { safeCreateAuditLog } from "@/lib/services/db/safeAuditLog";
 import {
   getTransaction,
   voidTransaction,
@@ -48,7 +48,7 @@ export async function POST(
     userId
   );
 
-  await createAuditLog({
+  await safeCreateAuditLog({
     organizationId: existing.organizationId ?? DEFAULT_ORG_ID,
     userId,
     entityType: "transaction",

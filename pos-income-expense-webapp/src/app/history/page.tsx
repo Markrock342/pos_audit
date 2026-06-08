@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { fetchAuditLogs } from "@/lib/api/client";
 import { describeAuditChanges } from "@/lib/utils/auditChanges";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
-import type { AuditLog, AuditLogAction } from "@/types";
-import { History } from "lucide-react";
+import type { AuditLog, AuditLogAction, TransactionType } from "@/types";
+import { ArrowDownCircle, ArrowUpCircle, History } from "lucide-react";
 
 const ACTION_LABELS: Record<AuditLogAction, string> = {
   create: "บันทึกใหม่",
@@ -85,6 +85,30 @@ function actionClass(action: AuditLogAction): string {
   if (action === "void") return "font-medium text-error";
   if (action === "create") return "font-medium text-income";
   return "font-medium text-brand";
+}
+
+function TransactionTypeBadge({ type }: { type?: TransactionType }) {
+  if (!type) return <span className="text-text-muted">—</span>;
+
+  const isIncome = type === "income";
+  return (
+    <span
+      className={
+        isIncome
+          ? "inline-flex items-center gap-1.5 rounded-full border border-income/30 bg-income-light px-3 py-1 text-sm font-bold text-income"
+          : "inline-flex items-center gap-1.5 rounded-full border border-expense/30 bg-expense-light px-3 py-1 text-sm font-bold text-expense"
+      }
+    >
+      {isIncome ? <ArrowUpCircle size={16} strokeWidth={2.5} /> : <ArrowDownCircle size={16} strokeWidth={2.5} />}
+      {TYPE_LABELS[type]}
+    </span>
+  );
+}
+
+function amountClass(type?: TransactionType): string {
+  if (type === "income") return "font-semibold text-income";
+  if (type === "expense") return "font-semibold text-expense";
+  return "font-semibold";
 }
 
 function logAmount(log: AuditLog): string | null {
@@ -248,9 +272,7 @@ export default function HistoryPage() {
                             {log.userName ?? "—"}
                           </td>
                           <td className="px-3 py-3">
-                            {log.transactionType
-                              ? TYPE_LABELS[log.transactionType]
-                              : "-"}
+                            <TransactionTypeBadge type={log.transactionType} />
                           </td>
                           <td className="px-3 py-3">
                             <span className={actionClass(log.action)}>
@@ -263,7 +285,7 @@ export default function HistoryPage() {
                           <td className="px-3 py-3">
                             <AuditChangeDetails log={log} />
                           </td>
-                          <td className="px-3 py-3 text-right font-semibold whitespace-nowrap">
+                          <td className={`px-3 py-3 text-right whitespace-nowrap ${amountClass(log.transactionType)}`}>
                             {amount ?? "-"}
                           </td>
                           <td className="px-3 py-3 text-text-secondary">

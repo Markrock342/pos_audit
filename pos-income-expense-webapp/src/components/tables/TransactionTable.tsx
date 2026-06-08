@@ -16,6 +16,27 @@ interface TransactionTableProps {
   onChanged?: () => void;
 }
 
+function lineCount(row: Transaction): number {
+  return row.lineItems?.length ?? 1;
+}
+
+function categorySummary(
+  row: Transaction,
+  categoryMap: Record<string, Category>
+): { label: string; color?: string } {
+  const lines = row.lineItems ?? [];
+  if (lines.length === 0) {
+    const cat = categoryMap[row.categoryId];
+    return { label: cat?.name ?? "-", color: cat?.color };
+  }
+  const uniqueIds = [...new Set(lines.map((l) => l.categoryId))];
+  if (uniqueIds.length === 1) {
+    const cat = categoryMap[uniqueIds[0]];
+    return { label: cat?.name ?? "-", color: cat?.color };
+  }
+  return { label: `${uniqueIds.length} หมวด` };
+}
+
 export function TransactionTable({
   transactions,
   categories,
@@ -47,6 +68,12 @@ export function TransactionTable({
       render: (row: Transaction) => (
         <div>
           <p className="font-medium">{row.title}</p>
+          <p className="text-xs text-text-muted">
+            {lineCount(row)} รายการย่อย
+            {row.lineItems && row.lineItems.length > 0 && (
+              <> — {row.lineItems[0].title}{lineCount(row) > 1 ? " …" : ""}</>
+            )}
+          </p>
           {row.note && <p className="text-xs text-text-muted">{row.note}</p>}
           {row.status === "void" && (
             <p className="text-xs font-bold text-error">ยกเลิกแล้ว</p>
@@ -58,17 +85,14 @@ export function TransactionTable({
       key: "categoryId",
       header: "หมวดหมู่",
       render: (row: Transaction) => {
-        const cat = categoryMap[row.categoryId];
-        return cat ? (
+        const { label, color } = categorySummary(row, categoryMap);
+        return color ? (
           <span className="inline-flex items-center gap-1.5">
-            <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: cat.color }}
-            />
-            {cat.name}
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+            {label}
           </span>
         ) : (
-          "-"
+          <span className="text-text-secondary">{label}</span>
         );
       },
     },

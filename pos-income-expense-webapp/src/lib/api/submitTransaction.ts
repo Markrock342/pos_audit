@@ -1,6 +1,9 @@
 import { createTransactionApi } from "@/lib/api/client";
 import { KIOSK_ACCOUNTS, KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
-import type { TransactionFormValues } from "@/lib/validations/transaction";
+import {
+  resolveBillTitle,
+  type TransactionFormValues,
+} from "@/lib/validations/transaction";
 
 function getCreatedBy(): string {
   if (typeof window === "undefined") {
@@ -16,12 +19,17 @@ function getCreatedBy(): string {
 export async function submitTransaction(data: TransactionFormValues) {
   return createTransactionApi({
     type: data.type,
-    categoryId: data.categoryId,
-    title: data.title,
-    amount: data.amount,
-    note: data.note,
+    title: resolveBillTitle(data.type, data.title, data.lineItems),
+    note: data.note?.trim() || undefined,
     paymentMethod: data.paymentMethod,
     transactionDate: data.transactionDate ?? new Date().toISOString().slice(0, 10),
+    lineItems: data.lineItems.map((item, index) => ({
+      title: item.title.trim(),
+      quantity: Math.round(item.quantity),
+      unitPrice: Math.round(item.unitPrice),
+      categoryId: item.categoryId,
+      sortOrder: index,
+    })),
     createdBy: getCreatedBy(),
   });
 }

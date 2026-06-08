@@ -1,4 +1,14 @@
-import type { Transaction } from "@/types";
+import type { Transaction, TransactionLineItem } from "@/types";
+
+function lineItemSnapshot(item: TransactionLineItem) {
+  return {
+    title: item.title,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    lineAmount: item.lineAmount,
+    categoryId: item.categoryId,
+  };
+}
 
 /** ฟิลด์ที่เก็บใน audit_logs.old_value / new_value สำหรับ transaction */
 export function transactionAuditSnapshot(
@@ -15,5 +25,6 @@ export function transactionAuditSnapshot(
     type: t.type,
     status: t.status,
     voidReason: t.voidReason ?? null,
+    lineItems: (t.lineItems ?? []).map(lineItemSnapshot),
   };
 }

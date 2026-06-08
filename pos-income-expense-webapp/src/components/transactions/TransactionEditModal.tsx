@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { PAYMENT_METHODS } from "@/constants";
 import { updateTransactionApi } from "@/lib/api/client";
+import { TransactionCartPanel, type CartLine } from "@/components/forms/TransactionCartPanel";
+import { TransactionLineBuilder } from "@/components/forms/TransactionLineBuilder";
+import {
+  resolveBillTitle,
+  transactionToFormValues,
+  type LineItemFormValues,
+} from "@/lib/validations/transaction";
 import type { Category, PaymentMethod, Transaction } from "@/types";
 
 interface TransactionEditModalProps {
@@ -17,6 +24,14 @@ interface TransactionEditModalProps {
   onSaved: () => void;
 }
 
+function newLocalId() {
+  return `line-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function toCartLines(items: LineItemFormValues[]): CartLine[] {
+  return items.map((item) => ({ ...item, localId: newLocalId() }));
+}
+
 export function TransactionEditModal({
   transaction,
   categories,
@@ -25,9 +40,10 @@ export function TransactionEditModal({
   onSaved,
 }: TransactionEditModalProps) {
   const filtered = categories.filter((c) => c.type === transaction.type);
-  const [title, setTitle] = useState(transaction.title);
-  const [categoryId, setCategoryId] = useState(transaction.categoryId);
-  const [amount, setAmount] = useState(String(transaction.amount));
+  const initial = transactionToFormValues(transaction);
+
+  const [billTitle, setBillTitle] = useState(initial.title ?? transaction.title);
+  const [cartLines, setCartLines] = useState<CartLine[]>(() => toCartLines(initial.lineItems));
   const [transactionDate, setTransactionDate] = useState(transaction.transactionDate);
   const [paymentMethod, setPaymentMethod] = useState(transaction.paymentMethod);
   const [note, setNote] = useState(transaction.note ?? "");
@@ -37,27 +53,46 @@ export function TransactionEditModal({
 
   if (!open) return null;
 
+  const handleAddLine = (item: LineItemFormValues) => {
+    setCartLines((prev) => [...prev, { ...item, localId: newLocalId() }]);
+    setError(null);
+  };
+
+  const handleRemoveLine = (localId: string) => {
+    setCartLines((prev) => prev.filter((l) => l.localId !== localId));
+  };
+
   const handleSave = async () => {
-    const parsedAmount = parseFloat(amount);
-    if (!title.trim() || !categoryId || !parsedAmount || parsedAmount <= 0) {
-      setError("กรุณากรอกข้อมูลให้ครบ");
+    if (cartLines.length === 0) {
+      setError("ต้องมีอย่างน้อย 1 รายการ");
       return;
     }
     if (!editReason.trim()) {
       setError("กรุณาระบุเหตุผลในการแก้ไข");
       return;
     }
+
+    const lineItems = cartLines.map(({ localId: _id, ...item }, index) => ({
+      ...item,
+      sortOrder: index,
+    }));
+
     setSaving(true);
     setError(null);
     try {
       await updateTransactionApi(transaction.id, {
-        title: title.trim(),
-        categoryId,
-        amount: parsedAmount,
+        title: resolveBillTitle(transaction.type, billTitle, lineItems),
         transactionDate,
         paymentMethod,
         note: note.trim() || undefined,
         editReason: editReason.trim(),
+        lineItems: lineItems.map((item, index) => ({
+          title: item.title.trim(),
+          quantity: Math.round(item.quantity),
+          unitPrice: Math.round(item.unitPrice),
+          categoryId: item.categoryId,
+          sortOrder: index,
+        })),
       });
       onSaved();
       onClose();
@@ -71,67 +106,72 @@ export function TransactionEditModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden />
-      <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border-2 border-border-default bg-surface-elevated p-6 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="relative z-10 flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border-2 border-border-default bg-surface-elevated shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-border-default px-5 py-4">
           <h3 className="text-xl font-bold">แก้ไขรายการ</h3>
           <button type="button" onClick={onClose} className="rounded-xl p-2 text-text-muted hover:bg-surface-hover">
             <X size={22} />
           </button>
         </div>
-        <div className="space-y-4">
-          <Input label="รายการ" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Select
-            label="หมวดหมู่"
-            options={filtered.map((c) => ({ value: c.id, label: c.name }))}
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 lg:grid-cols-2">
+          <TransactionCartPanel
+            type={transaction.type}
+            lines={cartLines}
+            categories={filtered}
+            onRemove={handleRemoveLine}
+            isSaving={saving}
+            isSubmitting={false}
+            hideActions
           />
-          <Input
-            label="จำนวนเงิน"
-            type="number"
-            min="0"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-          <Input
-            label="วันที่"
-            type="date"
-            value={transactionDate}
-            onChange={(e) => setTransactionDate(e.target.value)}
-          />
-          <Select
-            label="ช่องทางชำระ"
-            options={PAYMENT_METHODS.map((p) => ({ value: p.value, label: p.label }))}
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-          />
-          <Input
-            label="หมายเหตุ"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-          <div>
-            <label className="mb-1 block text-sm font-medium text-text-main">
-              เหตุผลในการแก้ไข <span className="text-error">*</span>
-            </label>
-            <textarea
-              className="w-full rounded-2xl border-2 border-border-default bg-surface-elevated px-4 py-3 text-base"
-              rows={2}
-              placeholder="เช่น แก้จำนวนเงินผิด, เปลี่ยนหมวดหมู่"
-              value={editReason}
-              onChange={(e) => setEditReason(e.target.value)}
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border-2 border-border-default p-3">
+              <TransactionLineBuilder
+                categories={filtered}
+                type={transaction.type}
+                onAdd={handleAddLine}
+              />
+            </div>
+
+            <Input label="ชื่อบิล (ไม่บังคับ)" value={billTitle} onChange={(e) => setBillTitle(e.target.value)} />
+            <Input
+              label="วันที่"
+              type="date"
+              value={transactionDate}
+              onChange={(e) => setTransactionDate(e.target.value)}
             />
+            <Select
+              label="ช่องทางชำระ"
+              options={PAYMENT_METHODS.map((p) => ({ value: p.value, label: p.label }))}
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+            />
+            <Input label="หมายเหตุ" value={note} onChange={(e) => setNote(e.target.value)} />
+            <div>
+              <label className="mb-1 block text-sm font-medium text-text-main">
+                เหตุผลในการแก้ไข <span className="text-error">*</span>
+              </label>
+              <textarea
+                className="w-full rounded-2xl border-2 border-border-default bg-surface-elevated px-4 py-3 text-base"
+                rows={2}
+                placeholder="เช่น แก้จำนวนผิด"
+                value={editReason}
+                onChange={(e) => setEditReason(e.target.value)}
+              />
+            </div>
           </div>
-          {error && <p className="text-sm font-medium text-error">{error}</p>}
-          <div className="flex gap-3 pt-2">
-            <Button className="flex-1" onClick={handleSave} disabled={saving}>
-              {saving ? "กำลังบันทึก..." : "บันทึก"}
-            </Button>
-            <Button className="flex-1" variant="outline" onClick={onClose}>
-              ยกเลิก
-            </Button>
-          </div>
+        </div>
+
+        {error && <p className="shrink-0 px-5 pb-2 text-sm font-medium text-error">{error}</p>}
+
+        <div className="flex shrink-0 gap-3 border-t border-border-default p-4">
+          <Button className="flex-1" onClick={handleSave} disabled={saving || cartLines.length === 0}>
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
+          </Button>
+          <Button className="flex-1" variant="outline" onClick={onClose}>
+            ยกเลิก
+          </Button>
         </div>
       </div>
     </div>

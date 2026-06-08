@@ -17,6 +17,7 @@
 -- STEP 1: ลบตารางเดิมทั้งหมด
 DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS cash_counts CASCADE;
+DROP TABLE IF EXISTS transaction_line_items CASCADE;
 DROP TABLE IF EXISTS transactions CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
@@ -86,6 +87,21 @@ CREATE INDEX idx_txn_org_type_date ON transactions (organization_id, type, trans
 CREATE INDEX idx_txn_category ON transactions (category_id);
 CREATE INDEX idx_txn_org_status ON transactions (organization_id, status);
 
+CREATE TABLE transaction_line_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  transaction_id UUID NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+  sort_order INT NOT NULL DEFAULT 0,
+  title TEXT NOT NULL,
+  quantity DECIMAL(12,3) NOT NULL CHECK (quantity > 0),
+  unit_price DECIMAL(12,2) NOT NULL CHECK (unit_price >= 0),
+  line_amount DECIMAL(12,2) NOT NULL CHECK (line_amount > 0),
+  category_id UUID NOT NULL REFERENCES categories(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_line_items_txn ON transaction_line_items (transaction_id, sort_order);
+CREATE INDEX idx_line_items_category ON transaction_line_items (category_id);
+
 CREATE TABLE cash_counts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -130,6 +146,7 @@ ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transaction_line_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cash_counts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
@@ -137,6 +154,7 @@ CREATE POLICY "Allow all" ON organizations FOR ALL USING (true) WITH CHECK (true
 CREATE POLICY "Allow all" ON users FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON categories FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON transactions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON transaction_line_items FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON cash_counts FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON audit_logs FOR ALL USING (true) WITH CHECK (true);
 

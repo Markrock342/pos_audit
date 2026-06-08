@@ -29,17 +29,15 @@ export default function AddExpensePage() {
 
   return (
     <AppLayout title="เพิ่มรายจ่าย">
-      <div className="mx-auto w-full max-w-6xl">
       <TransactionForm
         type="expense"
         categories={categories}
         onCancel={() => router.back()}
+        successRedirect="/expense"
         onSubmit={async (data) => {
           await submitTransaction(data);
-          router.push("/expense");
         }}
       />
-      </div>
     </AppLayout>
   );
 }

@@ -29,17 +29,15 @@ export default function AddIncomePage() {
 
   return (
     <AppLayout title="เพิ่มรายรับ">
-      <div className="mx-auto w-full max-w-6xl">
       <TransactionForm
         type="income"
         categories={categories}
         onCancel={() => router.back()}
+        successRedirect="/income"
         onSubmit={async (data) => {
           await submitTransaction(data);
-          router.push("/income");
         }}
       />
-      </div>
     </AppLayout>
   );
 }

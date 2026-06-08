@@ -6,8 +6,10 @@ import type {
   Category,
   Organization,
   Transaction,
+  TransactionLineItem,
   TransactionType,
 } from "@/types";
+import type { LineItemInput } from "@/lib/utils/lineAmount";
 
 /** แปลง snake_case จาก Supabase → camelCase สำหรับ frontend */
 export function mapTransaction(row: Record<string, unknown>): Transaction {
@@ -32,6 +34,35 @@ export function mapTransaction(row: Record<string, unknown>): Transaction {
     createdAt: String(row.created_at ?? row.transaction_date),
     updatedBy: row.updated_by as string | undefined,
     updatedAt: row.updated_at as string | undefined,
+    lineItems: row.line_items as TransactionLineItem[] | undefined,
+  };
+}
+
+export function mapLineItem(row: Record<string, unknown>): TransactionLineItem {
+  return {
+    id: String(row.id),
+    transactionId: String(row.transaction_id),
+    sortOrder: Number(row.sort_order ?? 0),
+    title: String(row.title),
+    quantity: Number(row.quantity),
+    unitPrice: Number(row.unit_price),
+    lineAmount: Number(row.line_amount),
+    categoryId: String(row.category_id),
+  };
+}
+
+export function toLineItemInsert(
+  transactionId: string,
+  item: LineItemInput & { lineAmount: number; sortOrder: number }
+) {
+  return {
+    transaction_id: transactionId,
+    sort_order: item.sortOrder,
+    title: item.title,
+    quantity: item.quantity,
+    unit_price: item.unitPrice,
+    line_amount: item.lineAmount,
+    category_id: item.categoryId,
   };
 }
 

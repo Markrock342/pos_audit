@@ -50,11 +50,23 @@ export async function getByCategory(
   const totals = new Map<string, { total: number; count: number }>();
 
   for (const t of transactions) {
-    const key = t.categoryId;
-    const current = totals.get(key) ?? { total: 0, count: 0 };
-    current.total += t.amount;
-    current.count += 1;
-    totals.set(key, current);
+    const lines = t.lineItems && t.lineItems.length > 0 ? t.lineItems : null;
+
+    if (lines) {
+      for (const line of lines) {
+        const key = line.categoryId;
+        const current = totals.get(key) ?? { total: 0, count: 0 };
+        current.total += line.lineAmount;
+        current.count += 1;
+        totals.set(key, current);
+      }
+    } else {
+      const key = t.categoryId;
+      const current = totals.get(key) ?? { total: 0, count: 0 };
+      current.total += t.amount;
+      current.count += 1;
+      totals.set(key, current);
+    }
   }
 
   const result: CategoryReportItem[] = [];

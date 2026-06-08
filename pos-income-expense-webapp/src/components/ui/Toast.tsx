@@ -23,7 +23,8 @@ export function Toast({ type = "info", message, duration = 3000, onClose }: Toas
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [duration, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per toast mount
+  }, [duration]);
 
   const icons = {
     success: CheckCircle,

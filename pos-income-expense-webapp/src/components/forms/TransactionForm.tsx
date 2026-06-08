@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import type { Category, TransactionType } from "@/types";
 import { PAYMENT_METHODS } from "@/constants";
 import {
   transactionSchema,
+  type LineItemFormValues,
   type TransactionFormValues,
 } from "@/lib/validations/transaction";
+import { TransactionCartPanel, type CartLine } from "@/components/forms/TransactionCartPanel";
+import { TransactionLineBuilder } from "@/components/forms/TransactionLineBuilder";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Toast } from "@/components/ui/Toast";
@@ -20,88 +23,108 @@ interface TransactionFormProps {
   categories: Category[];
   onSubmit?: (data: TransactionFormValues) => void | Promise<void>;
   onCancel?: () => void;
+  successRedirect?: string;
 }
 
-export function TransactionForm({ type, categories, onSubmit, onCancel }: TransactionFormProps) {
+function newLocalId() {
+  return `line-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function TransactionForm({
+  type,
+  categories,
+  onSubmit,
+  onCancel,
+  successRedirect,
+}: TransactionFormProps) {
+  const router = useRouter();
+  const savingRef = useRef(false);
   const filteredCategories = categories.filter((c) => c.type === type);
+
+  const [cartLines, setCartLines] = useState<CartLine[]>([]);
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
-  } = useForm<TransactionFormValues>({
-    resolver: zodResolver(transactionSchema),
+    formState: { isSubmitting },
+  } = useForm<Omit<TransactionFormValues, "lineItems">>({
     defaultValues: {
       type,
-      categoryId: "",
       title: "",
       note: "",
       paymentMethod: "cash",
-      amount: 0,
       transactionDate: new Date().toISOString().slice(0, 10),
     },
   });
 
-  const [amountString, setAmountString] = useState("0");
-  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
-
-  const formatDisplay = (val: string) => {
-    if (val === "0" || val === "") return "0";
-    const parts = val.split(".");
-    const intPart = parts[0];
-    const decPart = parts[1] ?? "";
-    const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return decPart !== "" ? `${formattedInt}.${decPart}` : formattedInt;
-  };
-
-  const selectedCategoryId = watch("categoryId");
   const selectedPaymentMethod = watch("paymentMethod");
+  const dismissToast = useCallback(() => setToast(null), []);
 
-  const handleNumpadClick = (value: string) => {
-    let newAmount: string;
-
-    if (value === "C") {
-      newAmount = "0";
-    } else if (value === "⌫") {
-      newAmount = amountString.slice(0, -1) || "0";
-    } else if (value === ".") {
-      newAmount = amountString.includes(".") ? amountString : amountString + ".";
-    } else {
-      newAmount = amountString === "0" ? value : amountString + value;
-    }
-
-    setAmountString(newAmount);
-    setValue("amount", parseFloat(newAmount) || 0);
+  const handleAddLine = (item: LineItemFormValues) => {
+    setCartLines((prev) => [...prev, { ...item, localId: newLocalId() }]);
   };
 
-  const handleFormSubmit = async (data: TransactionFormValues) => {
-    if (!data.categoryId) {
-      setToast({ type: "error", message: "กรุณาเลือกหมวดหมู่" });
+  const handleRemoveLine = (localId: string) => {
+    setCartLines((prev) => prev.filter((l) => l.localId !== localId));
+  };
+
+  const handleFormSubmit = async (header: Omit<TransactionFormValues, "lineItems">) => {
+    if (savingRef.current) return;
+
+    if (cartLines.length === 0) {
+      setToast({ type: "error", message: "กรุณาเพิ่มอย่างน้อย 1 รายการ" });
       return;
     }
-    if (!data.title || data.title.trim() === "") {
-      setToast({ type: "error", message: "กรุณากรอกรายการ" });
+
+    const data: TransactionFormValues = {
+      ...header,
+      type,
+      lineItems: cartLines.map(({ localId: _id, ...item }, index) => ({
+        ...item,
+        sortOrder: index,
+      })),
+    };
+
+    const parsed = transactionSchema.safeParse(data);
+    if (!parsed.success) {
+      setToast({ type: "error", message: "กรุณาตรวจสอบข้อมูลให้ครบ" });
       return;
     }
-    if (!data.amount || data.amount <= 0) {
-      setToast({ type: "error", message: "กรุณากรอกจำนวนเงิน" });
-      return;
-    }
+
+    savingRef.current = true;
+    setIsSaving(true);
+    setToast(null);
 
     try {
-      await onSubmit?.(data);
-      setToast({ type: "success", message: "บันทึกข้อมูลสำเร็จ" });
+      await onSubmit?.(parsed.data);
     } catch {
+      savingRef.current = false;
+      setIsSaving(false);
       setToast({ type: "error", message: "บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง" });
+      return;
     }
+
+    if (successRedirect) {
+      router.replace(successRedirect);
+      return;
+    }
+
+    savingRef.current = false;
+    setIsSaving(false);
+    setToast({ type: "success", message: "บันทึกข้อมูลสำเร็จ" });
+    setCartLines([]);
   };
+
+  const busy = isSubmitting || isSaving;
 
   return (
     <Card className={type === "income" ? "border-t-4 border-t-income" : "border-t-4 border-t-expense"}>
-      <CardHeader className="pb-4">
-        <CardTitle className="text-2xl font-black flex items-center gap-3">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-3 text-2xl font-black">
           {type === "income" ? (
             <ArrowUpCircle size={28} className="text-income" />
           ) : (
@@ -109,212 +132,115 @@ export function TransactionForm({ type, categories, onSubmit, onCancel }: Transa
           )}
           {type === "income" ? "บันทึกรายรับ" : "บันทึกรายจ่าย"}
         </CardTitle>
+        <p className="mt-1 text-sm text-text-muted">
+          แตะเลือกหมวด → ใส่ราคา → กดเพิ่มรายการ (ทำซ้ำได้หลายรายการ)
+        </p>
       </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <form
-          onSubmit={handleSubmit(handleFormSubmit)}
-          className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:gap-8"
-        >
+      <CardContent>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           <input type="hidden" {...register("type")} />
 
-          {/* ซ้าย: ข้อมูลรายการ */}
-          <div className="flex flex-col gap-5">
-          {/* Category Grid */}
-          <div>
-            <label className="mb-2 block text-lg font-semibold text-text-secondary">
-              หมวดหมู่ <span className="text-error">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {filteredCategories.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => setValue("categoryId", category.id)}
-                  className={`flex min-h-[72px] flex-col items-center justify-center rounded-2xl border-2 p-3 text-center text-base font-bold leading-snug shadow-sm text-text-main xl:min-h-[80px] xl:text-lg ${
-                    selectedCategoryId === category.id
-                      ? "scale-[1.02] shadow-lg"
-                      : "active:bg-surface-hover"
-                  } ${errors.categoryId && !selectedCategoryId ? "border-error bg-error-light" : "border-border-default bg-surface-elevated"}`}
-                  style={
-                    selectedCategoryId === category.id
-                      ? {
-                          borderColor: category.color,
-                          backgroundColor: `${category.color}15`,
-                        }
-                      : undefined
-                  }
-                >
-                  <div
-                    className="mb-1.5 h-4 w-4 shrink-0 rounded-full shadow-sm"
-                    style={{ backgroundColor: category.color }}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(260px,320px)_1fr]">
+            <TransactionCartPanel
+              type={type}
+              lines={cartLines}
+              categories={filteredCategories}
+              onRemove={handleRemoveLine}
+              isSaving={isSaving}
+              isSubmitting={isSubmitting}
+              onCancel={onCancel}
+            />
+
+            <div className="flex min-w-0 flex-col gap-5">
+              <section className="rounded-2xl border-2 border-border-default bg-surface-elevated p-4">
+                <TransactionLineBuilder
+                  categories={filteredCategories}
+                  type={type}
+                  onAdd={handleAddLine}
+                />
+              </section>
+
+              <section className="rounded-2xl border-2 border-border-default bg-surface-elevated p-4 space-y-4">
+                <h3 className="text-base font-bold text-text-main">ข้อมูลบิล</h3>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-sm font-semibold text-text-secondary">
+                      ชื่อบิล (ไม่บังคับ)
+                    </label>
+                    <input
+                      {...register("title")}
+                      placeholder="เช่น ขายให้คุณสมชาย — ว่างไว้ได้"
+                      className="w-full rounded-xl border-2 border-border-default bg-surface-inset px-4 py-3 text-base min-h-[52px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-text-secondary">
+                      วันที่
+                    </label>
+                    <input
+                      type="date"
+                      {...register("transactionDate")}
+                      className="w-full rounded-xl border-2 border-border-default bg-surface-inset px-4 py-3 min-h-[52px] text-lg"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text-secondary">
+                    ช่องทางชำระ
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {PAYMENT_METHODS.map((method) => (
+                      <button
+                        key={method.value}
+                        type="button"
+                        onClick={() => setValue("paymentMethod", method.value as PaymentMethod)}
+                        className={`min-h-[56px] rounded-xl border-2 px-3 py-2 text-sm font-bold transition-all active:scale-[0.98] ${
+                          selectedPaymentMethod === method.value
+                            ? "border-text-main bg-text-main text-text-inverse shadow-md"
+                            : "border-border-default bg-surface-inset text-text-secondary"
+                        }`}
+                      >
+                        {method.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-text-secondary">
+                    หมายเหตุ (ไม่บังคับ)
+                  </label>
+                  <input
+                    {...register("note")}
+                    placeholder="ถ้ามี"
+                    className="w-full rounded-xl border-2 border-border-default bg-surface-inset px-4 py-3 min-h-[52px]"
                   />
-                  <span className="line-clamp-2">{category.name}</span>
-                </button>
-              ))}
-            </div>
-            {errors.categoryId && (
-              <p className="mt-2 text-sm text-error font-medium">{errors.categoryId.message}</p>
-            )}
-          </div>
+                </div>
+              </section>
 
-          {/* Title Input */}
-          <div>
-            <label className="mb-2 block text-lg font-semibold text-text-secondary">
-              รายการ <span className="text-error">*</span>
-            </label>
-            <input
-              {...register("title")}
-              placeholder="เช่น ขายปูน 50 ถุง, ค่าขนส่งวัสดุ"
-              className={`w-full rounded-2xl border-2 bg-surface-elevated px-4 py-4 text-lg text-text-main placeholder:text-text-muted focus:outline-none focus:ring-4 shadow-sm transition-all min-h-[56px] ${
-                errors.title
-                  ? "border-error focus:border-error focus:ring-error-ring"
-                  : "border-border-default focus:border-border-focus focus:ring-brand-ring"
-              }`}
-            />
-            {errors.title && (
-              <p className="mt-2 text-sm text-error font-medium">{errors.title.message}</p>
-            )}
-          </div>
-
-          {/* Date Input */}
-          <div>
-            <label className="mb-2 block text-lg font-semibold text-text-secondary">
-              วันที่
-            </label>
-            <input
-              type="date"
-              {...register("transactionDate")}
-              className="w-full rounded-2xl border-2 border-border-default bg-surface-elevated px-4 py-4 text-lg text-text-main focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-brand-ring shadow-sm min-h-[56px]"
-            />
-          </div>
-
-          {/* Payment Method Grid */}
-          <div>
-            <label className="mb-2 block text-lg font-semibold text-text-secondary">
-              ช่องทางชำระเงิน
-            </label>
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-              {PAYMENT_METHODS.map((method) => (
-                <button
-                  key={method.value}
-                  type="button"
-                  onClick={() => setValue("paymentMethod", method.value as PaymentMethod)}
-                  className={`min-h-[64px] rounded-2xl border-2 p-3 text-center text-base font-bold shadow-sm xl:min-h-[72px] xl:text-lg ${
-                    selectedPaymentMethod === method.value
-                      ? "scale-[1.02] shadow-lg border-text-main bg-text-main text-text-inverse"
-                      : "border-border-default bg-surface-elevated text-text-secondary active:bg-surface-hover active:border-text-muted"
-                  }`}
+              <div className="flex gap-3 lg:hidden">
+                <Button
+                  type="submit"
+                  disabled={busy || cartLines.length === 0}
+                  variant={type === "income" ? "income" : "danger"}
+                  size="lg"
+                  className="flex-1 text-xl font-bold"
                 >
-                  {method.label}
-                </button>
-              ))}
-            </div>
-            {errors.paymentMethod && (
-              <p className="mt-2 text-sm text-error font-medium">{errors.paymentMethod.message}</p>
-            )}
-          </div>
-
-          {/* Note Input */}
-          <div>
-            <label className="mb-2 block text-lg font-semibold text-text-secondary">
-              หมายเหตุ (ถ้ามี)
-            </label>
-            <textarea
-              {...register("note")}
-              placeholder="รายละเอียดเพิ่มเติม"
-              rows={2}
-              className="w-full rounded-2xl border-2 border-border-default bg-surface-elevated px-4 py-3 text-base text-text-main placeholder:text-text-muted focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-brand-ring shadow-sm transition-all resize-none"
-            />
-            {errors.note && (
-              <p className="mt-2 text-sm text-error font-medium">{errors.note.message}</p>
-            )}
-          </div>
-          </div>
-
-          {/* ขวา: จำนวนเงิน + numpad + ปุ่มบันทึก */}
-          <div className="flex flex-col gap-4 xl:sticky xl:top-4 xl:self-start">
-            <div>
-              <label className="mb-2 block text-lg font-semibold text-text-secondary">
-                จำนวนเงิน (บาท) <span className="text-error">*</span>
-              </label>
-              <div className={`flex items-center rounded-2xl border-2 px-6 py-5 shadow-md ${
-                errors.amount
-                  ? "border-error bg-error-light"
-                  : "border-border-default bg-surface-elevated"
-              }`}>
-                <span className={`text-4xl font-bold ${errors.amount ? "text-error" : "text-text-muted"}`}>฿</span>
-                <span className={`ml-3 text-5xl font-bold ${errors.amount ? "text-error" : "text-text-main"}`}>
-                  {formatDisplay(amountString)}
-                </span>
+                  {busy ? "กำลังบันทึก..." : "บันทึก"}
+                </Button>
+                {onCancel && (
+                  <Button type="button" variant="outline" onClick={onCancel} size="lg" className="flex-1">
+                    ยกเลิก
+                  </Button>
+                )}
               </div>
-              {errors.amount && (
-                <p className="mt-2 text-sm text-error font-medium">{errors.amount.message}</p>
-              )}
             </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              {["7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0", "."].map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => handleNumpadClick(key)}
-                  className={`min-h-[72px] rounded-2xl text-3xl font-bold shadow-md active:shadow-lg active:scale-95 text-text-main xl:min-h-[80px] ${
-                    key === "C"
-                      ? "bg-expense-light text-expense active:bg-expense/20"
-                      : "bg-surface-hover active:bg-border-default"
-                  }`}
-                >
-                  {key}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => handleNumpadClick("⌫")}
-                className="min-h-[72px] rounded-2xl bg-surface-hover text-3xl font-bold text-text-secondary active:bg-border-default shadow-md active:shadow-lg active:scale-95 xl:min-h-[80px]"
-              >
-                ⌫
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNumpadClick("00")}
-                className="min-h-[72px] rounded-2xl bg-surface-hover text-3xl font-bold text-text-main active:bg-border-default shadow-md active:shadow-lg active:scale-95 xl:min-h-[80px]"
-              >
-                00
-              </button>
-            </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-4 pt-2">
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              size="lg"
-              className="flex-1 text-xl font-bold shadow-lg active:shadow-xl"
-            >
-              {isSubmitting ? "กำลังบันทึก..." : "บันทึก"}
-            </Button>
-            {onCancel && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-                size="lg"
-                className="flex-1 text-xl font-bold shadow-md active:shadow-lg"
-              >
-                ยกเลิก
-              </Button>
-            )}
-          </div>
           </div>
         </form>
       </CardContent>
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast type={toast.type} message={toast.message} onClose={dismissToast} />}
     </Card>
   );
 }

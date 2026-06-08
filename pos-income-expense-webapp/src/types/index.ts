@@ -15,11 +15,24 @@ export type PaymentMethod = "cash" | "transfer" | "cheque" | "card" | "other";
 
 export type TransactionStatus = "active" | "void";
 
+export interface TransactionLineItem {
+  id: string;
+  transactionId: string;
+  sortOrder: number;
+  title: string;
+  quantity: number;
+  unitPrice: number;
+  lineAmount: number;
+  categoryId: string;
+}
+
 export interface Transaction {
   id: string;
   organizationId?: string;
   type: TransactionType;
+  /** หมวดหลัก (บรรทัดแรก) — ใช้ fallback รายงานเก่า */
   categoryId: string;
+  /** ชื่อหัวใบ — ผู้ใช้ตั้งเอง เช่น "ขายให้คุณสมชาย" */
   title: string;
   amount: number;
   note?: string;
@@ -36,6 +49,8 @@ export interface Transaction {
   createdAt: string;
   updatedBy?: string;
   updatedAt?: string;
+  /** รายการย่อย — โหลดจาก API */
+  lineItems?: TransactionLineItem[];
 }
 
 export interface Category {

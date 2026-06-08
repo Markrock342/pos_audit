@@ -13,9 +13,11 @@ function formatDisplay(val: string) {
 interface AmountNumpadProps {
   value: string;
   onChange: (value: string) => void;
+  /** จำนวนเต็มบาท — ซ่อนปุ่ม . */
+  integerOnly?: boolean;
 }
 
-export function AmountNumpad({ value, onChange }: AmountNumpadProps) {
+export function AmountNumpad({ value, onChange, integerOnly }: AmountNumpadProps) {
   const handleKey = (key: string) => {
     let next: string;
     if (key === "C") {
@@ -34,7 +36,10 @@ export function AmountNumpad({ value, onChange }: AmountNumpadProps) {
 
   return (
     <div className="grid grid-cols-3 gap-3">
-      {["7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0", "."].map((key) => (
+      {(integerOnly
+        ? ["7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0"]
+        : ["7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0", "."]
+      ).map((key) => (
         <button
           key={key}
           type="button"
