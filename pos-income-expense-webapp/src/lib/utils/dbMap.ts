@@ -1,4 +1,13 @@
-import type { CashCount, Category, Organization, Transaction } from "@/types";
+import type {
+  AuditLog,
+  AuditLogAction,
+  AuditLogEntityType,
+  CashCount,
+  Category,
+  Organization,
+  Transaction,
+  TransactionType,
+} from "@/types";
 
 /** แปลง snake_case จาก Supabase → camelCase สำหรับ frontend */
 export function mapTransaction(row: Record<string, unknown>): Transaction {
@@ -145,6 +154,50 @@ export function toCategoryInsert(data: Omit<Category, "id" | "createdAt">) {
     color: data.color,
     sort_order: data.sortOrder ?? 0,
     is_active: data.isActive ?? true,
+    created_at: new Date().toISOString(),
+  };
+}
+
+export function mapAuditLog(row: Record<string, unknown>): AuditLog {
+  return {
+    id: String(row.id),
+    organizationId: String(row.organization_id),
+    userId: row.user_id ? String(row.user_id) : undefined,
+    entityType: row.entity_type as AuditLogEntityType,
+    entityId: String(row.entity_id),
+    transactionType: row.transaction_type as TransactionType | undefined,
+    entityTitle: row.entity_title as string | undefined,
+    action: row.action as AuditLogAction,
+    reason: String(row.reason),
+    oldValue: row.old_value as Record<string, unknown> | null | undefined,
+    newValue: row.new_value as Record<string, unknown> | null | undefined,
+    createdAt: String(row.created_at),
+  };
+}
+
+export function toAuditLogInsert(input: {
+  organizationId: string;
+  userId?: string;
+  entityType: AuditLogEntityType;
+  entityId: string;
+  transactionType?: TransactionType;
+  entityTitle?: string;
+  action: AuditLogAction;
+  reason: string;
+  oldValue?: Record<string, unknown> | null;
+  newValue?: Record<string, unknown> | null;
+}) {
+  return {
+    organization_id: input.organizationId,
+    user_id: input.userId ?? null,
+    entity_type: input.entityType,
+    entity_id: input.entityId,
+    transaction_type: input.transactionType ?? null,
+    entity_title: input.entityTitle ?? null,
+    action: input.action,
+    reason: input.reason.trim(),
+    old_value: input.oldValue ?? null,
+    new_value: input.newValue ?? null,
     created_at: new Date().toISOString(),
   };
 }

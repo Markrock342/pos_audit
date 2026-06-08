@@ -8,6 +8,7 @@
 -- เก็บ: org, users, หมวดหมู่
 -- ============================================================
 
+DELETE FROM audit_logs;
 DELETE FROM cash_counts;
 DELETE FROM transactions;
 

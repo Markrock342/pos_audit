@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createAuditLog } from "@/lib/services/db/auditLogs";
 import {
-  deleteTransaction,
   getTransaction,
   updateTransaction,
 } from "@/lib/services/db/transactions";
+import { transactionAuditSnapshot } from "@/lib/utils/auditSnapshot";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
 
@@ -18,6 +19,7 @@ const putSchema = z.object({
   transactionDate: z.string().min(1),
   note: z.string().max(500).optional(),
   referenceNo: z.string().max(100).optional(),
+  editReason: z.string().trim().min(1, "editReason is required"),
   updatedBy: z.string().optional(),
 });
 
@@ -76,6 +78,9 @@ export async function PUT(
   }
 
   const body = parsed.data;
+  const userId = body.updatedBy ?? DEFAULT_USER_ID;
+  const oldSnapshot = transactionAuditSnapshot(existing);
+
   const updated = await updateTransaction(id, {
     title: body.title,
     amount: body.amount,
@@ -84,33 +89,34 @@ export async function PUT(
     transactionDate: body.transactionDate,
     note: body.note,
     referenceNo: body.referenceNo,
-    updatedBy: body.updatedBy ?? DEFAULT_USER_ID,
+    updatedBy: userId,
+  });
+
+  await createAuditLog({
+    organizationId: existing.organizationId ?? DEFAULT_ORG_ID,
+    userId,
+    entityType: "transaction",
+    entityId: id,
+    transactionType: existing.type,
+    entityTitle: updated.title,
+    action: "update",
+    reason: body.editReason,
+    oldValue: oldSnapshot,
+    newValue: transactionAuditSnapshot(updated),
   });
 
   return NextResponse.json({ data: updated });
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  const transaction = await getTransaction(id);
-
-  if (!transaction) {
-    return NextResponse.json(
-      { error: { code: "NOT_FOUND", message: "Transaction not found" } },
-      { status: 404 }
-    );
-  }
-
-  if (transaction.organizationId && transaction.organizationId !== DEFAULT_ORG_ID) {
-    return NextResponse.json(
-      { error: { code: "FORBIDDEN", message: "Access denied" } },
-      { status: 403 }
-    );
-  }
-
-  await deleteTransaction(id);
-  return NextResponse.json({ data: { success: true } });
+export async function DELETE() {
+  return NextResponse.json(
+    {
+      error: {
+        code: "INVALID_STATE",
+        message:
+          "Hard delete is not allowed. Use POST /api/transactions/[id]/void with voidReason instead.",
+      },
+    },
+    { status: 405 }
+  );
 }

@@ -97,6 +97,30 @@ COMMENT ON TABLE cash_counts IS 'การนับเงินสด — ตร
 
 CREATE INDEX idx_cc_org_date ON cash_counts (organization_id, count_date DESC);
 
+-- 6. ประวัติแก้ไข / ยกเลิกรายการ (audit trail)
+CREATE TABLE audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  entity_type VARCHAR(50) NOT NULL CHECK (entity_type IN ('transaction', 'category')),
+  entity_id UUID NOT NULL,
+  transaction_type VARCHAR(10) CHECK (transaction_type IS NULL OR transaction_type IN ('income', 'expense')),
+  entity_title TEXT,
+  action VARCHAR(20) NOT NULL CHECK (action IN ('create', 'update', 'void')),
+  reason TEXT NOT NULL CHECK (char_length(trim(reason)) > 0),
+  old_value JSONB,
+  new_value JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE audit_logs IS 'ประวัติแก้ไข/ยกเลิกรายการ — หน้าประวัติการทำรายการ';
+
+CREATE INDEX idx_audit_org_created ON audit_logs (organization_id, created_at DESC);
+CREATE INDEX idx_audit_org_action ON audit_logs (organization_id, action, created_at DESC);
+CREATE INDEX idx_audit_entity ON audit_logs (entity_type, entity_id, created_at DESC);
+CREATE INDEX idx_audit_org_txn_type ON audit_logs (organization_id, transaction_type, created_at DESC)
+  WHERE transaction_type IS NOT NULL;
+
 -- ============================================================
 -- Row Level Security (RLS) — ปิดไว้ก่อน เปิดตอน production
 -- ============================================================
@@ -106,6 +130,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cash_counts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- ตัวอย่าง Policy (MVP: อนุญาตทุกการทำงานก่อน)
 CREATE POLICY "Allow all" ON organizations FOR ALL USING (true) WITH CHECK (true);
@@ -113,3 +138,4 @@ CREATE POLICY "Allow all" ON users FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON categories FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON transactions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON cash_counts FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON audit_logs FOR ALL USING (true) WITH CHECK (true);

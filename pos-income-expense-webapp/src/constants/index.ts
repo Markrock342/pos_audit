@@ -7,6 +7,7 @@ import {
   TrendingUp,
   Settings,
   Wallet,
+  History,
 } from "lucide-react";
 
 export const APP_NAME = "สมุดรายรับ-รายจ่าย";
@@ -27,5 +28,6 @@ export const NAV_ITEMS = [
   { href: "/categories", label: "หมวดหมู่", icon: Tag },
   { href: "/reports", label: "รายงาน", icon: TrendingUp },
   { href: "/cash-count", label: "ปิดยอดเงินสด", icon: Wallet },
+  { href: "/history", label: "ประวัติรายการ", icon: History },
   { href: "/settings", label: "ตั้งค่า", icon: Settings },
 ] as const;

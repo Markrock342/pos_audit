@@ -4,12 +4,11 @@ import { useState } from "react";
 import type { Category, Transaction } from "@/types";
 import { PAYMENT_METHODS } from "@/constants";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
-import { deleteTransactionApi } from "@/lib/api/client";
+import { DateTimeDisplay } from "@/components/ui/DateTimeDisplay";
 import { TransactionEditModal } from "@/components/transactions/TransactionEditModal";
 import { TransactionVoidModal } from "@/components/transactions/TransactionVoidModal";
 import { DataTable } from "./DataTable";
-import { Dialog } from "@/components/ui/Dialog";
-import { Pencil, Trash2, Ban } from "lucide-react";
+import { Pencil, Ban } from "lucide-react";
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -23,44 +22,24 @@ export function TransactionTable({
   onChanged,
 }: TransactionTableProps) {
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [voidingTxn, setVoidingTxn] = useState<Transaction | null>(null);
 
-  const openDeleteDialog = (id: string) => {
-    setDeletingId(id);
-    setDeleteError(null);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deletingId) return;
-    setDeleting(true);
-    setDeleteError(null);
-    try {
-      await deleteTransactionApi(deletingId);
-      setDeleteDialogOpen(false);
-      setDeletingId(null);
-      onChanged?.();
-    } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : "ลบไม่สำเร็จ");
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const deletingTxn = deletingId
-    ? transactions.find((t) => t.id === deletingId)
-    : null;
-
   const columns = [
     {
-      key: "createdAt",
-      header: "วันที่",
-      render: (row: Transaction) => formatDateShort(row.transactionDate || row.createdAt),
+      key: "datetime",
+      header: "วันที่ / เวลา",
+      render: (row: Transaction) => (
+        <div>
+          <DateTimeDisplay iso={row.createdAt} />
+          {row.transactionDate &&
+            row.transactionDate !== row.createdAt.slice(0, 10) && (
+              <p className="mt-1 text-xs text-text-muted">
+                วันที่รายการ: {formatDateShort(row.transactionDate)}
+              </p>
+            )}
+        </div>
+      ),
     },
     {
       key: "title",
@@ -121,7 +100,7 @@ export function TransactionTable({
     {
       key: "actions",
       header: "",
-      className: "w-28",
+      className: "w-24",
       render: (row: Transaction) =>
         row.status === "void" ? null : (
           <div className="flex items-center justify-end gap-2">
@@ -138,16 +117,9 @@ export function TransactionTable({
               onClick={() => setVoidingTxn(row)}
               className="touch-target rounded-xl p-3 text-text-muted transition-colors hover:bg-expense-light hover:text-expense"
               aria-label="ยกเลิกรายการ"
+              title="ยกเลิกรายการ (ต้องระบุเหตุผล)"
             >
               <Ban size={22} />
-            </button>
-            <button
-              type="button"
-              onClick={() => openDeleteDialog(row.id)}
-              className="touch-target rounded-xl p-3 text-text-muted transition-colors hover:bg-error-light hover:text-error"
-              aria-label="ลบรายการ"
-            >
-              <Trash2 size={22} />
             </button>
           </div>
         ),
@@ -157,27 +129,6 @@ export function TransactionTable({
   return (
     <>
       <DataTable columns={columns} data={transactions} emptyMessage="ยังไม่มีรายการ" />
-      <Dialog
-        open={deleteDialogOpen}
-        title="ลบรายการนี้?"
-        message={
-          deleteError
-            ? deleteError
-            : deletingTxn
-              ? `ลบ "${deletingTxn.title}" (${formatCurrency(deletingTxn.amount)}) — ใช้เมื่อคีย์ผิดพลาด ไม่สามารถกู้คืนได้`
-              : "ลบรายการนี้ — ใช้เมื่อคีย์ผิดพลาด ไม่สามารถกู้คืนได้"
-        }
-        confirmLabel={deleting ? "กำลังลบ..." : "ลบ"}
-        cancelLabel="ยกเลิก"
-        onConfirm={handleConfirmDelete}
-        onCancel={() => {
-          if (!deleting) {
-            setDeleteDialogOpen(false);
-            setDeletingId(null);
-            setDeleteError(null);
-          }
-        }}
-      />
       {editingTxn && (
         <TransactionEditModal
           transaction={editingTxn}

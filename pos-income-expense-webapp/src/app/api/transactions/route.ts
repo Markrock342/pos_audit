@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createAuditLog, AUDIT_CREATE_REASON } from "@/lib/services/db/auditLogs";
 import {
   getTransactions,
   createTransaction,
 } from "@/lib/services/db/transactions";
+import { transactionAuditSnapshot } from "@/lib/utils/auditSnapshot";
 import type { Transaction } from "@/types";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
@@ -51,6 +53,7 @@ export async function POST(request: Request) {
   }
 
   const body = parsed.data;
+  const userId = body.createdBy ?? DEFAULT_USER_ID;
   const newTransaction = await createTransaction({
     type: body.type,
     categoryId: body.categoryId,
@@ -60,8 +63,21 @@ export async function POST(request: Request) {
     paymentMethod: body.paymentMethod,
     referenceNo: body.referenceNo,
     transactionDate: body.transactionDate ?? new Date().toISOString().slice(0, 10),
-    createdBy: body.createdBy ?? DEFAULT_USER_ID,
+    createdBy: userId,
     organizationId: DEFAULT_ORG_ID,
+  });
+
+  await createAuditLog({
+    organizationId: DEFAULT_ORG_ID,
+    userId,
+    entityType: "transaction",
+    entityId: newTransaction.id,
+    transactionType: newTransaction.type,
+    entityTitle: newTransaction.title,
+    action: "create",
+    reason: AUDIT_CREATE_REASON,
+    oldValue: null,
+    newValue: transactionAuditSnapshot(newTransaction),
   });
 
   return NextResponse.json({ data: newTransaction }, { status: 201 });

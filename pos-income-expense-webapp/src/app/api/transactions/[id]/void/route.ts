@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { createAuditLog } from "@/lib/services/db/auditLogs";
 import {
   getTransaction,
   voidTransaction,
 } from "@/lib/services/db/transactions";
+import { transactionAuditSnapshot } from "@/lib/utils/auditSnapshot";
+import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
 
 const DEFAULT_USER_ID = KIOSK_ACCOUNTS.find((a) => a.type === "customer")!.userId;
@@ -36,11 +39,27 @@ export async function POST(
     );
   }
 
+  const userId = body.voidedBy ?? DEFAULT_USER_ID;
+  const oldSnapshot = transactionAuditSnapshot(existing);
+
   const voided = await voidTransaction(
     id,
-    body.voidReason,
-    body.voidedBy ?? DEFAULT_USER_ID
+    body.voidReason.trim(),
+    userId
   );
+
+  await createAuditLog({
+    organizationId: existing.organizationId ?? DEFAULT_ORG_ID,
+    userId,
+    entityType: "transaction",
+    entityId: id,
+    transactionType: existing.type,
+    entityTitle: existing.title,
+    action: "void",
+    reason: body.voidReason.trim(),
+    oldValue: oldSnapshot,
+    newValue: transactionAuditSnapshot(voided),
+  });
 
   return NextResponse.json({ data: voided });
 }

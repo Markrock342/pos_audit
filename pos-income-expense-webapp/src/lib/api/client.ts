@@ -1,5 +1,7 @@
 import type { KioskSession } from "@/constants/kioskUsers";
 import type {
+  AuditLog,
+  AuditLogAction,
   CashCount,
   Category,
   DashboardSummary,
@@ -242,6 +244,24 @@ export async function updateCashCountApi(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     })
+  );
+  return data;
+}
+
+export async function fetchAuditLogs(filters?: {
+  startDate?: string;
+  endDate?: string;
+  action?: AuditLogAction;
+  transactionType?: "income" | "expense";
+}): Promise<AuditLog[]> {
+  const params = new URLSearchParams();
+  if (filters?.startDate) params.set("startDate", filters.startDate);
+  if (filters?.endDate) params.set("endDate", filters.endDate);
+  if (filters?.action) params.set("action", filters.action);
+  if (filters?.transactionType) params.set("transactionType", filters.transactionType);
+  const qs = params.toString() ? `?${params}` : "";
+  const { data } = await parseJson<{ data: AuditLog[] }>(
+    await fetch(`/api/audit-logs${qs}`)
   );
   return data;
 }

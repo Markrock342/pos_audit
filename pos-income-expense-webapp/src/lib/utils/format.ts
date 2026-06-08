@@ -15,6 +15,11 @@ function toValidDate(date: string | undefined | null): Date | null {
 }
 
 export function formatDate(date: string): string {
+  return formatDateTime(date);
+}
+
+/** วันที่ + เวลา (ชม.:นาที) */
+export function formatDateTime(date: string): string {
   const parsed = toValidDate(date);
   if (!parsed) return "-";
   return new Intl.DateTimeFormat("th-TH", {
@@ -23,7 +28,26 @@ export function formatDate(date: string): string {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   }).format(parsed);
+}
+
+/** เวลาอัปเดตแบบ relative — ใช้กับ component ที่ refresh เป็นระยะ */
+export function formatRelativeTime(date: string, now = new Date()): string {
+  const parsed = toValidDate(date);
+  if (!parsed) return "-";
+
+  const diffSec = Math.floor((now.getTime() - parsed.getTime()) / 1000);
+  if (diffSec < 0) return "เมื่อสักครู่";
+  if (diffSec < 10) return "เมื่อสักครู่";
+  if (diffSec < 60) return `${diffSec} วินาทีที่แล้ว`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} ชั่วโมงที่แล้ว`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 7) return `${diffDay} วันที่แล้ว`;
+  return formatDateTime(date);
 }
 
 export function formatDateShort(date: string): string {

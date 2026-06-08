@@ -31,6 +31,7 @@ export function TransactionEditModal({
   const [transactionDate, setTransactionDate] = useState(transaction.transactionDate);
   const [paymentMethod, setPaymentMethod] = useState(transaction.paymentMethod);
   const [note, setNote] = useState(transaction.note ?? "");
+  const [editReason, setEditReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +41,10 @@ export function TransactionEditModal({
     const parsedAmount = parseFloat(amount);
     if (!title.trim() || !categoryId || !parsedAmount || parsedAmount <= 0) {
       setError("กรุณากรอกข้อมูลให้ครบ");
+      return;
+    }
+    if (!editReason.trim()) {
+      setError("กรุณาระบุเหตุผลในการแก้ไข");
       return;
     }
     setSaving(true);
@@ -52,6 +57,7 @@ export function TransactionEditModal({
         transactionDate,
         paymentMethod,
         note: note.trim() || undefined,
+        editReason: editReason.trim(),
       });
       onSaved();
       onClose();
@@ -105,6 +111,18 @@ export function TransactionEditModal({
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-text-main">
+              เหตุผลในการแก้ไข <span className="text-error">*</span>
+            </label>
+            <textarea
+              className="w-full rounded-2xl border-2 border-border-default bg-surface-elevated px-4 py-3 text-base"
+              rows={2}
+              placeholder="เช่น แก้จำนวนเงินผิด, เปลี่ยนหมวดหมู่"
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value)}
+            />
+          </div>
           {error && <p className="text-sm font-medium text-error">{error}</p>}
           <div className="flex gap-3 pt-2">
             <Button className="flex-1" onClick={handleSave} disabled={saving}>

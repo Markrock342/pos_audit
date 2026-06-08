@@ -119,3 +119,24 @@ export interface DashboardSummary {
   transactionCount: number;
   expectedCashBalance?: number;
 }
+
+export type AuditLogAction = "create" | "update" | "void";
+
+export type AuditLogEntityType = "transaction" | "category";
+
+export interface AuditLog {
+  id: string;
+  organizationId: string;
+  userId?: string;
+  entityType: AuditLogEntityType;
+  entityId: string;
+  transactionType?: TransactionType;
+  entityTitle?: string;
+  action: AuditLogAction;
+  reason: string;
+  oldValue?: Record<string, unknown> | null;
+  newValue?: Record<string, unknown> | null;
+  createdAt: string;
+  /** ชื่อผู้ทำ — enrich จาก API */
+  userName?: string;
+}
