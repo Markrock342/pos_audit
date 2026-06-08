@@ -20,15 +20,6 @@ export function Header({ title }: HeaderProps) {
   const pathname = usePathname();
   const [time, setTime] = useState("");
   const [date, setDate] = useState("");
-  const [currentUser] = useState(() => {
-    if (typeof window === "undefined") return "Staff";
-    try {
-      return localStorage.getItem("kiosk-current-user") ?? "Staff";
-    } catch {
-      return "Staff";
-    }
-  });
-
   const isHome = pathname === "/dashboard";
 
   useEffect(() => {
@@ -92,7 +83,7 @@ export function Header({ title }: HeaderProps) {
           {theme === "dark" ? <Sun size={24} /> : <Moon size={24} />}
         </Button>
         <span className="text-lg font-medium text-text-secondary">
-          ผู้ใช้: {session?.displayName ?? currentUser}
+          ผู้ใช้: {session?.displayName ?? "—"}
         </span>
         <Button variant="outline" onClick={logout} className="min-h-[56px] gap-2 font-bold">
           ออกจากระบบ

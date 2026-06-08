@@ -11,7 +11,12 @@ export async function GET() {
   const existing = await getCashCountByDate(DEFAULT_ORG_ID, today);
 
   if (existing) {
-    return NextResponse.json({ data: existing });
+    return NextResponse.json({
+      data: existing,
+      expectedBalance: existing.expectedBalance,
+      openingBalance: existing.openingBalance,
+      countDate: existing.countDate,
+    });
   }
 
   // ถ้ายังไม่มี record วันนี้ คำนวณ expectedBalance จาก transactions

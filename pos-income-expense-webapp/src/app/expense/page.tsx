@@ -23,7 +23,8 @@ export default function ExpenseListPage() {
           t.note?.toLowerCase().includes(search.toLowerCase())
       )
     : transactions;
-  const totalExpense = filtered.reduce((sum, t) => sum + t.amount, 0);
+  const activeOnly = filtered.filter((t) => t.status === "active");
+  const totalExpense = activeOnly.reduce((sum, t) => sum + t.amount, 0);
 
   return (
     <AppLayout title="รายจ่าย">
@@ -48,7 +49,7 @@ export default function ExpenseListPage() {
               </p>
               <div className="mt-3 flex items-center gap-2 text-sm font-bold text-expense">
                 <TrendingDown size={18} />
-                <span>{loading ? "..." : `${filtered.length} รายการ`}</span>
+                <span>{loading ? "..." : `${activeOnly.length} รายการ`}</span>
               </div>
             </CardContent>
           </Card>
@@ -79,7 +80,7 @@ export default function ExpenseListPage() {
               <CardContent>
                 {loading ? (
                   <p className="text-center text-text-muted py-12">กำลังโหลด...</p>
-                ) : filtered.length === 0 ? (
+                ) : activeOnly.length === 0 ? (
                   <EmptyState
                     title="ไม่พบรายการ"
                     message={search ? `ไม่พบ "${search}" ในรายการรายจ่าย` : "ยังไม่มีรายจ่าย — เริ่มบันทึกรายการแรก"}
@@ -88,7 +89,7 @@ export default function ExpenseListPage() {
                   />
                 ) : (
                   <TransactionTable
-                    transactions={filtered}
+                    transactions={activeOnly}
                     categories={categories}
                     onChanged={reload}
                   />

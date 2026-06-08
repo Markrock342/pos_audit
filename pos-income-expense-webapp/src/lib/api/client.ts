@@ -19,8 +19,11 @@ async function parseJson<T>(res: Response): Promise<T> {
 }
 
 export async function fetchTransactions(type?: "income" | "expense"): Promise<Transaction[]> {
-  const qs = type ? `?type=${type}` : "";
-  const { data } = await parseJson<{ data: Transaction[] }>(await fetch(`/api/transactions${qs}`));
+  const params = new URLSearchParams({ status: "active" });
+  if (type) params.set("type", type);
+  const { data } = await parseJson<{ data: Transaction[] }>(
+    await fetch(`/api/transactions?${params}`)
+  );
   return data;
 }
 

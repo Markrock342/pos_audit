@@ -24,7 +24,8 @@ export default function IncomeListPage() {
           t.note?.toLowerCase().includes(search.toLowerCase())
       )
     : transactions;
-  const totalIncome = filtered.reduce((sum, t) => sum + t.amount, 0);
+  const activeOnly = filtered.filter((t) => t.status === "active");
+  const totalIncome = activeOnly.reduce((sum, t) => sum + t.amount, 0);
   const sampleTransaction = transactions[0];
 
   return (
@@ -50,7 +51,7 @@ export default function IncomeListPage() {
               </p>
               <div className="mt-3 flex items-center gap-2 text-sm font-bold text-income">
                 <TrendingUp size={18} />
-                <span>{loading ? "..." : `${filtered.length} รายการ`}</span>
+                <span>{loading ? "..." : `${activeOnly.length} รายการ`}</span>
               </div>
             </CardContent>
           </Card>
@@ -81,7 +82,7 @@ export default function IncomeListPage() {
               <CardContent>
                 {loading ? (
                   <p className="text-center text-text-muted py-12">กำลังโหลด...</p>
-                ) : filtered.length === 0 ? (
+                ) : activeOnly.length === 0 ? (
                   <EmptyState
                     title="ไม่พบรายการ"
                     message={search ? `ไม่พบ "${search}" ในรายการรายรับ` : "ยังไม่มีรายรับ — เริ่มบันทึกรายการแรก"}
@@ -91,7 +92,7 @@ export default function IncomeListPage() {
                   />
                 ) : (
                   <TransactionTable
-                    transactions={filtered}
+                    transactions={activeOnly}
                     categories={categories}
                     onChanged={reload}
                   />

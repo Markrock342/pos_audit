@@ -30,8 +30,12 @@ export default function CashCountPage() {
     setMessage(null);
     try {
       const today = await fetchCashCountToday();
-      setCountDate(today.countDate);
-      setExpectedBalance(today.expectedBalance);
+      const date =
+        today.data?.countDate ??
+        today.countDate ??
+        new Date().toISOString().slice(0, 10);
+      setCountDate(date);
+      setExpectedBalance(today.data?.expectedBalance ?? today.expectedBalance ?? 0);
       if (today.data) {
         setExisting(today.data);
         setOpeningBalance(String(today.data.openingBalance));
