@@ -160,6 +160,24 @@ export async function createCategoryApi(body: {
   return data;
 }
 
+export async function updateCategoryApi(
+  id: string,
+  body: {
+    name?: string;
+    type?: "income" | "expense";
+    color?: string;
+  }
+): Promise<Category> {
+  const { data } = await parseJson<{ data: Category }>(
+    await fetch(`/api/categories/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  );
+  return data;
+}
+
 export async function deleteCategoryApi(id: string): Promise<void> {
   await parseJson<{ data: { success: boolean } }>(
     await fetch(`/api/categories/${id}`, { method: "DELETE" })

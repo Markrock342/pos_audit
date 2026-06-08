@@ -28,7 +28,7 @@ export function DataTable<T extends object>({
 
   return (
     <div className="overflow-x-auto rounded-xl border-2 border-border-default">
-      <table className="w-full min-w-[600px] text-left text-lg">
+      <table className="w-full text-left text-lg">
         <thead className="bg-surface-inset text-text-secondary">
           <tr>
             {columns.map((col) => (

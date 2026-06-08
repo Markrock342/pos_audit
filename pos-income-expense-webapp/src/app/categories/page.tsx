@@ -12,9 +12,10 @@ import {
   createCategoryApi,
   deleteCategoryApi,
   fetchCategories,
+  updateCategoryApi,
 } from "@/lib/api/client";
 import type { Category } from "@/types";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2, X } from "lucide-react";
 
 const PRESET_COLORS = [
   "#8B5E3C",
@@ -38,10 +39,18 @@ export default function CategoriesPage() {
   const [name, setName] = useState("");
   const [type, setType] = useState<"income" | "expense">("income");
   const [selectedColor, setSelectedColor] = useState("#8B5E3C");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setName("");
+    setType("income");
+    setSelectedColor("#8B5E3C");
+  };
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -60,19 +69,33 @@ export default function CategoriesPage() {
     void refresh();
   }, [refresh]);
 
-  const handleAdd = async () => {
+  const startEdit = (cat: Category) => {
+    setEditingId(cat.id);
+    setName(cat.name);
+    setType(cat.type);
+    setSelectedColor(cat.color);
+    setError(null);
+  };
+
+  const handleSave = async () => {
     if (!name.trim()) return;
     setSaving(true);
     setError(null);
     try {
-      await createCategoryApi({
-        name: name.trim(),
-        type,
-        color: selectedColor,
-      });
-      setName("");
-      setType("income");
-      setSelectedColor("#8B5E3C");
+      if (editingId) {
+        await updateCategoryApi(editingId, {
+          name: name.trim(),
+          type,
+          color: selectedColor,
+        });
+      } else {
+        await createCategoryApi({
+          name: name.trim(),
+          type,
+          color: selectedColor,
+        });
+      }
+      resetForm();
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "บันทึกหมวดหมู่ไม่สำเร็จ");
@@ -92,6 +115,7 @@ export default function CategoriesPage() {
     setError(null);
     try {
       await deleteCategoryApi(deletingId);
+      if (editingId === deletingId) resetForm();
       setDialogOpen(false);
       setDeletingId(null);
       await refresh();
@@ -102,6 +126,10 @@ export default function CategoriesPage() {
     }
   };
 
+  const deletingCat = deletingId
+    ? categories.find((c) => c.id === deletingId)
+    : null;
+
   const columns = [
     {
       key: "name",
@@ -109,7 +137,7 @@ export default function CategoriesPage() {
       render: (row: Category) => (
         <span className="inline-flex items-center gap-2 font-medium">
           <span
-            className="h-3 w-3 rounded-full"
+            className="h-3 w-3 shrink-0 rounded-full"
             style={{ backgroundColor: row.color }}
           />
           {row.name}
@@ -119,6 +147,7 @@ export default function CategoriesPage() {
     {
       key: "type",
       header: "ประเภท",
+      className: "whitespace-nowrap",
       render: (row: Category) => (
         <span
           className={
@@ -134,6 +163,7 @@ export default function CategoriesPage() {
     {
       key: "color",
       header: "สี",
+      className: "hidden md:table-cell",
       render: (row: Category) => (
         <span className="inline-flex items-center gap-2">
           <span
@@ -148,17 +178,31 @@ export default function CategoriesPage() {
     },
     {
       key: "actions",
-      header: "",
-      className: "w-16",
+      header: "จัดการ",
+      className: "w-28 text-right",
       render: (row: Category) => (
-        <button
-          type="button"
-          onClick={() => openDeleteDialog(row.id)}
-          className="rounded-xl p-2 text-text-muted transition-colors hover:bg-error-light hover:text-error"
-          aria-label="ลบหมวดหมู่"
-        >
-          <Trash2 size={20} />
-        </button>
+        <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => startEdit(row)}
+            className={`rounded-xl p-2 transition-colors hover:bg-surface-hover hover:text-brand ${
+              editingId === row.id ? "bg-brand/10 text-brand" : "text-text-muted"
+            }`}
+            aria-label={`แก้ไข ${row.name}`}
+            title="แก้ไข"
+          >
+            <Pencil size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => openDeleteDialog(row.id)}
+            className="rounded-xl p-2 text-text-muted transition-colors hover:bg-error-light hover:text-error"
+            aria-label={`ลบ ${row.name}`}
+            title="ลบ"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
       ),
     },
   ];
@@ -189,8 +233,18 @@ export default function CategoriesPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>เพิ่มหมวดหมู่</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>{editingId ? "แก้ไขหมวดหมู่" : "เพิ่มหมวดหมู่"}</CardTitle>
+            {editingId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="rounded-xl p-2 text-text-muted hover:bg-surface-hover"
+                aria-label="ยกเลิกแก้ไข"
+              >
+                <X size={20} />
+              </button>
+            )}
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -235,13 +289,24 @@ export default function CategoriesPage() {
                   สีที่เลือก: <span className="font-mono">{selectedColor}</span>
                 </p>
               </div>
-              <Button
-                className="w-full"
-                onClick={handleAdd}
-                disabled={!name.trim() || saving}
-              >
-                {saving ? "กำลังบันทึก..." : "บันทึกหมวดหมู่"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  onClick={handleSave}
+                  disabled={!name.trim() || saving}
+                >
+                  {saving
+                    ? "กำลังบันทึก..."
+                    : editingId
+                      ? "บันทึกการแก้ไข"
+                      : "บันทึกหมวดหมู่"}
+                </Button>
+                {editingId && (
+                  <Button className="flex-1" variant="outline" onClick={resetForm}>
+                    ยกเลิก
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -249,8 +314,12 @@ export default function CategoriesPage() {
 
       <Dialog
         open={dialogOpen}
-        title="ยืนยันการลบ"
-        message="ลบหมวดหมู่นี้? ถ้ามีรายการที่ใช้หมวดนี้อยู่จะลบไม่ได้ — ต้องลบรายการนั้นก่อน"
+        title="ลบหมวดหมู่นี้?"
+        message={
+          deletingCat
+            ? `ลบ "${deletingCat.name}" — ถ้ามีรายการที่ใช้หมวดนี้อยู่จะลบไม่ได้`
+            : "ลบหมวดหมู่นี้? ถ้ามีรายการที่ใช้หมวดนี้อยู่จะลบไม่ได้"
+        }
         confirmLabel={deleting ? "กำลังลบ..." : "ลบ"}
         cancelLabel="ยกเลิก"
         onConfirm={handleConfirmDelete}
