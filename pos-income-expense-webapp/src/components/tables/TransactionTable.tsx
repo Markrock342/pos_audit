@@ -18,6 +18,7 @@ interface TransactionTableProps {
   onSelectTransaction?: (transaction: Transaction) => void;
   selectedTransactionId?: string;
   stickyHeader?: boolean;
+  highlightVariant?: "income" | "expense";
 }
 
 function lineCount(row: Transaction): number {
@@ -49,6 +50,7 @@ export function TransactionTable({
   onSelectTransaction,
   selectedTransactionId,
   stickyHeader,
+  highlightVariant = "income",
 }: TransactionTableProps) {
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
@@ -150,6 +152,20 @@ export function TransactionTable({
                 <Receipt size={22} />
               </button>
             )}
+            {onPreviewReceipt && row.type === "expense" && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPreviewReceipt(row);
+                }}
+                className="touch-target rounded-xl p-3 text-text-muted transition-colors hover:bg-expense-light hover:text-expense"
+                aria-label="ดูใบบันทึกรายจ่าย"
+                title="ดูใบบันทึกรายจ่าย"
+              >
+                <Receipt size={22} />
+              </button>
+            )}
             <button
               type="button"
               onClick={(e) => {
@@ -188,6 +204,7 @@ export function TransactionTable({
         isRowSelected={(row) => !!selectedTransactionId && row.id === selectedTransactionId}
         onRowClick={onSelectTransaction}
         stickyHeader={stickyHeader}
+        highlightVariant={highlightVariant}
       />
       {editingTxn && (
         <TransactionEditModal

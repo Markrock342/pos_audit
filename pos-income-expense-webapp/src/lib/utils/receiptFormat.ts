@@ -37,19 +37,45 @@ export function resolveReceiptNumber(
   transaction: Transaction,
   receiptNumber?: string
 ): string {
-  if (receiptNumber?.trim()) return receiptNumber.trim();
+  return resolveDocumentNumber(transaction, "S", receiptNumber);
+}
+
+/** เลขที่ใบบันทึกรายจ่าย — prefix P */
+export function resolveExpenseVoucherNumber(
+  transaction: Transaction,
+  voucherNumber?: string
+): string {
+  return resolveDocumentNumber(transaction, "P", voucherNumber);
+}
+
+function resolveDocumentNumber(
+  transaction: Transaction,
+  prefix: "S" | "P",
+  overrideNumber?: string
+): string {
+  if (overrideNumber?.trim()) return overrideNumber.trim();
   if (transaction.receiptNo?.trim()) return transaction.receiptNo.trim();
   const d = new Date(transaction.createdAt);
   const p = (n: number) => String(n).padStart(2, "0");
   const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
   const suffix = transaction.id.replace(/\D/g, "").slice(-3).padStart(3, "0");
-  return `S${stamp}${suffix}`;
+  return `${prefix}${stamp}${suffix}`;
+}
+
+/** วันที่รายการต่างจากวันบันทึก — แสดงบนใบบันทึกรายจ่าย */
+export function hasDistinctTransactionDate(transaction: Transaction): boolean {
+  const txDate = transaction.transactionDate?.slice(0, 10);
+  const createdDate = transaction.createdAt.slice(0, 10);
+  return !!txDate && txDate !== createdDate;
 }
 
 export function resolveSellerName(createdBy: string, fallback = "ผู้ดูแลระบบ"): string {
   const account = KIOSK_ACCOUNTS.find((a) => a.userId === createdBy);
   return account?.displayName ?? fallback;
 }
+
+/** ชื่อผู้บันทึกบนใบบันทึกรายจ่าย */
+export const resolveRecorderName = resolveSellerName;
 
 export function resolvePaymentLabel(method: PaymentMethod): string {
   return PAYMENT_METHODS.find((p) => p.value === method)?.label ?? method;

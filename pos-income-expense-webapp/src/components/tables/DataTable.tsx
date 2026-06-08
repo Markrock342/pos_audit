@@ -15,6 +15,7 @@ interface DataTableProps<T> {
   isRowSelected?: (row: T) => boolean;
   onRowClick?: (row: T) => void;
   stickyHeader?: boolean;
+  highlightVariant?: "income" | "expense";
 }
 
 export function DataTable<T extends object>({
@@ -25,6 +26,7 @@ export function DataTable<T extends object>({
   isRowSelected,
   onRowClick,
   stickyHeader,
+  highlightVariant = "income",
 }: DataTableProps<T>) {
   if (data.length === 0) {
     return (
@@ -60,7 +62,10 @@ export function DataTable<T extends object>({
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               className={cn(
                 onRowClick && "cursor-pointer hover:bg-surface-hover/60",
-                selected && "bg-income-light/40 ring-1 ring-inset ring-income/30"
+                selected &&
+                  (highlightVariant === "expense"
+                    ? "bg-expense-light/40 ring-1 ring-inset ring-expense/30"
+                    : "bg-income-light/40 ring-1 ring-inset ring-income/30")
               )}
             >
               {columns.map((col) => (

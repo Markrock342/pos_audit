@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { TransactionTable } from "@/components/tables/TransactionTable";
-import { TransactionDetailPreview } from "@/components/TransactionDetailPreview";
+import { ExpenseVoucherPreview } from "@/components/ExpenseVoucherPreview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { SearchBar } from "@/components/ui/SearchBar";
@@ -56,7 +56,7 @@ export default function ExpenseListPage() {
         )}
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden xl:grid-cols-[minmax(340px,420px)_1fr] xl:gap-6 xl:items-stretch">
-          {/* ซ้าย: สรุป + รายละเอียด */}
+          {/* ซ้าย: สรุป + ใบบันทึกรายจ่าย */}
           <div className="flex min-h-0 flex-col gap-4 overflow-hidden">
             <Card className="shrink-0 border-t-4 border-t-expense">
               <CardContent className="py-4">
@@ -78,15 +78,16 @@ export default function ExpenseListPage() {
 
             <div className="flex min-h-[320px] flex-1 flex-col overflow-hidden xl:min-h-0">
               {selectedTransaction ? (
-                <TransactionDetailPreview
+                <ExpenseVoucherPreview
                   fill
+                  compact
                   transaction={selectedTransaction}
                   categories={categories}
                 />
               ) : (
                 <Card className="flex h-full flex-col items-center justify-center border-dashed">
                   <CardContent className="text-center text-text-muted">
-                    <p className="text-base font-semibold">ยังไม่มีรายการที่เลือก</p>
+                    <p className="text-base font-semibold">ยังไม่มีใบบันทึกที่เลือก</p>
                     <p className="mt-1 text-sm">เลือกรายการจากตารางด้านขวา</p>
                   </CardContent>
                 </Card>
@@ -117,7 +118,9 @@ export default function ExpenseListPage() {
                   <ArrowDownCircle size={22} className="text-expense" />
                   รายการรายจ่าย
                 </CardTitle>
-                <p className="text-xs text-text-muted">ใหม่สุดอยู่บนสุด · แตะแถวเพื่อดูรายละเอียด</p>
+                <p className="text-xs text-text-muted">
+                  ใหม่สุดอยู่บนสุด · แตะแถวหรือไอคอนใบบันทึกเพื่อดู
+                </p>
               </CardHeader>
               <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
                 {loading ? (
@@ -138,8 +141,10 @@ export default function ExpenseListPage() {
                     transactions={filtered}
                     categories={categories}
                     onChanged={reload}
+                    onPreviewReceipt={setSelectedTransaction}
                     onSelectTransaction={setSelectedTransaction}
                     selectedTransactionId={selectedTransaction?.id}
+                    highlightVariant="expense"
                     stickyHeader
                   />
                 )}
