@@ -8,12 +8,16 @@ import { DateTimeDisplay } from "@/components/ui/DateTimeDisplay";
 import { TransactionEditModal } from "@/components/transactions/TransactionEditModal";
 import { TransactionVoidModal } from "@/components/transactions/TransactionVoidModal";
 import { DataTable } from "./DataTable";
-import { Pencil, Ban } from "lucide-react";
+import { Pencil, Ban, Receipt } from "lucide-react";
 
 interface TransactionTableProps {
   transactions: Transaction[];
   categories: Category[];
   onChanged?: () => void;
+  onPreviewReceipt?: (transaction: Transaction) => void;
+  onSelectTransaction?: (transaction: Transaction) => void;
+  selectedTransactionId?: string;
+  stickyHeader?: boolean;
 }
 
 function lineCount(row: Transaction): number {
@@ -41,6 +45,10 @@ export function TransactionTable({
   transactions,
   categories,
   onChanged,
+  onPreviewReceipt,
+  onSelectTransaction,
+  selectedTransactionId,
+  stickyHeader,
 }: TransactionTableProps) {
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
@@ -128,9 +136,26 @@ export function TransactionTable({
       render: (row: Transaction) =>
         row.status === "void" ? null : (
           <div className="flex items-center justify-end gap-2">
+            {onPreviewReceipt && row.type === "income" && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPreviewReceipt(row);
+                }}
+                className="touch-target rounded-xl p-3 text-text-muted transition-colors hover:bg-income-light hover:text-income"
+                aria-label="ดูใบเสร็จ"
+                title="ดูใบเสร็จ"
+              >
+                <Receipt size={22} />
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => setEditingTxn(row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingTxn(row);
+              }}
               className="touch-target rounded-xl p-3 text-text-muted transition-colors hover:bg-surface-hover hover:text-brand"
               aria-label="แก้ไขรายการ"
             >
@@ -138,7 +163,10 @@ export function TransactionTable({
             </button>
             <button
               type="button"
-              onClick={() => setVoidingTxn(row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setVoidingTxn(row);
+              }}
               className="touch-target rounded-xl p-3 text-text-muted transition-colors hover:bg-expense-light hover:text-expense"
               aria-label="ยกเลิกรายการ"
               title="ยกเลิกรายการ (ต้องระบุเหตุผล)"
@@ -152,7 +180,15 @@ export function TransactionTable({
 
   return (
     <>
-      <DataTable columns={columns} data={transactions} emptyMessage="ยังไม่มีรายการ" />
+      <DataTable
+        columns={columns}
+        data={transactions}
+        emptyMessage="ยังไม่มีรายการ"
+        getRowKey={(row) => row.id}
+        isRowSelected={(row) => !!selectedTransactionId && row.id === selectedTransactionId}
+        onRowClick={onSelectTransaction}
+        stickyHeader={stickyHeader}
+      />
       {editingTxn && (
         <TransactionEditModal
           transaction={editingTxn}
