@@ -40,7 +40,7 @@ export async function createCategory(
     .select()
     .single();
   if (error) throw error;
-  return inserted as Category;
+  return mapCategory(inserted as Record<string, unknown>);
 }
 
 export async function updateCategory(
@@ -54,7 +54,7 @@ export async function updateCategory(
     .select()
     .single();
   if (error) throw error;
-  return updated as Category;
+  return mapCategory(updated as Record<string, unknown>);
 }
 
 export async function deleteCategory(id: string): Promise<void> {

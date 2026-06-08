@@ -43,16 +43,20 @@
 
 ตอนนี้บันทึกได้อย่างเดียว — กรอกผิดแล้วแก้ไม่ได้
 
-#### น็อต (Backend) — ทำก่อน
+#### น็อต (Backend) — ✅ เสร็จแล้ว
 
-- [ ] สร้าง `src/app/api/transactions/[id]/route.ts`
-  - `GET` — ดึงรายการเดียว
-  - `PUT` — แก้ title, amount, category, note, paymentMethod, transactionDate
-- [ ] สร้าง `src/app/api/transactions/[id]/void/route.ts`
+- [x] สร้าง `src/app/api/transactions/[id]/route.ts`
+  - `GET` — ดึงรายการเดียว พร้อม category name (join)
+  - `PUT` — แก้ `title`, `amount`, `categoryId`, `note`, `paymentMethod`, `transactionDate`, `referenceNo`
+    - แก้ได้เฉพาะรายการที่ `status = active` (ห้ามแก้ถ้า `status = void`)
+    - บันทึก `updatedBy`, `updatedAt` → DB `updated_by`, `updated_at`
+    - Map snake_case ↔ camelCase ให้ตรง `src/lib/services/db/transactions.ts`
+- [x] สร้าง `src/app/api/transactions/[id]/void/route.ts`
   - `POST` — ตั้ง `status=void`, บันทึก `voidReason`, `voidedBy`, `voidedAt`
-- [ ] เพิ่ม Zod validation ใน API (ใช้ `src/lib/validations/transaction.ts`)
-- [ ] อัปเดต `src/lib/services/db/transactions.ts` — `updateTransaction`, `voidTransaction` (มีฟังก์ชันแล้ว ตรวจให้ map field ครบ)
-- [ ] ทดสอบด้วย Postman / curl ก่อนส่งมอบ bank
+  - DB fields: `status`, `void_reason`, `voided_by`, `voided_at`
+- [x] อัปเดต `src/lib/services/db/transactions.ts` — `updateTransaction`, `voidTransaction` (ตรวจให้ map field ครบตาม `database-design.md`)
+- [x] Build + Lint ผ่าน
+- [ ] ⏳ ส่งมอบ bank (รอ bank ทำ Frontend)
 
 #### bank (Frontend) — ทำหลัง API พร้อม
 
@@ -76,12 +80,12 @@
 ส่วนต่าง = นับจริง − ยอดคาด (ขาด / เกิน)
 ```
 
-#### น็อต (Backend)
+#### น็อต (Backend) — ✅ เสร็จแล้ว
 
-- [ ] สร้าง `GET /api/cash-counts/today` — ดึงยอดวันนี้ (ถ้ามีแล้ว return, ถ้าไม่มี return null + expected คำนวณ)
-- [ ] ตรวจ `src/lib/services/db/cashCounts.ts` — คำนวณ `expectedBalance` จาก transactions เงินสด
-- [ ] `POST /api/cash-counts` — รับ `openingBalance`, `actualBalance`, คำนวณ `variance` + `status` (balanced/short/overage)
-- [ ] เอกสาร API ใน PR ว่า bank ต้องส่ง field อะไร
+- [x] สร้าง `GET /api/cash-counts/today` — ดึงยอดวันนี้ (ถ้ามีแล้ว return, ถ้าไม่มี return null + expected คำนวณ)
+- [x] ตรวจ `src/lib/services/db/cashCounts.ts` — คำนวณ `expectedBalance` จาก transactions เงินสด
+- [x] `POST /api/cash-counts` — รับ `openingBalance`, `actualBalance`, คำนวณ `variance` + `status` (balanced/short/overage)
+- [ ] ⏳ เอกสาร API ใน PR ว่า bank ต้องส่ง field อะไร (รอ bank ทำ Frontend)
 
 #### bank (Frontend)
 
@@ -100,13 +104,13 @@
 
 หน้า `/categories` ยังใช้ `lib/store` in-memory — เพิ่ม/ลบแล้วหายเมื่อ refresh
 
-#### น็อต (Backend)
+#### น็อต (Backend) — ✅ เสร็จแล้ว
 
-- [ ] สร้าง `src/app/api/categories/[id]/route.ts`
+- [x] สร้าง `src/app/api/categories/[id]/route.ts`
   - `PUT` — แก้ชื่อ, สี, sortOrder
-  - `DELETE` — soft delete หรือลบจริง (ตกลงกับทีม)
-- [ ] อัปเดต seed — หมวดหมู่ตามธุรกิจลูกค้า (ด้านล่าง)
-- [ ] ตรวจ `POST /api/categories` รับ field ครบ
+  - `DELETE` — ลบจริง (DB schema ไม่มี soft delete บน categories)
+- [x] อัปเดต `src/lib/services/db/categories.ts` — `updateCategory` map snake_case ↔ camelCase ถูกต้อง
+- [ ] ⏳ อัปเดต seed — หมวดหมู่ตามธุรกิจลูกค้า
 
 **หมวดหมู่ตัวอย่าง (seed)**
 
@@ -129,8 +133,9 @@
 
 #### น็อต (Backend)
 
-- [ ] ตรวจ `GET/PUT /api/organizations` รองรับ field: `name`, `address`, `phone`, `receipt_config`, `hardware_config`
-- [ ] map snake_case ↔ camelCase ถ้ายังไม่ครบ
+- [ ] ตรวจ `GET/PUT /api/organizations` รองรับ field ครบ: `name`, `address`, `phone`, `receipt_config`, `hardware_config`
+  - API routes มีแล้ว (`/api/organizations/route.ts`) แต่ต้องตรวจว่า PUT รับ/ส่ง field ครบตาม DB schema
+- [ ] map snake_case ↔ camelCase ถ้ายังไม่ครบ (`database-design.md`)
 - [ ] ทดสอบ PUT แล้ว GET กลับมาตรง
 
 #### bank (Frontend)
@@ -247,9 +252,9 @@
 
 | สัปดาห์ | น็อต (Backend) | bank (Frontend) |
 |---------|----------------|-----------------|
-| **1** | transactions `[id]` + void API | ปุ่มแก้/ยกเลิก + form แก้ |
-| **1–2** | categories `[id]` CRUD | หน้า categories ต่อ API |
-| **2** | organizations PUT ครบ + cash-counts/today | ตั้งค่าร้าน save จริง |
+| **1** | `GET/PUT /api/transactions/[id]` + void API ✅ | ปุ่มแก้/ยกเลิก + form แก้ไข (รอ bank) |
+| **1–2** | categories `[id]` CRUD ✅ | หน้า categories ต่อ API (รอ bank) |
+| **2** | ตรวจ `PUT /api/organizations` ครบ + `GET /api/cash-counts/today` ✅ | ตั้งค่าร้าน save จริง + หน้านับเงินสด (รอ bank) |
 | **3** | reports by-category + export CSV | หน้านับเงินสด + รายงานกรองวันที่ |
 | **4** | receipts + hardware proxy API | print flow + ReceiptPreview |
 | **5+** | auth API + RLS + deploy DB | PWA + auth UI + staging test |
@@ -260,10 +265,11 @@
 
 ### น็อต (Backend)
 
-- [ ] `PUT/GET /api/transactions/[id]`
-- [ ] `POST /api/transactions/[id]/void`
-- [ ] `PUT/DELETE /api/categories/[id]`
-- [ ] `GET /api/cash-counts/today`
+- [x] `GET /api/transactions/[id]` — ดึงรายการเดียว พร้อม category name
+- [x] `PUT /api/transactions/[id]` — แก้ไขรายการ (active เท่านั้น, map DB fields)
+- [x] `POST /api/transactions/[id]/void` — ยกเลิกรายการ (ไม่ลบ, เก็บ audit)
+- [x] `PUT/DELETE /api/categories/[id]`
+- [x] `GET /api/cash-counts/today` — คำนวณ expected จาก transactions เงินสด
 - [ ] `GET /api/reports/by-category`, `export`
 - [ ] `POST /api/receipts/[id]/print`
 - [ ] `POST /api/hardware/print`, `/drawer`

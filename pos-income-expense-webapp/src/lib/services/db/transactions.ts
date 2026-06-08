@@ -70,7 +70,7 @@ export async function updateTransaction(
     .select()
     .single();
   if (error) throw error;
-  return updated as Transaction;
+  return mapTransaction(updated as Record<string, unknown>);
 }
 
 export async function voidTransaction(
@@ -90,7 +90,7 @@ export async function voidTransaction(
     .select()
     .single();
   if (error) throw error;
-  return updated as Transaction;
+  return mapTransaction(updated as Record<string, unknown>);
 }
 
 export async function deleteTransaction(id: string): Promise<void> {

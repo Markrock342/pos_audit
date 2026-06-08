@@ -4,7 +4,7 @@ import type { CashCount, CashCountStatus } from "@/types";
 
 const TABLE = "cash_counts";
 
-async function calculateExpectedBalance(
+export async function calculateExpectedBalance(
   organizationId: string,
   countDate: string,
   openingBalance: number
@@ -50,6 +50,20 @@ export async function getCashCounts(organizationId: string): Promise<CashCount[]
     .order("count_date", { ascending: false });
   if (error || !data) return [];
   return data as CashCount[];
+}
+
+export async function getCashCountByDate(
+  organizationId: string,
+  countDate: string
+): Promise<CashCount | null> {
+  const { data, error } = await getDb()
+    .from(TABLE)
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("count_date", countDate)
+    .single();
+  if (error || !data) return null;
+  return data as CashCount;
 }
 
 export async function createCashCount(

@@ -7,7 +7,8 @@ export const transactionSchema = z.object({
   amount: z.number().positive("จำนวนเงินต้องมากกว่า 0"),
   note: z.string().max(500).optional(),
   paymentMethod: z.enum(["cash", "transfer", "cheque", "card", "other"]),
-  date: z.string().optional(),
+  transactionDate: z.string().min(1, "กรุณาระบุวันที่"),
+  referenceNo: z.string().max(100).optional(),
 });
 
 export type TransactionFormValues = z.infer<typeof transactionSchema>;

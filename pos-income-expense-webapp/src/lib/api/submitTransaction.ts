@@ -21,7 +21,7 @@ export async function submitTransaction(data: TransactionFormValues) {
     amount: data.amount,
     note: data.note,
     paymentMethod: data.paymentMethod,
-    date: data.date ?? new Date().toISOString().slice(0, 10),
+    transactionDate: data.transactionDate ?? new Date().toISOString().slice(0, 10),
     createdBy: getCreatedBy(),
   });
 }

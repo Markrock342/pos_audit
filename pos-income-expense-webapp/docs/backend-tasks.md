@@ -17,29 +17,29 @@
 | Supabase client (`lib/db/supabase.ts`) | ✅ init จริง | `createClient()` + อ่าน `NEXT_PUBLIC_SUPABASE_*` จาก `.env.local` |
 | DB Provider (`lib/db/index.ts`) | ✅ "supabase" | `DB_PROVIDER = "supabase"` |
 | API `/api/transactions` | ✅ GET/POST | รองรับ `type`, `startDate`, `endDate`, `status` query |
-| API `/api/transactions/[id]` | ❌ ยังไม่มี | ต้องสร้าง: GET, PUT, DELETE, `/void` |
+| API `/api/transactions/[id]` | ✅ มีแล้ว | GET, PUT, `/void` (ไม่มี DELETE — ใช้ void แทน) |
 | API `/api/categories` | ✅ GET/POST | `/api/categories/route.ts` |
-| API `/api/categories/[id]` | ❌ ยังไม่มี | ต้องสร้าง: PUT, DELETE |
+| API `/api/categories/[id]` | ✅ มีแล้ว | PUT, DELETE |
 | API `/api/organizations` | ✅ GET/PUT | `/api/organizations/route.ts` |
 | API `/api/users` | ✅ GET | `/api/users/route.ts` |
 | API `/api/cash-counts` | ✅ GET/POST | `/api/cash-counts/route.ts` + คำนวณ `expectedBalance` real-time |
-| API `/api/cash-counts/today` | ❌ ยังไม่มี | ต้องสร้าง |
+| API `/api/cash-counts/today` | ✅ มีแล้ว | ดึงยอดวันนี้ + คำนวณ expected |
 | API `/api/reports/summary` | ✅ GET | รองรับ `start`, `end` query params |
-| API `/api/reports/dashboard` | ❌ ยังไม่มี | ต้องสร้าง |
-| API `/api/reports/by-category` | ❌ ยังไม่มี | ต้องสร้าง |
-| API `/api/reports/daily-chart` | ❌ ยังไม่มี | ต้องสร้าง |
-| API `/api/reports/export` | ❌ ยังไม่มี | CSV/Excel |
+| API `/api/reports/dashboard` | ✅ มีแล้ว | `GET` — today/month summary + expectedCashBalance |
+| API `/api/reports/by-category` | ✅ มีแล้ว | `GET` — กลุ่มตาม category + total + count |
+| API `/api/reports/daily-chart` | ✅ มีแล้ว | `GET?days=30` — income/expense ต่อวัน |
+| API `/api/reports/export` | ✅ มีแล้ว | `GET` — CSV download, UTF-8 + BOM |
 | API `/api/receipts/[id]/print` | ❌ ยังไม่มี | ต้องสร้าง |
 | API `/api/hardware/print` | ❌ ยังไม่มี | Proxy → Local Bridge |
 | API `/api/hardware/drawer` | ❌ ยังไม่มี | เปิดลิ้นชัก |
-| Validation (Zod) | ⚠️ ไม่ครบ | `paymentMethod` ตรง types แล้ว แต่ยังไม่ validate ใน API |
-| Auth | ❌ ยังไม่มี | `/api/auth/login`, `/api/auth/me`, `middleware.ts` |
+| Validation (Zod) | ✅ ครบแล้ว | validate ใน `POST /transactions`, `PUT /transactions/[id]`, `POST/PUT /categories` |
+| Auth | ✅ มีแล้ว | `POST /api/auth/login`, `GET /api/auth/me` (MVP kiosk-based) |
 | Seed script | ✅ รันสำเร็จ | `npx tsx src/scripts/seed.ts` — ข้อมูลเข้า Supabase จริง |
-| Export CSV/Excel | ❌ ยังไม่มี | Phase 5 |
+| Export CSV/Excel | ✅ มีแล้ว | `GET /api/reports/export` — CSV download |
 | `.gitignore` | ✅ อัปเดทแล้ว | Ignore `.env*` (ไม่มี exception) |
 | Row Level Security | ⚠️ มี SQL แต่เปิด "Allow all" | ต้องปรับ policies จริงตอน production |
 | Frontend compatibility | ✅ คง `Receipt` type ไว้ | UI ไม่พัง |
-| Build + Lint | ✅ ผ่าน | `npm run build` + `npm run lint` |
+| Build + Lint | ✅ ผ่าน | `npm run build` ✅ / `npm run lint` ⚠️ (มี error จากฝั่ง Frontend ไม่ใช่ Backend) |
 | Git Branch | ✅ `feature/backend-supabase` | Pushed รอ PR review |
 
 ---
@@ -51,11 +51,11 @@ src/
 ├── app/api/
 │   ├── transactions/
 │   │   └── route.ts              # GET list, POST create
-│   │   # TODO: [id]/route.ts (GET, PUT, DELETE)
-│   │   # TODO: [id]/void/route.ts (POST)
+│   │   # [id]/route.ts (GET, PUT) ✅
+│   │   # [id]/void/route.ts (POST) ✅
 │   ├── categories/
 │   │   └── route.ts              # GET list, POST create
-│   │   # TODO: [id]/route.ts (PUT, DELETE)
+│   │   # [id]/route.ts (PUT, DELETE) ✅
 │   ├── organizations/
 │   │   └── route.ts              # GET, PUT
 │   ├── users/
@@ -63,13 +63,13 @@ src/
 │   ├── cash-counts/
 │   │   └── route.ts              # GET list, POST create
 │   │   # TODO: [id]/route.ts
-│   │   # TODO: today/route.ts
+│   │   # today/route.ts ✅
 │   ├── reports/
 │   │   └── summary/route.ts      # GET (start, end)
-│   │   # TODO: dashboard/route.ts
-│   │   # TODO: by-category/route.ts
-│   │   # TODO: daily-chart/route.ts
-│   │   # TODO: export/route.ts (CSV / Excel)
+│   │   # dashboard/route.ts ✅
+│   │   # by-category/route.ts ✅
+│   │   # daily-chart/route.ts ✅
+│   │   # export/route.ts (CSV) ✅
 │   └── # TODO: receipts/[transactionId]/print/route.ts
 │   └── # TODO: hardware/print/route.ts
 │   └── # TODO: hardware/drawer/route.ts
@@ -85,13 +85,13 @@ src/
 │   │   ├── organizations.ts      # ✅ getOrganization, updateOrganization
 │   │   ├── users.ts              # ✅ getUsers
 │   │   ├── cashCounts.ts         # ✅ getCashCounts, createCashCount, calculateExpectedBalance
-│   │   └── # TODO: reports.ts
-│   │   └── # TODO: receipts.ts
+│   │   └── reports.ts ✅ (getDashboard, getByCategory, getDailyChart)
+│   │   └── # TODO: receipts.ts (รอ hardware)
 │   ├── validations/
-│   │   └── transaction.ts        # ⚠️ ยังไม่เชื่อมกับ API routes
+│   │   └── transaction.ts        # ✅ เชื่อมกับ API routes แล้ว (POST /transactions, PUT /transactions/[id], POST/PUT /categories)
 │   └── utils/
-│       └── # TODO: receiptNumber.ts
-│       └── # TODO: apiError.ts
+│       └── # TODO: receiptNumber.ts (รอ receipts)
+│       └── apiError.ts ✅
 │   └── store/                    # ⚠️ ยังอยู่ — Frontend ยังใช้
 │       └── categories.ts
 │       └── index.ts
@@ -172,30 +172,34 @@ docs/
 - [x] Body: type, categoryId, title, amount, transactionDate, paymentMethod, referenceNo, note
 - [x] Logic: สร้าง `status: active`, `createdBy`
 
-### 3.3 `GET /api/transactions/[id]` ❌
+### 3.3 `GET /api/transactions/[id]` ✅
 
-- [ ] ดึงรายการเดียว พร้อม category name (join)
+- [x] ดึงรายการเดียว พร้อม category name (join)
 
-### 3.4 `PUT /api/transactions/[id]` ❌
+### 3.4 `PUT /api/transactions/[id]` ✅
 
-- [ ] แก้ไขรายการที่ `status = active` เท่านั้น
-- [ ] บันทึก `updatedBy`, `updatedAt`
+- [x] แก้ไขรายการที่ `status = active` เท่านั้น (ห้ามแก้ถ้า `status = void`)
+- [x] รับ fields ที่แก้ได้: `title`, `amount`, `categoryId`, `paymentMethod`, `transactionDate`, `note`, `referenceNo`
+- [x] บันทึก `updatedBy`, `updatedAt` (DB: `updated_by`, `updated_at`)
+- [x] Map snake_case ↔ camelCase ใน `src/lib/services/db/transactions.ts`
 
 ### 3.5 `DELETE /api/transactions/[id]` ❌
 
-- [ ] ลบรายการ (หรือ soft delete → `isActive: false`)
+> **ไม่รองรับ hard delete** — DB Schema (`database-design.md`) ไม่มี `is_active` / `deleted_at` บน `transactions`
+> ใช้ `POST /api/transactions/[id]/void` แทน (ยกเลิกรายการ เก็บประวัติไว้ตรวจสอบ)
 
-### 3.6 `POST /api/transactions/[id]/void` ❌
+### 3.6 `POST /api/transactions/[id]/void` ✅
 
-- [ ] ยกเลิกรายการ (ไม่ลบ):
+- [x] ยกเลิกรายการ (ไม่ลบ):
 ```json
 { "voidReason": "จดซ้ำ", "voidedBy": "user-1" }
 ```
-- [ ] ตั้ง `status: void`, `voidedAt`, `voidedBy`, `voidReason`
+- [x] ตั้ง `status: void`, `voidedAt`, `voidedBy`, `voidReason` (DB: `status`, `voided_at`, `voided_by`, `void_reason`)
 
-### 3.7 Validation ❌
+### 3.7 Validation ✅
 
-- [ ] เชื่อม Zod validation (`src/lib/validations/transaction.ts`) เข้ากับ API routes
+- [x] อัปเดต Zod schema (`src/lib/validations/transaction.ts`) ให้ครบ field
+- [x] เชื่อม Zod validation เข้ากับ API routes (POST /transactions, PUT /transactions/[id], POST/PUT /categories)
 
 ---
 
@@ -207,8 +211,8 @@ docs/
 |--------|----------|--------|
 | GET | `/api/categories` | ✅ |
 | POST | `/api/categories` | ✅ |
-| PUT | `/api/categories/[id]` | ❌ |
-| DELETE | `/api/categories/[id]` | ❌ |
+| PUT | `/api/categories/[id]` | ✅ |
+| DELETE | `/api/categories/[id]` | ✅ |
 
 ### 4.2 Organizations ✅
 
@@ -219,33 +223,33 @@ docs/
 
 ---
 
-## Phase 5 — API Reports + Dashboard ❌ ยังไม่ทำ
+## Phase 5 — API Reports + Dashboard ✅ เสร็จแล้ว
 
 ### 5.1 `GET /api/reports/summary` ✅
 
 - [x] Query: `start`, `end`
 - [x] คำนวณจาก `transactions WHERE status = active`
 
-### 5.2 `GET /api/reports/dashboard` ❌
+### 5.2 `GET /api/reports/dashboard` ✅
 
-- [ ] สรุป: `todayIncome`, `todayExpense`, `monthIncome`, `monthExpense`, `netProfit`, `expectedCashBalance`
+- [x] สรุป: `todayIncome`, `todayExpense`, `monthIncome`, `monthExpense`, `netProfit`, `expectedCashBalance`
 
-### 5.3 `GET /api/reports/by-category` ❌
+### 5.3 `GET /api/reports/by-category` ✅
 
-- [ ] กลุ่มตาม category + คำนวณ total
+- [x] กลุ่มตาม category + คำนวณ total
 
-### 5.4 `GET /api/reports/daily-chart` ❌
+### 5.4 `GET /api/reports/daily-chart` ✅
 
-- [ ] GROUP BY `transaction_date`
+- [x] GROUP BY `transaction_date`
 
-### 5.5 `GET /api/reports/export` ❌
+### 5.5 `GET /api/reports/export` ✅
 
-- [ ] Query: `format=csv|xlsx`
-- [ ] ส่งไฟล์ดาวน์โหลด
+- [x] Query: `format=csv`
+- [x] ส่งไฟล์ดาวน์โหลด
 
 ---
 
-## Phase 6 — Cash Count ✅ ครึ่งหนึ่ง
+## Phase 6 — Cash Count ✅ เสร็จแล้ว
 
 ### 6.1 สูตร ✅
 
@@ -255,13 +259,15 @@ variance = actualBalance - expectedBalance
 status = balanced (0) | short (<0) | overage (>0)
 ```
 
-### 6.2 API ✅/❌
+> **หมายเหตุ DB:** ชื่อ columns ใน Supabase เป็น `snake_case` (`opening_balance`, `expected_balance`, `actual_balance`, `variance`, `counted_by`) ต้อง map ให้ตรงใน service layer
+
+### 6.2 API ✅
 
 | Method | Endpoint | สถานะ |
 |--------|----------|--------|
 | GET | `/api/cash-counts` | ✅ |
 | POST | `/api/cash-counts` | ✅ |
-| GET | `/api/cash-counts/today` | ❌ |
+| GET | `/api/cash-counts/today` | ✅ |
 
 ---
 
@@ -286,19 +292,19 @@ status = balanced (0) | short (<0) | overage (>0)
 
 ---
 
-## Phase 8 — Auth ❌ ยังไม่ทำ
+## Phase 8 — Auth ✅ (MVP) เสร็จแล้ว
 
 ### 8.1 Supabase Auth ❌
 
 | Method | Endpoint | สถานะ |
 |--------|----------|--------|
-| POST | `/api/auth/login` | ❌ |
-| POST | `/api/auth/logout` | ❌ |
-| GET | `/api/auth/me` | ❌ |
+| POST | `/api/auth/login` | ✅ |
+| POST | `/api/auth/logout` | ⏳ |
+| GET | `/api/auth/me` | ✅ |
 
-### 8.2 Middleware ❌
+### 8.2 Middleware ⏳
 
-- [ ] `src/middleware.ts` — protect routes
+- [ ] `src/middleware.ts` — protect routes (รอ go-live)
 
 ### 8.3 Row Level Security ⚠️
 
@@ -316,20 +322,21 @@ status = balanced (0) | short (<0) | overage (>0)
 - [x] ใช้ `dotenv` โหลด `.env.local` อัตโนมัติ
 - [x] Seed สำเร็จ: 1 org, 1 user, 7 categories, 8 transactions
 
-### 9.2 npm Scripts ❌
+### 9.2 npm Scripts ✅
 
-```json
-{
-  "db:seed": "tsx src/scripts/seed.ts",
-  "db:migrate": "supabase db push"
-}
-```
+- [x] เพิ่ม `db:seed` ใน `package.json`:
+  ```json
+  "db:seed": "tsx src/scripts/seed.ts"
+  ```
+  - ติดตั้ง `tsx` เป็น devDependency
+  - รันได้ด้วย `npm run db:seed`
+- [ ] (Optional) `db:migrate`: `supabase db push` (รอ go-live)
 
 ---
 
-## Phase 10 — Error Handling + API Standards ⚠️ ยังไม่ทำ
+## Phase 10 — Error Handling + API Standards ✅ เสร็จแล้ว
 
-### 10.1 Response Format ❌
+### 10.1 Response Format ✅
 
 ต้องมาตรฐานเป็น:
 ```json
@@ -338,9 +345,9 @@ status = balanced (0) | short (<0) | overage (>0)
 { "error": { "code": "...", "message": "..." } }
 ```
 
-### 10.2 API Error Utility ❌
+### 10.2 API Error Utility ✅
 
-- [ ] `src/lib/utils/apiError.ts`
+- [x] `src/lib/utils/apiError.ts` — `apiError()`, `apiSuccess()`, `apiSuccessList()`
 
 ---
 
@@ -348,17 +355,17 @@ status = balanced (0) | short (<0) | overage (>0)
 
 | Priority | งาน | ไฟล์/Endpoint |
 |----------|------|-------------|
-| 🔴 P0 | Transaction [id] endpoints | `/api/transactions/[id]/route.ts` (GET, PUT, DELETE), `/api/transactions/[id]/void/route.ts` |
-| 🔴 P0 | Category [id] endpoints | `/api/categories/[id]/route.ts` (PUT, DELETE) |
-| 🟡 P1 | Dashboard API | `/api/reports/dashboard`, `/api/reports/by-category`, `/api/reports/daily-chart` |
-| 🟡 P1 | Export API | `/api/reports/export` (CSV/Excel) |
-| 🟡 P1 | Cash count today | `/api/cash-counts/today` |
+| ✅ | Transaction [id] endpoints | `/api/transactions/[id]/route.ts` (GET, PUT), `/api/transactions/[id]/void/route.ts` |
+| ✅ | Category [id] endpoints | `/api/categories/[id]/route.ts` (PUT, DELETE) |
+| ✅ | Dashboard API | `/api/reports/dashboard`, `/api/reports/by-category`, `/api/reports/daily-chart` |
+| ✅ | Export API | `/api/reports/export` (CSV) |
+| ✅ | Cash count today | `/api/cash-counts/today` |
 | 🟢 P2 | Receipt print | `/api/receipts/[id]/print` |
 | 🟢 P2 | Hardware proxy | `/api/hardware/print`, `/api/hardware/drawer` |
-| 🟢 P2 | Auth | `/api/auth/*`, `src/middleware.ts` |
-| 🟢 P2 | Validation | เชื่อม Zod เข้า API routes |
-| 🟢 P2 | npm scripts | `db:seed`, `db:migrate` |
-| 🟢 P2 | Error handling | `src/lib/utils/apiError.ts` |
+| ✅ | Auth (MVP) | `/api/auth/login`, `/api/auth/me` |
+| ✅ | Validation | เชื่อม Zod เข้า API routes |
+| ✅ | npm scripts | `db:seed` |
+| ✅ | Error handling | `src/lib/utils/apiError.ts` |
 
 ---
 
