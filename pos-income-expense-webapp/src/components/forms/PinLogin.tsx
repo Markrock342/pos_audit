@@ -302,7 +302,7 @@ export function PinLogin() {
                 key={key}
                 type="button"
                 onClick={() => handleKey(key)}
-                className="flex h-16 items-center justify-center rounded-2xl bg-surface-elevated text-text-secondary shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-surface-hover active:scale-[0.97] transition-all duration-150"
+                className="flex h-[4.5rem] min-h-[72px] items-center justify-center rounded-2xl bg-surface-elevated text-text-secondary shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-surface-hover active:scale-[0.97] transition-all duration-150"
                 aria-label="ลบ"
               >
                 <Delete size={24} />
@@ -316,7 +316,7 @@ export function PinLogin() {
                 key={key}
                 type="button"
                 onClick={() => handleKey(key)}
-                className="flex h-16 items-center justify-center rounded-2xl bg-surface-elevated text-text-muted text-base font-bold shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-surface-hover active:scale-[0.97] transition-all duration-150"
+                className="flex h-[4.5rem] min-h-[72px] items-center justify-center rounded-2xl bg-surface-elevated text-text-muted text-base font-bold shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-surface-hover active:scale-[0.97] transition-all duration-150"
                 aria-label="ล้าง"
               >
                 C
@@ -329,7 +329,7 @@ export function PinLogin() {
               key={key}
               type="button"
               onClick={() => handleKey(key)}
-              className="flex h-16 items-center justify-center rounded-2xl bg-surface-elevated text-text-main text-2xl font-black shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-brand active:text-text-inverse active:shadow-[0_4px_12px_rgba(255,107,53,0.35)] active:scale-[0.97] transition-all duration-150"
+              className="flex h-[4.5rem] min-h-[72px] items-center justify-center rounded-2xl bg-surface-elevated text-text-main text-2xl font-black shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-brand active:text-text-inverse active:shadow-[0_4px_12px_rgba(255,107,53,0.35)] active:scale-[0.97] transition-all duration-150"
               aria-label={key}
             >
               {key}

@@ -66,7 +66,7 @@ export function TransactionLineBuilder({ categories, type, onAdd }: TransactionL
         <label className="mb-2 block text-lg font-bold text-text-secondary">
           1. เลือกหมวดหมู่ <span className="text-error">*</span>
         </label>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           {categories.map((category) => {
             const { label } = splitCategoryName(category.name);
             const selected = categoryId === category.id;
@@ -78,7 +78,7 @@ export function TransactionLineBuilder({ categories, type, onAdd }: TransactionL
                   setCategoryId(category.id);
                   setError(null);
                 }}
-                className={`min-h-[76px] rounded-2xl border-2 p-3 text-center text-base font-bold shadow-sm transition-all active:scale-[0.98] ${
+                className={`min-h-[80px] rounded-2xl border-2 p-3 text-center text-base font-bold shadow-sm transition-all active:scale-[0.98] md:min-h-[84px] md:text-lg ${
                   selected ? "scale-[1.02] shadow-lg" : ""
                 } ${!selected ? "border-border-default bg-surface-elevated" : ""}`}
                 style={
@@ -108,7 +108,7 @@ export function TransactionLineBuilder({ categories, type, onAdd }: TransactionL
             type="button"
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
             disabled={quantity <= 1}
-            className="flex min-h-[72px] min-w-[72px] items-center justify-center rounded-2xl border-2 border-border-default bg-surface-hover text-text-main shadow-md active:scale-95 disabled:opacity-40"
+            className="flex min-h-[76px] min-w-[76px] items-center justify-center rounded-2xl border-2 border-border-default bg-surface-hover text-text-main shadow-md active:scale-95 disabled:opacity-40 md:min-h-[80px] md:min-w-[80px]"
             aria-label="ลดจำนวน"
           >
             <Minus size={28} strokeWidth={2.5} />
@@ -119,7 +119,7 @@ export function TransactionLineBuilder({ categories, type, onAdd }: TransactionL
           <button
             type="button"
             onClick={() => setQuantity((q) => q + 1)}
-            className="flex min-h-[72px] min-w-[72px] items-center justify-center rounded-2xl border-2 border-border-default bg-surface-hover text-text-main shadow-md active:scale-95"
+            className="flex min-h-[76px] min-w-[76px] items-center justify-center rounded-2xl border-2 border-border-default bg-surface-hover text-text-main shadow-md active:scale-95 md:min-h-[80px] md:min-w-[80px]"
             aria-label="เพิ่มจำนวน"
           >
             <Plus size={28} strokeWidth={2.5} />
@@ -176,7 +176,7 @@ export function TransactionLineBuilder({ categories, type, onAdd }: TransactionL
       <button
         type="button"
         onClick={handleAdd}
-        className={`flex min-h-[64px] w-full items-center justify-center gap-2 rounded-2xl text-xl font-black shadow-lg active:scale-[0.99] ${addBtn}`}
+        className={`flex min-h-[68px] w-full items-center justify-center gap-2 rounded-2xl text-xl font-black shadow-lg active:scale-[0.99] md:min-h-[72px] ${addBtn}`}
       >
         <Plus size={24} />
         เพิ่มรายการ

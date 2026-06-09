@@ -140,7 +140,7 @@ export function TransactionForm({
         <form onSubmit={handleSubmit(handleFormSubmit)}>
           <input type="hidden" {...register("type")} />
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(260px,320px)_1fr]">
+          <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[minmax(280px,340px)_1fr]">
             <TransactionCartPanel
               type={type}
               lines={cartLines}
@@ -220,7 +220,7 @@ export function TransactionForm({
                 </div>
               </section>
 
-              <div className="flex gap-3 lg:hidden">
+              <div className="flex gap-3 2xl:hidden">
                 <Button
                   type="submit"
                   disabled={busy || cartLines.length === 0}

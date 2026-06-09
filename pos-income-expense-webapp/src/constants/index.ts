@@ -64,3 +64,22 @@ export const NAV_SECTIONS: NavSection[] = [
 
 /** flat list สำหรับโค้ดเดิมที่อ้าง NAV_ITEMS */
 export const NAV_ITEMS = NAV_SECTIONS.flatMap((s) => s.items);
+
+/** เมนูล่าง tablet 10 นิ้ว — งานประจำวัน */
+export const BOTTOM_NAV_PRIMARY = [
+  { href: "/dashboard", label: "ภาพรวม", icon: LayoutDashboard, match: "/dashboard" },
+  { href: "/income/add", label: "รายรับ", icon: DollarSign, match: "/income" },
+  { href: "/expense/add", label: "รายจ่าย", icon: ArrowDownCircle, match: "/expense" },
+  { href: "/cash-count", label: "ปิดยอด", icon: Wallet, match: "/cash-count" },
+] as const;
+
+/** เมนูเพิ่มเติมใน tablet (sheet) */
+export const TABLET_MORE_NAV = [
+  { href: "/income", label: "รายการรายรับ", icon: DollarSign },
+  { href: "/expense", label: "รายการรายจ่าย", icon: ArrowDownCircle },
+  { href: "/balance", label: "ยอดคงเหลือ", icon: Scale },
+  { href: "/reports", label: "รายงาน", icon: TrendingUp },
+  { href: "/history", label: "ประวัติ", icon: History },
+  { href: "/categories", label: "หมวดหมู่", icon: Tag },
+  { href: "/settings", label: "ตั้งค่า", icon: Settings },
+] as const;

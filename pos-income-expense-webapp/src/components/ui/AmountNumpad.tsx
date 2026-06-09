@@ -45,7 +45,7 @@ export function AmountNumpad({ value, onChange, integerOnly }: AmountNumpadProps
           type="button"
           onClick={() => handleKey(key)}
           className={cn(
-            "min-h-[72px] rounded-2xl text-3xl font-bold shadow-md active:scale-95 text-text-main xl:min-h-[76px]",
+            "min-h-[76px] rounded-2xl text-3xl font-bold shadow-md active:scale-95 text-text-main md:min-h-[80px]",
             key === "C"
               ? "bg-expense-light text-expense active:bg-expense/20"
               : "bg-surface-hover active:bg-border-default"

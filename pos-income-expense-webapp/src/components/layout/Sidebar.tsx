@@ -11,7 +11,7 @@ export function Sidebar() {
   const { shopName } = useOrganization();
 
   return (
-    <aside className="flex w-72 flex-col bg-surface-elevated shadow-[2px_0_12px_rgba(15,23,42,0.08)]">
+    <aside className="hidden w-72 shrink-0 flex-col bg-surface-elevated shadow-[2px_0_12px_rgba(15,23,42,0.08)] 2xl:flex">
       <div className="border-b border-border-default px-6 py-8">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand shadow-[0_2px_8px_rgba(255,107,53,0.4)]">

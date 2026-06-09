@@ -194,18 +194,132 @@ export function TransactionTable({
     },
   ];
 
+  if (transactions.length === 0) {
+    return <p className="py-8 text-center text-text-muted">ยังไม่มีรายการ</p>;
+  }
+
   return (
     <>
-      <DataTable
-        columns={columns}
-        data={transactions}
-        emptyMessage="ยังไม่มีรายการ"
-        getRowKey={(row) => row.id}
-        isRowSelected={(row) => !!selectedTransactionId && row.id === selectedTransactionId}
-        onRowClick={onSelectTransaction}
-        stickyHeader={stickyHeader}
-        highlightVariant={highlightVariant}
-      />
+      <div className="space-y-3 2xl:hidden">
+        {transactions.map((row) => {
+          const { label, color } = categorySummary(row, categoryMap);
+          const payment =
+            PAYMENT_METHODS.find((p) => p.value === row.paymentMethod)?.label ??
+            row.paymentMethod;
+          const voided = row.status === "void";
+          const selected = !!selectedTransactionId && row.id === selectedTransactionId;
+          return (
+            <div
+              key={row.id}
+              role={onSelectTransaction ? "button" : undefined}
+              tabIndex={onSelectTransaction ? 0 : undefined}
+              onClick={onSelectTransaction ? () => onSelectTransaction(row) : undefined}
+              onKeyDown={
+                onSelectTransaction
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onSelectTransaction(row);
+                      }
+                    }
+                  : undefined
+              }
+              className={`rounded-2xl border-2 bg-surface-elevated p-4 shadow-sm ${
+                selected
+                  ? highlightVariant === "expense"
+                    ? "border-expense/50 bg-expense-light/30"
+                    : "border-income/50 bg-income-light/30"
+                  : "border-border-default"
+              } ${onSelectTransaction ? "cursor-pointer active:scale-[0.99]" : ""}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-text-main">{row.title || "รายการ"}</p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    <DateTimeDisplay iso={row.createdAt} />
+                  </p>
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-text-secondary">
+                    {color && (
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: color }}
+                      />
+                    )}
+                    {label} · {payment}
+                  </p>
+                  {voided && (
+                    <p className="mt-1 text-sm font-bold text-error">ยกเลิกแล้ว</p>
+                  )}
+                </div>
+                <p
+                  className={`shrink-0 text-xl font-black ${
+                    voided
+                      ? "text-text-muted line-through"
+                      : row.type === "income"
+                        ? "text-income"
+                        : "text-expense"
+                  }`}
+                >
+                  {row.type === "income" ? "+" : "-"}
+                  {formatCurrency(row.amount)}
+                </p>
+              </div>
+              {!voided && (
+                <div className="mt-3 flex gap-2 border-t border-border-default pt-3">
+                  {onPreviewReceipt && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPreviewReceipt(row);
+                      }}
+                      className="flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl bg-surface-hover font-bold text-text-secondary active:scale-[0.98]"
+                    >
+                      <Receipt size={20} />
+                      ใบเสร็จ
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingTxn(row);
+                    }}
+                    className="flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl bg-surface-hover font-bold text-brand active:scale-[0.98]"
+                  >
+                    <Pencil size={20} />
+                    แก้ไข
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setVoidingTxn(row);
+                    }}
+                    className="flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl bg-expense-light font-bold text-expense active:scale-[0.98]"
+                  >
+                    <Ban size={20} />
+                    ยกเลิก
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden 2xl:block">
+        <DataTable
+          columns={columns}
+          data={transactions}
+          emptyMessage="ยังไม่มีรายการ"
+          getRowKey={(row) => row.id}
+          isRowSelected={(row) => !!selectedTransactionId && row.id === selectedTransactionId}
+          onRowClick={onSelectTransaction}
+          stickyHeader={stickyHeader}
+          highlightVariant={highlightVariant}
+        />
+      </div>
       {editingTxn && (
         <TransactionEditModal
           transaction={editingTxn}

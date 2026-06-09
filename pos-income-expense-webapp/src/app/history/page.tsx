@@ -187,7 +187,7 @@ export default function HistoryPage() {
               </CardTitle>
               <div className="flex flex-wrap gap-2">
                 <select
-                  className="rounded-xl border-2 border-border-default bg-surface-elevated px-3 py-2 text-sm"
+                  className="tablet-touch-select rounded-xl border-2 border-border-default bg-surface-elevated px-3 py-2 text-sm"
                   value={typeFilter}
                   onChange={(e) =>
                     setTypeFilter(e.target.value as "" | "income" | "expense")
@@ -198,7 +198,7 @@ export default function HistoryPage() {
                   <option value="expense">รายจ่าย</option>
                 </select>
                 <select
-                  className="rounded-xl border-2 border-border-default bg-surface-elevated px-3 py-2 text-sm"
+                  className="tablet-touch-select rounded-xl border-2 border-border-default bg-surface-elevated px-3 py-2 text-sm"
                   value={actionFilter}
                   onChange={(e) =>
                     setActionFilter(e.target.value as "" | AuditLogAction)
@@ -220,7 +220,7 @@ export default function HistoryPage() {
                     type="button"
                     size="sm"
                     variant={datePreset === preset ? "primary" : "outline"}
-                    className="!min-h-10 !h-10 px-4 text-sm"
+                    className="tablet-touch-chip !min-h-12 !h-12 px-4 text-sm"
                     onClick={() => setDatePreset(preset)}
                   >
                     {PRESET_LABELS[preset]}
@@ -243,60 +243,99 @@ export default function HistoryPage() {
                 message="ลองเปลี่ยนช่วงวันที่หรือตัวกรองอื่น"
               />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[960px] text-left text-sm">
-                  <thead className="sticky top-0 z-10 border-b border-border-default bg-surface-elevated text-text-muted">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">วันเวลา</th>
-                      <th className="px-3 py-2 font-medium">ผู้ทำ</th>
-                      <th className="px-3 py-2 font-medium">ประเภท</th>
-                      <th className="px-3 py-2 font-medium">การกระทำ</th>
-                      <th className="px-3 py-2 font-medium">รายการ</th>
-                      <th className="px-3 py-2 font-medium">รายละเอียดการเปลี่ยนแปลง</th>
-                      <th className="px-3 py-2 font-medium text-right">จำนวนเงิน</th>
-                      <th className="px-3 py-2 font-medium">เหตุผล</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {logs.map((log) => {
-                      const amount = logAmount(log);
-                      return (
-                        <tr
-                          key={log.id}
-                          className="border-b border-border-default/60 align-top hover:bg-surface-hover/50"
-                        >
-                          <td className="px-3 py-3">
-                            <DateTimeDisplay iso={log.createdAt} />
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap font-medium">
-                            {log.userName ?? "—"}
-                          </td>
-                          <td className="px-3 py-3">
-                            <TransactionTypeBadge type={log.transactionType} />
-                          </td>
-                          <td className="px-3 py-3">
-                            <span className={actionClass(log.action)}>
-                              {ACTION_LABELS[log.action]}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3 font-medium">
-                            {log.entityTitle ?? "-"}
-                          </td>
-                          <td className="px-3 py-3">
-                            <AuditChangeDetails log={log} />
-                          </td>
-                          <td className={`px-3 py-3 text-right whitespace-nowrap ${amountClass(log.transactionType)}`}>
-                            {amount ?? "-"}
-                          </td>
-                          <td className="px-3 py-3 text-text-secondary">
-                            {log.action === "create" ? "—" : log.reason}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                <div className="space-y-3 2xl:hidden">
+                  {logs.map((log) => {
+                    const amount = logAmount(log);
+                    return (
+                      <div
+                        key={log.id}
+                        className="rounded-2xl border-2 border-border-default bg-surface-elevated p-4"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <TransactionTypeBadge type={log.transactionType} />
+                          <span className={`rounded-full px-3 py-1 text-sm font-bold ${actionClass(log.action)} bg-surface-inset`}>
+                            {ACTION_LABELS[log.action]}
+                          </span>
+                        </div>
+                        <p className="mt-2 font-bold text-text-main">
+                          {log.entityTitle ?? "—"}
+                        </p>
+                        <p className="mt-1 text-sm text-text-muted">
+                          <DateTimeDisplay iso={log.createdAt} />
+                          {log.userName ? ` · ${log.userName}` : ""}
+                        </p>
+                        <div className="mt-2">
+                          <AuditChangeDetails log={log} />
+                        </div>
+                        {amount && (
+                          <p className={`mt-2 text-lg font-black ${amountClass(log.transactionType)}`}>
+                            {amount}
+                          </p>
+                        )}
+                        {log.action !== "create" && log.reason && (
+                          <p className="mt-1 text-sm text-text-secondary">เหตุผล: {log.reason}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden overflow-x-auto 2xl:block">
+                  <table className="w-full min-w-[960px] text-left text-sm">
+                    <thead className="sticky top-0 z-10 border-b border-border-default bg-surface-elevated text-text-muted">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">วันเวลา</th>
+                        <th className="px-3 py-2 font-medium">ผู้ทำ</th>
+                        <th className="px-3 py-2 font-medium">ประเภท</th>
+                        <th className="px-3 py-2 font-medium">การกระทำ</th>
+                        <th className="px-3 py-2 font-medium">รายการ</th>
+                        <th className="px-3 py-2 font-medium">รายละเอียดการเปลี่ยนแปลง</th>
+                        <th className="px-3 py-2 font-medium text-right">จำนวนเงิน</th>
+                        <th className="px-3 py-2 font-medium">เหตุผล</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {logs.map((log) => {
+                        const amount = logAmount(log);
+                        return (
+                          <tr
+                            key={log.id}
+                            className="border-b border-border-default/60 align-top hover:bg-surface-hover/50"
+                          >
+                            <td className="px-3 py-3">
+                              <DateTimeDisplay iso={log.createdAt} />
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap font-medium">
+                              {log.userName ?? "—"}
+                            </td>
+                            <td className="px-3 py-3">
+                              <TransactionTypeBadge type={log.transactionType} />
+                            </td>
+                            <td className="px-3 py-3">
+                              <span className={actionClass(log.action)}>
+                                {ACTION_LABELS[log.action]}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3 font-medium">
+                              {log.entityTitle ?? "-"}
+                            </td>
+                            <td className="px-3 py-3">
+                              <AuditChangeDetails log={log} />
+                            </td>
+                            <td className={`px-3 py-3 text-right whitespace-nowrap ${amountClass(log.transactionType)}`}>
+                              {amount ?? "-"}
+                            </td>
+                            <td className="px-3 py-3 text-text-secondary">
+                              {log.action === "create" ? "—" : log.reason}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

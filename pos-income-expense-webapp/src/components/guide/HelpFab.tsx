@@ -23,7 +23,7 @@ export function HelpFab() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 left-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-2xl font-black text-text-inverse shadow-[0_4px_16px_rgba(255,107,53,0.45)] transition-transform active:scale-95"
+        className="fixed bottom-[5.5rem] left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-2xl font-black text-text-inverse shadow-[0_4px_16px_rgba(255,107,53,0.45)] transition-transform active:scale-95 2xl:bottom-6 2xl:left-6"
         aria-label="คู่มือการใช้งาน"
         title="คู่มือการใช้งาน"
       >
