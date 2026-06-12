@@ -35,7 +35,7 @@ export function AmountNumpad({ value, onChange, integerOnly }: AmountNumpadProps
   };
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-3 gap-2 2xl:gap-3">
       {(integerOnly
         ? ["7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0"]
         : ["7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0", "."]
@@ -45,7 +45,7 @@ export function AmountNumpad({ value, onChange, integerOnly }: AmountNumpadProps
           type="button"
           onClick={() => handleKey(key)}
           className={cn(
-            "min-h-[76px] rounded-2xl text-3xl font-bold shadow-md active:scale-95 text-text-main md:min-h-[80px]",
+            "min-h-[52px] rounded-xl text-2xl font-bold shadow-md active:scale-95 text-text-main 2xl:min-h-[76px] 2xl:rounded-2xl 2xl:text-3xl",
             key === "C"
               ? "bg-expense-light text-expense active:bg-expense/20"
               : "bg-surface-hover active:bg-border-default"
@@ -57,14 +57,14 @@ export function AmountNumpad({ value, onChange, integerOnly }: AmountNumpadProps
       <button
         type="button"
         onClick={() => handleKey("⌫")}
-        className="min-h-[72px] rounded-2xl bg-surface-hover text-3xl font-bold text-text-secondary active:bg-border-default shadow-md active:scale-95 xl:min-h-[76px]"
+        className="min-h-[52px] rounded-xl bg-surface-hover text-2xl font-bold text-text-secondary active:bg-border-default shadow-md active:scale-95 2xl:min-h-[76px] 2xl:rounded-2xl 2xl:text-3xl"
       >
         ⌫
       </button>
       <button
         type="button"
         onClick={() => handleKey("00")}
-        className="min-h-[72px] rounded-2xl bg-surface-hover text-3xl font-bold text-text-main active:bg-border-default shadow-md active:scale-95 xl:min-h-[76px]"
+        className="min-h-[52px] rounded-xl bg-surface-hover text-2xl font-bold text-text-main active:bg-border-default shadow-md active:scale-95 2xl:min-h-[76px] 2xl:rounded-2xl 2xl:text-3xl"
       >
         00
       </button>
@@ -85,7 +85,7 @@ export function AmountDisplay({ value, label, active, onClick }: AmountDisplayPr
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full rounded-2xl border-2 px-5 py-4 text-left shadow-sm transition-all",
+        "w-full rounded-xl border-2 px-4 py-3 text-left shadow-sm transition-all 2xl:rounded-2xl 2xl:px-5 2xl:py-4",
         active
           ? "border-brand bg-brand/5 ring-4 ring-brand-ring"
           : "border-border-default bg-surface-elevated active:bg-surface-hover"
@@ -94,7 +94,7 @@ export function AmountDisplay({ value, label, active, onClick }: AmountDisplayPr
       <p className="mb-1 text-sm font-bold text-text-secondary">{label}</p>
       <div className="flex items-center">
         <span className="text-3xl font-bold text-text-muted">฿</span>
-        <span className="ml-2 text-4xl font-black text-text-main xl:text-5xl">
+        <span className="ml-2 text-3xl font-black text-text-main 2xl:text-4xl">
           {formatDisplay(value)}
         </span>
       </div>

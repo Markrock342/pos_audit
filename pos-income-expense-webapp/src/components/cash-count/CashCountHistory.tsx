@@ -47,7 +47,7 @@ export function CashCountHistory({ refreshKey = 0 }: CashCountHistoryProps) {
             {history.map((row) => (
               <div
                 key={row.id}
-                className="flex items-center justify-between gap-4 rounded-xl border border-border-default px-4 py-3"
+                className="tablet-touch-row flex items-center justify-between gap-4 rounded-2xl border-2 border-border-default px-4"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">

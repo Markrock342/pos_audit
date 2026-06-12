@@ -16,7 +16,8 @@ export function formatReceiptDateTime(iso: string): string {
 }
 
 export function resolveReceiptLines(transaction: Transaction): TransactionLineItem[] {
-  if (transaction.lineItems && transaction.lineItems.length > 0) {
+  if (transaction.lineItems) {
+    if (transaction.lineItems.length === 0) return [];
     return [...transaction.lineItems].sort((a, b) => a.sortOrder - b.sortOrder);
   }
   return [

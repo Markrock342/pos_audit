@@ -146,7 +146,7 @@ export default function CashCountPage() {
 
   return (
     <AppLayout title="ปิดยอดเงินสด" subtitle="ตัดยอดอัตโนมัติเที่ยงคืน · วันเก่าแก้ไขไม่ได้">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 xl:h-[calc(100vh-8rem)] xl:max-h-[calc(100vh-8rem)] xl:overflow-hidden">
+      <div className="mx-auto flex max-w-5xl flex-col gap-6 pb-24 2xl:h-[calc(100vh-8rem)] 2xl:max-h-[calc(100vh-8rem)] 2xl:overflow-hidden 2xl:pb-0">
         {message && (
           <p
             className={`shrink-0 rounded-xl px-4 py-3 text-sm font-bold ${
@@ -168,7 +168,7 @@ export default function CashCountPage() {
             {loading ? (
               <p className="text-text-muted">กำลังโหลด...</p>
             ) : (
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:gap-8">
+              <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2 2xl:gap-8">
                 <div className="flex flex-col gap-4">
                   <div className="space-y-1">
                     <p className="text-sm text-text-secondary">
@@ -248,7 +248,7 @@ export default function CashCountPage() {
                   )}
                 </div>
 
-                <div className="flex flex-col gap-4 xl:sticky xl:top-4 xl:self-start">
+                <div className="flex flex-col gap-4 2xl:sticky 2xl:top-4 2xl:self-start">
                   {!readOnly && (
                     <>
                       <p className="text-center text-sm font-bold text-text-muted">
@@ -258,7 +258,7 @@ export default function CashCountPage() {
                     </>
                   )}
                   <Button
-                    className="w-full"
+                    className="hidden w-full 2xl:flex"
                     size="lg"
                     onClick={handleSave}
                     disabled={saving || readOnly}
@@ -281,6 +281,23 @@ export default function CashCountPage() {
           <CashCountHistory refreshKey={historyKey} />
         </div>
       </div>
+
+      {!readOnly && !loading && (
+        <div className="tablet-sticky-action 2xl:hidden">
+          <Button
+            className="flex-1"
+            size="lg"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving
+              ? "กำลังบันทึก..."
+              : existing?.hasManualCount
+                ? "อัปเดตปิดยอด"
+                : "บันทึกปิดยอด"}
+          </Button>
+        </div>
+      )}
     </AppLayout>
   );
 }

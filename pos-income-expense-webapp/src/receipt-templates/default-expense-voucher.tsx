@@ -86,7 +86,9 @@ export function DefaultExpenseVoucherTemplate({
         <VoucherRow label="เลขที่:" value={docNo} />
         <VoucherRow label="วันที่บันทึก:" value={recordedAt} />
         <VoucherRow label="ผู้บันทึก:" value={recorder} />
-        <VoucherRow label="หัวเรื่อง:" value={transaction.title} />
+        {transaction.title?.trim() && (
+          <VoucherRow label="ชื่อบิล:" value={transaction.title.trim()} />
+        )}
         {showTxDate && (
           <VoucherRow
             label="วันที่รายการ:"
@@ -98,6 +100,9 @@ export function DefaultExpenseVoucherTemplate({
       <VoucherRule char="." />
 
       <div className="space-y-2.5">
+        {lines.length === 0 && (
+          <p className="text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
+        )}
         {lines.map((line, index) => {
           const categoryName = categoryNames[line.categoryId];
           return (

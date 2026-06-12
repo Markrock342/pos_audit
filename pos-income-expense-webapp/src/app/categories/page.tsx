@@ -209,18 +209,18 @@ export default function CategoriesPage() {
 
   return (
     <AppLayout title="หมวดหมู่">
-      <div className="flex flex-col gap-4 xl:h-[calc(100vh-8rem)] xl:max-h-[calc(100vh-8rem)] xl:overflow-hidden">
+      <div className="flex flex-col gap-4 2xl:h-[calc(100vh-8rem)] 2xl:max-h-[calc(100vh-8rem)] 2xl:overflow-hidden">
         {error && (
           <p className="shrink-0 rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">
             {error}
           </p>
         )}
 
-        <div className="grid min-h-0 flex-1 gap-6 overflow-hidden lg:grid-cols-3 lg:items-stretch">
-          <Card className="flex min-h-[400px] flex-col overflow-hidden lg:col-span-2 lg:min-h-0">
+        <div className="grid min-h-0 flex-1 gap-6 overflow-hidden 2xl:grid-cols-3 2xl:items-stretch">
+          <Card className="flex min-h-[400px] flex-col overflow-hidden 2xl:col-span-2 2xl:min-h-0">
             <CardHeader className="flex shrink-0 flex-row items-center justify-between">
               <CardTitle>รายการหมวดหมู่</CardTitle>
-              <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
+              <Button size="sm" variant="outline" onClick={refresh} disabled={loading} className="tablet-touch-chip">
                 รีเฟรช
               </Button>
             </CardHeader>
@@ -228,12 +228,65 @@ export default function CategoriesPage() {
               {loading ? (
                 <p className="py-8 text-center text-text-muted">กำลังโหลด...</p>
               ) : (
-                <DataTable columns={columns} data={categories} stickyHeader />
+                <>
+                  <div className="space-y-3 2xl:hidden">
+                    {categories.map((cat) => (
+                      <div
+                        key={cat.id}
+                        className={`rounded-2xl border-2 bg-surface-elevated p-4 ${
+                          editingId === cat.id ? "border-brand bg-brand/5" : "border-border-default"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span
+                              className="h-5 w-5 shrink-0 rounded-full"
+                              style={{ backgroundColor: cat.color }}
+                            />
+                            <div className="min-w-0">
+                              <p className="truncate text-base font-bold text-text-main">{cat.name}</p>
+                              <span
+                                className={
+                                  cat.type === "income"
+                                    ? "mt-1 inline-block rounded-full bg-income-light px-2 py-0.5 text-xs font-bold text-income"
+                                    : "mt-1 inline-block rounded-full bg-expense-light px-2 py-0.5 text-xs font-bold text-expense"
+                                }
+                              >
+                                {cat.type === "income" ? "รายรับ" : "รายจ่าย"}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => startEdit(cat)}
+                              className="flex min-h-[52px] min-w-[52px] items-center justify-center rounded-xl bg-surface-hover text-brand active:scale-95"
+                              aria-label={`แก้ไข ${cat.name}`}
+                            >
+                              <Pencil size={22} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openDeleteDialog(cat.id)}
+                              className="flex min-h-[52px] min-w-[52px] items-center justify-center rounded-xl bg-expense-light text-expense active:scale-95"
+                              aria-label={`ลบ ${cat.name}`}
+                            >
+                              <Trash2 size={22} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden 2xl:block">
+                    <DataTable columns={columns} data={categories} stickyHeader />
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
 
-          <Card className="flex min-h-0 flex-col overflow-hidden lg:col-span-1 lg:h-full">
+          <Card className="flex min-h-0 flex-col overflow-hidden 2xl:col-span-1 2xl:h-full">
             <CardHeader className="flex shrink-0 flex-row items-center justify-between">
             <CardTitle>{editingId ? "แก้ไขหมวดหมู่" : "เพิ่มหมวดหมู่"}</CardTitle>
             {editingId && (
@@ -268,21 +321,21 @@ export default function CategoriesPage() {
                 <label className="mb-2 block text-base font-medium text-text-secondary">
                   เลือกสี
                 </label>
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
                   {PRESET_COLORS.map((color) => (
                     <button
                       key={color}
                       type="button"
                       onClick={() => setSelectedColor(color)}
-                      className={`flex items-center justify-center rounded-full border-2 transition-all ${
+                      className={`flex min-h-[52px] min-w-[52px] items-center justify-center rounded-full border-2 transition-all active:scale-95 ${
                         selectedColor === color
                           ? "border-text-main scale-110"
-                          : "border-transparent hover:scale-105"
+                          : "border-transparent"
                       }`}
                       style={{ backgroundColor: color }}
                       aria-label={`เลือกสี ${color}`}
                     >
-                      <span className="h-8 w-8 rounded-full" />
+                      <span className="h-10 w-10 rounded-full 2xl:h-8 2xl:w-8" />
                     </button>
                   ))}
                 </div>

@@ -59,20 +59,27 @@ export function BalanceSummaryView() {
               {formatDateShort(start)} — {formatDateShort(end)}
             </p>
           </div>
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
             <Input
               label="ตั้งแต่"
               type="date"
               value={start}
               onChange={(e) => setStart(e.target.value)}
+              className="tablet-touch-input"
             />
             <Input
               label="ถึง"
               type="date"
               value={end}
               onChange={(e) => setEnd(e.target.value)}
+              className="tablet-touch-input"
             />
-            <Button variant="outline" onClick={load} disabled={loading}>
+            <Button
+              variant="outline"
+              onClick={load}
+              disabled={loading}
+              className="col-span-2 min-h-[52px] sm:col-span-1"
+            >
               {loading ? "กำลังโหลด..." : "อัปเดต"}
             </Button>
           </div>
@@ -168,21 +175,21 @@ export function BalanceSummaryView() {
               <p className="text-sm text-text-muted">ยอดยกมา + รายรับ − รายจ่าย</p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between rounded-xl border border-border-default bg-surface-elevated px-5 py-4">
-                <span className="inline-flex items-center gap-2 font-medium">
-                  <Banknote size={20} className="text-brand" />
+              <div className="tablet-touch-row flex items-center justify-between rounded-2xl border-2 border-border-default bg-surface-elevated px-5">
+                <span className="inline-flex items-center gap-2 text-base font-bold">
+                  <Banknote size={22} className="text-brand" />
                   เงินสด
                 </span>
                 <span className="text-2xl font-black">{formatCurrency(data.cashBalance)}</span>
               </div>
-              <div className="flex items-center justify-between rounded-xl border border-border-default bg-surface-elevated px-5 py-4">
-                <span className="inline-flex items-center gap-2 font-medium">
-                  <PiggyBank size={20} className="text-brand" />
+              <div className="tablet-touch-row flex items-center justify-between rounded-2xl border-2 border-border-default bg-surface-elevated px-5">
+                <span className="inline-flex items-center gap-2 text-base font-bold">
+                  <PiggyBank size={22} className="text-brand" />
                   เงินเก็บ / บัญชี
                 </span>
                 <span className="text-2xl font-black">{formatCurrency(data.savingsBalance)}</span>
               </div>
-              <div className="flex items-center justify-between rounded-xl bg-brand px-5 py-5 text-white">
+              <div className="flex min-h-[72px] items-center justify-between rounded-2xl bg-brand px-5 py-5 text-white">
                 <span className="text-lg font-bold">รวมเงินคงเหลือทั้งหมด</span>
                 <span className="text-3xl font-black">{formatCurrency(data.totalBalance)}</span>
               </div>

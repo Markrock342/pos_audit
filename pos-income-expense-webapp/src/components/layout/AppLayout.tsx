@@ -16,7 +16,7 @@ export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header title={title} subtitle={subtitle} />
-        <main className="main-tablet flex-1 overflow-auto p-4 2xl:p-6">{children}</main>
+        <main className="main-tablet flex-1 overflow-auto p-3 lg:p-4 2xl:p-6">{children}</main>
         <BottomNav />
         <HelpFab />
       </div>

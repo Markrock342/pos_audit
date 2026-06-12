@@ -171,14 +171,14 @@ export default function HistoryPage() {
 
   return (
     <AppLayout title="ประวัติการทำรายการ">
-      <div className="flex flex-col gap-4 xl:h-[calc(100vh-8rem)] xl:max-h-[calc(100vh-8rem)] xl:overflow-hidden">
+      <div className="flex flex-col gap-4 2xl:h-[calc(100vh-8rem)] 2xl:max-h-[calc(100vh-8rem)] 2xl:overflow-hidden">
         {error && (
           <p className="shrink-0 rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">
             {error}
           </p>
         )}
 
-        <Card className="flex min-h-[480px] flex-1 flex-col overflow-hidden xl:min-h-0">
+        <Card className="flex min-h-[480px] flex-1 flex-col overflow-hidden 2xl:min-h-0">
           <CardHeader className="flex shrink-0 flex-col gap-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="flex items-center gap-2">

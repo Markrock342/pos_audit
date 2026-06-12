@@ -34,7 +34,7 @@ export function RecentTransactionList({
         return (
           <div
             key={t.id}
-            className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-elevated p-3 transition-colors hover:bg-surface-hover"
+            className="tablet-touch-row flex items-center gap-3 rounded-2xl border-2 border-border-default bg-surface-elevated px-4 transition-colors active:bg-surface-hover"
           >
             <div className={isIncome ? "text-income" : "text-expense"}>
               {isIncome ? (
@@ -45,7 +45,7 @@ export function RecentTransactionList({
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold text-text-main">
+              <p className="truncate text-base font-bold text-text-main">
                 {t.title}
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">

@@ -1,7 +1,9 @@
 import type { Receipt, Transaction } from "@/types";
+import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
   formatReceiptDateTime,
+  hasDistinctTransactionDate,
   resolvePaymentLabel,
   resolveReceiptLines,
   resolveReceiptNumber,
@@ -64,6 +66,8 @@ export function DefaultReceiptTemplate({
   const receiptNo = resolveReceiptNumber(transaction, receipt.receiptNumber);
   const seller = sellerName ?? resolveSellerName(transaction.createdBy);
   const printedAt = formatReceiptDateTime(transaction.createdAt);
+  const showTxDate = hasDistinctTransactionDate(transaction);
+  const billTitle = transaction.title?.trim();
 
   return (
     <div
@@ -82,11 +86,21 @@ export function DefaultReceiptTemplate({
         <ReceiptRow label="เลขที่:" value={receiptNo} />
         <ReceiptRow label="วันที่:" value={printedAt} />
         <ReceiptRow label="ผู้ขาย:" value={seller} />
+        {billTitle && <ReceiptRow label="ชื่อบิล:" value={billTitle} />}
+        {showTxDate && (
+          <ReceiptRow
+            label="วันที่รายการ:"
+            value={formatDateShort(transaction.transactionDate)}
+          />
+        )}
       </div>
 
       <ReceiptRule char="." />
 
       <div className="space-y-2">
+        {lines.length === 0 && (
+          <p className="text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
+        )}
         {lines.map((line, index) => (
           <div key={line.id ?? index}>
             <p className="text-[11px] leading-tight">{line.title}</p>
@@ -112,6 +126,9 @@ export function DefaultReceiptTemplate({
             <ReceiptRow label="รับเงิน" value={formatReceiptAmount(netTotal)} />
             <ReceiptRow label="เงินทอน" value={formatReceiptAmount(0)} />
           </>
+        )}
+        {transaction.note?.trim() && (
+          <ReceiptRow label="หมายเหตุ" value={transaction.note.trim()} />
         )}
       </div>
 

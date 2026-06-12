@@ -97,23 +97,34 @@ export function ReportsView({ initialTransactions }: ReportsViewProps) {
               {formatDateShort(start)} — {formatDateShort(end)}
             </p>
           </div>
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
             <Input
               label="ตั้งแต่"
               type="date"
               value={start}
               onChange={(e) => setStart(e.target.value)}
+              className="tablet-touch-input"
             />
             <Input
               label="ถึง"
               type="date"
               value={end}
               onChange={(e) => setEnd(e.target.value)}
+              className="tablet-touch-input"
             />
-            <Button variant="outline" onClick={load} disabled={loading}>
+            <Button
+              variant="outline"
+              onClick={load}
+              disabled={loading}
+              className="min-h-[52px] sm:col-span-1"
+            >
               {loading ? "กำลังโหลด..." : "อัปเดต"}
             </Button>
-            <Button onClick={handleExport} disabled={exporting} className="gap-2">
+            <Button
+              onClick={handleExport}
+              disabled={exporting}
+              className="col-span-2 min-h-[52px] gap-2 sm:col-span-1"
+            >
               <Download size={18} />
               {exporting ? "กำลังส่งออก..." : "ส่งออก CSV"}
             </Button>
@@ -154,7 +165,7 @@ export function ReportsView({ initialTransactions }: ReportsViewProps) {
               {byCategory.map((row) => (
                 <div
                   key={row.categoryId}
-                  className="flex items-center justify-between rounded-xl border border-border-default px-4 py-3"
+                  className="tablet-touch-row flex items-center justify-between rounded-2xl border-2 border-border-default px-4"
                 >
                   <span className="inline-flex items-center gap-2 font-medium">
                     <span

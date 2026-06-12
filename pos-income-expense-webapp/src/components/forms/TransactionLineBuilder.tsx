@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import type { Category } from "@/types";
 import { AmountDisplay, AmountNumpad } from "@/components/ui/AmountNumpad";
@@ -13,9 +13,11 @@ interface TransactionLineBuilderProps {
   categories: Category[];
   type: "income" | "expense";
   onAdd: (item: LineItemFormValues) => void;
+  /** อัปเดตรายการร่างแบบ realtime ไปแสดงในบิลซ้าย */
+  onDraftChange?: (draft: LineItemFormValues | null) => void;
 }
 
-export function TransactionLineBuilder({ categories, type, onAdd }: TransactionLineBuilderProps) {
+export function TransactionLineBuilder({ categories, type, onAdd, onDraftChange }: TransactionLineBuilderProps) {
   const [categoryId, setCategoryId] = useState("");
   const [amountString, setAmountString] = useState("0");
   const [quantity, setQuantity] = useState(1);
@@ -39,7 +41,25 @@ export function TransactionLineBuilder({ categories, type, onAdd }: TransactionL
     setCustomTitle("");
     setShowTitle(false);
     setError(null);
+    onDraftChange?.(null);
   };
+
+  useEffect(() => {
+    if (!onDraftChange) return;
+    const hasActivity =
+      categoryId || unitPrice > 0 || quantity !== 1 || customTitle.trim().length > 0;
+    if (!hasActivity) {
+      onDraftChange(null);
+      return;
+    }
+    const catLabel = selectedCat ? splitCategoryName(selectedCat.name).label : "";
+    onDraftChange({
+      categoryId,
+      quantity,
+      unitPrice,
+      title: customTitle.trim() || catLabel || "รายการใหม่",
+    });
+  }, [categoryId, unitPrice, quantity, customTitle, selectedCat, onDraftChange]);
 
   const handleAdd = () => {
     if (!categoryId) {
@@ -61,12 +81,12 @@ export function TransactionLineBuilder({ categories, type, onAdd }: TransactionL
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 2xl:gap-4">
       <div>
-        <label className="mb-2 block text-lg font-bold text-text-secondary">
+        <label className="mb-1.5 block text-base font-bold text-text-secondary 2xl:mb-2 2xl:text-lg">
           1. เลือกหมวดหมู่ <span className="text-error">*</span>
         </label>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 2xl:grid-cols-3 2xl:gap-3">
           {categories.map((category) => {
             const { label } = splitCategoryName(category.name);
             const selected = categoryId === category.id;
@@ -78,7 +98,7 @@ export function TransactionLineBuilder({ categories, type, onAdd }: TransactionL
                   setCategoryId(category.id);
                   setError(null);
                 }}
-                className={`min-h-[80px] rounded-2xl border-2 p-3 text-center text-base font-bold shadow-sm transition-all active:scale-[0.98] md:min-h-[84px] md:text-lg ${
+                className={`min-h-[56px] rounded-xl border-2 p-2 text-center text-sm font-bold shadow-sm transition-all active:scale-[0.98] 2xl:min-h-[80px] 2xl:rounded-2xl 2xl:p-3 2xl:text-base ${
                   selected ? "scale-[1.02] shadow-lg" : ""
                 } ${!selected ? "border-border-default bg-surface-elevated" : ""}`}
                 style={
@@ -102,37 +122,37 @@ export function TransactionLineBuilder({ categories, type, onAdd }: TransactionL
       </div>
 
       <div>
-        <label className="mb-2 block text-lg font-bold text-text-secondary">2. จำนวน</label>
-        <div className="flex max-w-xs items-stretch gap-3">
+        <label className="mb-1.5 block text-base font-bold text-text-secondary 2xl:mb-2 2xl:text-lg">2. จำนวน</label>
+        <div className="flex max-w-[220px] items-stretch gap-2 2xl:max-w-xs 2xl:gap-3">
           <button
             type="button"
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
             disabled={quantity <= 1}
-            className="flex min-h-[76px] min-w-[76px] items-center justify-center rounded-2xl border-2 border-border-default bg-surface-hover text-text-main shadow-md active:scale-95 disabled:opacity-40 md:min-h-[80px] md:min-w-[80px]"
+            className="flex min-h-[52px] min-w-[52px] items-center justify-center rounded-xl border-2 border-border-default bg-surface-hover text-text-main shadow-md active:scale-95 disabled:opacity-40 2xl:min-h-[76px] 2xl:min-w-[76px] 2xl:rounded-2xl"
             aria-label="ลดจำนวน"
           >
-            <Minus size={28} strokeWidth={2.5} />
+            <Minus size={22} strokeWidth={2.5} className="2xl:h-7 2xl:w-7" />
           </button>
-          <div className="flex flex-1 items-center justify-center rounded-2xl border-2 border-border-default bg-surface-elevated shadow-inner">
-            <span className="text-4xl font-black tabular-nums text-text-main">{quantity}</span>
+          <div className="flex flex-1 items-center justify-center rounded-xl border-2 border-border-default bg-surface-elevated shadow-inner 2xl:rounded-2xl">
+            <span className="text-3xl font-black tabular-nums text-text-main 2xl:text-4xl">{quantity}</span>
           </div>
           <button
             type="button"
             onClick={() => setQuantity((q) => q + 1)}
-            className="flex min-h-[76px] min-w-[76px] items-center justify-center rounded-2xl border-2 border-border-default bg-surface-hover text-text-main shadow-md active:scale-95 md:min-h-[80px] md:min-w-[80px]"
+            className="flex min-h-[52px] min-w-[52px] items-center justify-center rounded-xl border-2 border-border-default bg-surface-hover text-text-main shadow-md active:scale-95 2xl:min-h-[76px] 2xl:min-w-[76px] 2xl:rounded-2xl"
             aria-label="เพิ่มจำนวน"
           >
-            <Plus size={28} strokeWidth={2.5} />
+            <Plus size={22} strokeWidth={2.5} className="2xl:h-7 2xl:w-7" />
           </button>
         </div>
       </div>
 
       <div>
-        <label className="mb-2 block text-lg font-bold text-text-secondary">
+        <label className="mb-1.5 block text-base font-bold text-text-secondary 2xl:mb-2 2xl:text-lg">
           3. ราคาต่อหน่วย (บาท) <span className="text-error">*</span>
         </label>
         <AmountDisplay value={amountString} label="แตะปุ่มด้านล่างเพื่อใส่ตัวเลข" active />
-        <div className="mt-3">
+        <div className="mt-2 2xl:mt-3">
           <AmountNumpad
             integerOnly
             value={amountString}
@@ -176,9 +196,9 @@ export function TransactionLineBuilder({ categories, type, onAdd }: TransactionL
       <button
         type="button"
         onClick={handleAdd}
-        className={`flex min-h-[68px] w-full items-center justify-center gap-2 rounded-2xl text-xl font-black shadow-lg active:scale-[0.99] md:min-h-[72px] ${addBtn}`}
+        className={`flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl text-lg font-black shadow-lg active:scale-[0.99] 2xl:min-h-[68px] 2xl:rounded-2xl 2xl:text-xl ${addBtn}`}
       >
-        <Plus size={24} />
+        <Plus size={20} className="2xl:h-6 2xl:w-6" />
         เพิ่มรายการ
       </button>
     </div>

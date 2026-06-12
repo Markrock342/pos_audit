@@ -191,4 +191,41 @@ html {
     padding-right: 1rem;
     font-size: 0.9375rem;
   }
+
+  .tablet-touch-input {
+    min-height: 52px;
+    font-size: 1rem;
+  }
+
+  .tablet-touch-row {
+    min-height: 64px;
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+
+}
+
+/* แถบปุ่มบันทึก — desktop อยู่ใน flow ปกติ, tablet ลอยเหนือ bottom nav */
+.tablet-sticky-action {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* ใบสลิปลอยตามจอ (shadow ใส่ที่ FloatingSlipFollow บน lg+) */
+.draft-slip-follow {
+  transition: box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 1535px) {
+  .tablet-sticky-action {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: 35;
+    border-top: 2px solid var(--border-default);
+    background: var(--surface-elevated);
+    padding: 0.75rem 1rem;
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.12);
+  }
 }

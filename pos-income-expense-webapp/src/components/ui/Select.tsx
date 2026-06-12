@@ -27,14 +27,14 @@ export function Select({
   return (
     <div className="space-y-1">
       {label && (
-        <label htmlFor={selectId} className="block text-sm font-medium text-text-secondary">
+        <label htmlFor={selectId} className="block text-base font-medium text-text-secondary">
           {label}
         </label>
       )}
       <select
         id={selectId}
         className={cn(
-          "w-full rounded-lg border border-border-default bg-surface-elevated px-3 py-2 text-sm text-text-main focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-brand-ring",
+          "tablet-touch-select w-full rounded-xl border-2 border-border-default bg-surface-elevated px-4 py-3 text-base text-text-main focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-brand-ring",
           error && "border-error focus:border-error focus:ring-error-ring",
           className
         )}

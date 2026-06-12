@@ -65,7 +65,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           </p>
           <h2 className="truncate text-lg font-bold text-text-main 2xl:text-xl">{title}</h2>
           {subtitle && (
-            <p className="hidden truncate text-sm font-medium text-text-muted 2xl:block">
+            <p className="truncate text-xs font-medium text-text-muted 2xl:text-sm">
               {subtitle}
             </p>
           )}

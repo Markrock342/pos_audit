@@ -22,7 +22,7 @@ export function StatCard({ title, value, subtitle, trend, icon: Icon }: StatCard
       <CardContent className="flex items-start justify-between min-h-[120px]">
         <div className="flex-1 min-w-0">
           <p className="text-base font-bold text-text-secondary">{title}</p>
-          <p className="mt-2 text-4xl font-black text-text-main tracking-tight">{value}</p>
+          <p className="mt-2 text-2xl font-black text-text-main tracking-tight 2xl:text-4xl">{value}</p>
           {subtitle && (
             <p
               className={cn(

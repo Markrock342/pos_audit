@@ -34,23 +34,23 @@ export default async function DashboardPage() {
       <div className="space-y-6">
         <SummaryCards summary={summary} />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3 2xl:gap-4">
           <Link href="/income/add">
-            <Button variant="income" size="lg" className="w-full gap-3 text-xl font-black">
-              <ArrowUpCircle size={28} />
+            <Button variant="income" size="lg" className="min-h-[72px] w-full gap-2 text-lg font-black 2xl:min-h-[64px] 2xl:gap-3 2xl:text-xl">
+              <ArrowUpCircle size={26} className="2xl:w-7" />
               เพิ่มรายรับ
             </Button>
           </Link>
           <Link href="/expense/add">
-            <Button variant="danger" size="lg" className="w-full gap-3 text-xl font-black">
-              <ArrowDownCircle size={28} />
+            <Button variant="danger" size="lg" className="min-h-[72px] w-full gap-2 text-lg font-black 2xl:min-h-[64px] 2xl:gap-3 2xl:text-xl">
+              <ArrowDownCircle size={26} className="2xl:w-7" />
               เพิ่มรายจ่าย
             </Button>
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <Card className="xl:col-span-2">
+        <div className="grid grid-cols-1 gap-6 2xl:grid-cols-3">
+          <Card className="2xl:col-span-2">
             <CardHeader>
               <CardTitle className="text-xl font-black flex items-center gap-2">
                 <TrendingUp size={22} className="text-brand" />
