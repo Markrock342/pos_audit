@@ -10,7 +10,8 @@ export const runtime = "nodejs";
 
 const hardwareConfigSchema = z
   .object({
-    printerType: z.enum(["none", "lan", "usb"]).optional(),
+    printerType: z.enum(["none", "lan", "usb", "imin"]).optional(),
+    iminConnectType: z.enum(["USB", "SPI", "Bluetooth"]).optional(),
     ip: z.string().optional(),
     port: z.coerce.number().optional(),
     bridgeUrl: z.string().optional(),
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
       ...(parsed.data.hardwareConfig ?? {}),
     };
 
-    if (hw.printerType === "none" || !hw.ip?.trim()) {
+    if (hw.printerType === "none" || hw.printerType === "imin" || !hw.ip?.trim()) {
       return NextResponse.json(
         {
           error: {

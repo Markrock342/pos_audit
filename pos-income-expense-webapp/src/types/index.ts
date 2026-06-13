@@ -108,7 +108,9 @@ export interface ReceiptConfig {
 }
 
 export interface HardwareConfig {
-  printerType?: "none" | "lan" | "usb";
+  printerType?: "none" | "lan" | "usb" | "imin";
+  /** ชนิดการเชื่อมต่อเครื่องพิมพ์ในตัว iMin — ส่วนใหญ่ iMin 80 ใช้ USB */
+  iminConnectType?: "USB" | "SPI" | "Bluetooth";
   ip?: string;
   port?: number;
   bridgeUrl?: string;

@@ -11,7 +11,8 @@ const bodySchema = z.object({
   pin: z.enum(["pin2", "pin5"]).optional(),
   hardwareConfig: z
     .object({
-      printerType: z.enum(["none", "lan", "usb"]).optional(),
+      printerType: z.enum(["none", "lan", "usb", "imin"]).optional(),
+      iminConnectType: z.enum(["USB", "SPI", "Bluetooth"]).optional(),
       ip: z.string().optional(),
       port: z.coerce.number().optional(),
       bridgeUrl: z.string().optional(),

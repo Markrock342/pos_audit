@@ -144,7 +144,7 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
         </div>
         {!compact && !fill && (
           <p className="mt-3 shrink-0 text-xs text-text-muted">
-            {printMessage ?? "วันที่บนใบเสร็จ = เวลาที่บันทึกจริง · ตั้งค่าเครื่องพิมพ์ที่ ตั้งค่า → อุปกรณ์ POS"}
+            {printMessage ?? "วันที่บนใบเสร็จ = เวลาที่บันทึกจริง · บน iMin กดพิมพ์ได้ทันที (ไม่ต้องใส่ IP)"}
           </p>
         )}
       </CardContent>
