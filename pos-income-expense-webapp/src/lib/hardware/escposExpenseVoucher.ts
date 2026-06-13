@@ -1,16 +1,15 @@
-import type { Receipt, Transaction } from "@/types";
+import type { Transaction } from "@/types";
 import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
   formatReceiptDateTime,
   hasDistinctTransactionDate,
+  resolveExpenseVoucherNumber,
   resolvePaymentLabel,
   resolveReceiptLines,
-  resolveReceiptNumber,
   sumLineItems,
 } from "@/lib/utils/receiptFormat";
 import { SHOP_NAME } from "@/constants";
-import { buildDrawerKickCommand, type DrawerKickPin } from "@/lib/hardware/cashDrawer";
 import {
   escCenterLines,
   escConcat,
@@ -22,46 +21,40 @@ import {
   escTextLine,
 } from "@/lib/hardware/escpos";
 
-export interface ReceiptPrintContext {
+const DEFAULT_FOOTER = "เอกสารบันทึกภายใน — ไม่ใช่ใบกำกับภาษี";
+
+export interface ExpenseVoucherPrintContext {
   transaction: Transaction;
-  receipt: Receipt;
+  voucherNumber?: string;
   shopName?: string;
   footer?: string;
-  sellerName?: string;
+  recorderName?: string;
+  categoryNames?: Record<string, string>;
 }
 
-export interface BuildEscPosOptions {
-  openDrawer?: boolean;
-  drawerPin?: DrawerKickPin;
-}
-
-export function buildEscPosReceipt(
-  ctx: ReceiptPrintContext,
-  options?: BuildEscPosOptions
-): Uint8Array {
-  const { transaction, receipt } = ctx;
+export function buildEscPosExpenseVoucher(ctx: ExpenseVoucherPrintContext): Uint8Array {
+  const { transaction } = ctx;
   const shopName = ctx.shopName?.trim() || SHOP_NAME;
-  const footer = ctx.footer?.trim() || "ขอบคุณที่ใช้บริการ";
-  const seller = ctx.sellerName?.trim() || "-";
+  const footer = ctx.footer?.trim() || DEFAULT_FOOTER;
+  const recorder = ctx.recorderName?.trim() || "-";
+  const categoryNames = ctx.categoryNames ?? {};
 
   const lines = resolveReceiptLines(transaction);
-  const subtotal = sumLineItems(lines);
-  const netTotal = transaction.amount ?? subtotal;
+  const total = transaction.amount ?? sumLineItems(lines);
   const paymentLabel = resolvePaymentLabel(transaction.paymentMethod);
-  const isCash = transaction.paymentMethod === "cash";
-  const receiptNo = resolveReceiptNumber(transaction, receipt.receiptNumber);
-  const printedAt = formatReceiptDateTime(transaction.createdAt);
+  const docNo = resolveExpenseVoucherNumber(transaction, ctx.voucherNumber);
+  const recordedAt = formatReceiptDateTime(transaction.createdAt);
   const billTitle = transaction.title?.trim();
 
   const chunks: Uint8Array[] = [escInit()];
 
-  chunks.push(escCenterLines([shopName, "ใบเสร็จรับเงิน / Receipt"], true));
+  chunks.push(escCenterLines([shopName, "ใบบันทึกรายจ่าย"], true));
   chunks.push(escFeed(1));
   chunks.push(escRule("-"));
 
-  chunks.push(escRow("เลขที่", receiptNo));
-  chunks.push(escRow("วันที่", printedAt));
-  chunks.push(escRow("ผู้ขาย", seller));
+  chunks.push(escRow("เลขที่", docNo));
+  chunks.push(escRow("วันที่บันทึก", recordedAt));
+  chunks.push(escRow("ผู้บันทึก", recorder));
   if (billTitle) chunks.push(escRow("ชื่อบิล", billTitle));
   if (hasDistinctTransactionDate(transaction)) {
     chunks.push(escRow("วันที่รายการ", formatDateShort(transaction.transactionDate)));
@@ -75,6 +68,8 @@ export function buildEscPosReceipt(
   } else {
     for (const line of lines) {
       chunks.push(escTextLine(line.title));
+      const categoryName = categoryNames[line.categoryId];
+      if (categoryName) chunks.push(escTextLine(`หมวด: ${categoryName}`));
       chunks.push(
         escRow(
           `${line.quantity} x ${formatReceiptAmount(line.unitPrice)}`,
@@ -87,13 +82,10 @@ export function buildEscPosReceipt(
 
   chunks.push(escRule("."));
   chunks.push(escFeed(1));
-  chunks.push(escRow("รวม", formatReceiptAmount(subtotal)));
-  chunks.push(escRow("ส่วนลด", formatReceiptAmount(0)));
-  chunks.push(escRow("สุทธิ", formatReceiptAmount(netTotal), true));
+  chunks.push(escRow("รวมจ่าย", formatReceiptAmount(total), true));
   chunks.push(escRow("ชำระโดย", paymentLabel));
-  if (isCash) {
-    chunks.push(escRow("รับเงิน", formatReceiptAmount(netTotal)));
-    chunks.push(escRow("เงินทอน", formatReceiptAmount(0)));
+  if (transaction.referenceNo?.trim()) {
+    chunks.push(escRow("เลขที่อ้างอิง", transaction.referenceNo.trim()));
   }
   if (transaction.note?.trim()) {
     chunks.push(escRow("หมายเหตุ", transaction.note.trim()));
@@ -103,11 +95,6 @@ export function buildEscPosReceipt(
   chunks.push(escRule("-"));
   chunks.push(escCenterLines([footer]));
   chunks.push(escFeed(3));
-
-  if (options?.openDrawer && isCash) {
-    chunks.push(buildDrawerKickCommand({ pin: options.drawerPin ?? "pin2" }));
-  }
-
   chunks.push(escCut());
 
   return escConcat(chunks);

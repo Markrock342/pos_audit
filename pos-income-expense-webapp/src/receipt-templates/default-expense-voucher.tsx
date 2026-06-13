@@ -11,6 +11,16 @@ import {
   sumLineItems,
 } from "@/lib/utils/receiptFormat";
 import { SHOP_NAME } from "@/constants";
+import {
+  ReceiptAmountRow,
+  ReceiptDivider,
+  ReceiptFooter,
+  ReceiptHeader,
+  ReceiptLineItem,
+  ReceiptMetaRow,
+  ReceiptShell,
+  ReceiptTotalsBlock,
+} from "@/receipt-templates/shared";
 
 const DEFAULT_FOOTER = "เอกสารบันทึกภายใน — ไม่ใช่ใบกำกับภาษี";
 
@@ -22,34 +32,6 @@ interface DefaultExpenseVoucherProps {
   recorderName?: string;
   categoryNames?: Record<string, string>;
   fullWidth?: boolean;
-}
-
-function VoucherRule({ char = "-" }: { char?: string }) {
-  return (
-    <div
-      className="my-2 overflow-hidden whitespace-nowrap text-[10px] leading-none text-gray-500"
-      aria-hidden
-    >
-      {char.repeat(42)}
-    </div>
-  );
-}
-
-function VoucherRow({
-  label,
-  value,
-  bold,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-}) {
-  return (
-    <div className={`flex justify-between gap-2 text-[11px] ${bold ? "font-bold" : ""}`}>
-      <span className="shrink-0">{label}</span>
-      <span className="min-w-0 text-right tabular-nums break-words">{value}</span>
-    </div>
-  );
 }
 
 export function DefaultExpenseVoucherTemplate({
@@ -70,74 +52,55 @@ export function DefaultExpenseVoucherTemplate({
   const showTxDate = hasDistinctTransactionDate(transaction);
 
   return (
-    <div
-      className={`mx-auto bg-white p-4 font-mono text-[11px] leading-snug text-black ${
-        fullWidth ? "w-full" : "w-[300px]"
-      }`}
-    >
-      <div className="text-center">
-        <p className="text-sm font-bold uppercase tracking-wide">{shopName}</p>
-        <p className="mt-1 text-[10px] text-gray-700">ใบบันทึกรายจ่าย</p>
-      </div>
+    <ReceiptShell fullWidth={fullWidth}>
+      <ReceiptHeader shopName={shopName} subtitle="ใบบันทึกรายจ่าย" />
 
-      <VoucherRule char="-" />
-
-      <div className="space-y-0.5">
-        <VoucherRow label="เลขที่:" value={docNo} />
-        <VoucherRow label="วันที่บันทึก:" value={recordedAt} />
-        <VoucherRow label="ผู้บันทึก:" value={recorder} />
+      <div className="mt-3 space-y-1">
+        <ReceiptMetaRow label="เลขที่" value={docNo} />
+        <ReceiptMetaRow label="วันที่บันทึก" value={recordedAt} />
+        <ReceiptMetaRow label="ผู้บันทึก" value={recorder} />
         {transaction.title?.trim() && (
-          <VoucherRow label="ชื่อบิล:" value={transaction.title.trim()} />
+          <ReceiptMetaRow label="ชื่อบิล" value={transaction.title.trim()} />
         )}
         {showTxDate && (
-          <VoucherRow
-            label="วันที่รายการ:"
-            value={formatDateShort(transaction.transactionDate)}
-          />
+          <ReceiptMetaRow label="วันที่รายการ" value={formatDateShort(transaction.transactionDate)} />
         )}
       </div>
 
-      <VoucherRule char="." />
+      <ReceiptDivider char="." />
 
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         {lines.length === 0 && (
           <p className="text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
         )}
         {lines.map((line, index) => {
           const categoryName = categoryNames[line.categoryId];
           return (
-            <div key={line.id ?? index}>
-              <p className="text-[11px] leading-tight">{line.title}</p>
-              {categoryName && (
-                <p className="text-[10px] text-gray-600">หมวด: {categoryName}</p>
-              )}
-              <div className="flex justify-between gap-2 text-[11px] tabular-nums">
-                <span>
-                  {line.quantity} x {formatReceiptAmount(line.unitPrice)}
-                </span>
-                <span>{formatReceiptAmount(line.lineAmount)}</span>
-              </div>
-            </div>
+            <ReceiptLineItem
+              key={line.id ?? index}
+              title={line.title}
+              meta={categoryName ? `หมวด: ${categoryName}` : undefined}
+              detail={`${line.quantity} x ${formatReceiptAmount(line.unitPrice)}`}
+              amount={formatReceiptAmount(line.lineAmount)}
+            />
           );
         })}
       </div>
 
-      <VoucherRule char="." />
+      <ReceiptDivider char="." />
 
-      <div className="space-y-0.5">
-        <VoucherRow label="รวมจ่าย" value={formatReceiptAmount(total)} bold />
-        <VoucherRow label="ชำระโดย" value={paymentLabel} />
+      <ReceiptTotalsBlock>
+        <ReceiptAmountRow label="รวมจ่าย" value={formatReceiptAmount(total)} bold />
+        <ReceiptAmountRow label="ชำระโดย" value={paymentLabel} />
         {transaction.referenceNo?.trim() && (
-          <VoucherRow label="เลขที่อ้างอิง" value={transaction.referenceNo.trim()} />
+          <ReceiptMetaRow label="เลขที่อ้างอิง" value={transaction.referenceNo.trim()} />
         )}
         {transaction.note?.trim() && (
-          <VoucherRow label="หมายเหตุ" value={transaction.note.trim()} />
+          <ReceiptMetaRow label="หมายเหตุ" value={transaction.note.trim()} />
         )}
-      </div>
+      </ReceiptTotalsBlock>
 
-      <VoucherRule char="." />
-
-      <p className="pt-1 text-center text-[10px] text-gray-700">{footer}</p>
-    </div>
+      <ReceiptFooter text={footer} />
+    </ReceiptShell>
   );
 }

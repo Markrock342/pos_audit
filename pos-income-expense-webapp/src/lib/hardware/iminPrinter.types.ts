@@ -14,6 +14,7 @@ export interface IminPrinterInstance {
   setAlignment(alignment: 0 | 1 | 2): void;
   setTextSize(size: number): void;
   setTextStyle(style: 0 | 1 | 2 | 3): void;
+  setTextLineSpacing(space: number): void;
   setTextWidth(width: number): void;
   setPageFormat(format: 0 | 1): void;
   printText(text: string, type?: 0 | 1): void;
@@ -25,6 +26,7 @@ export interface IminPrinterInstance {
     width: number
   ): void;
   printAndFeedPaper(height: number): void;
+  printAndLineFeed(): void;
   partialCut(): void;
   openCashBox(): void;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Category, Transaction } from "@/types";
 import { DefaultExpenseVoucherTemplate } from "@/receipt-templates/default-expense-voucher";
 import { useOrganization } from "@/components/providers/OrganizationProvider";
@@ -11,6 +11,7 @@ import { Printer } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { resolveExpenseVoucherNumber } from "@/lib/utils/receiptFormat";
 import { cn } from "@/lib/utils/cn";
+import { printReceipt } from "@/lib/hardware/printer";
 
 interface ExpenseVoucherPreviewProps {
   transaction: Transaction;
@@ -37,6 +38,8 @@ export function ExpenseVoucherPreview({
   compact,
 }: ExpenseVoucherPreviewProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const [printing, setPrinting] = useState(false);
+  const [printMessage, setPrintMessage] = useState<string | null>(null);
   const { organization } = useOrganization();
   const shopName = organization?.receiptConfig?.header ?? organization?.name;
   const recorderName = readRecorderName();
@@ -49,7 +52,7 @@ export function ExpenseVoucherPreview({
 
   const lineCount = transaction.lineItems?.length ?? 1;
 
-  const handlePrint = () => {
+  const printViaBrowser = () => {
     const el = printRef.current;
     if (!el) return;
     const win = window.open("", "_blank", "width=400,height=700");
@@ -69,6 +72,43 @@ export function ExpenseVoucherPreview({
     win.close();
   };
 
+  const handlePrint = async () => {
+    setPrinting(true);
+    setPrintMessage(null);
+    try {
+      const result = await printReceipt(
+        transaction,
+        {
+          id: "preview",
+          transactionId: transaction.id,
+          receiptNumber: voucherNumber,
+        },
+        {
+          openDrawer: false,
+          shopName,
+          recorderName,
+          voucherNumber,
+          categoryNames,
+        }
+      );
+
+      if (result.success) {
+        setPrintMessage(result.message);
+        return;
+      }
+
+      if (result.fallback === "browser") {
+        printViaBrowser();
+        setPrintMessage("พิมพ์ผ่านเบราว์เซอร์ (ยังไม่ได้ตั้งค่าเครื่องพิมพ์ thermal)");
+        return;
+      }
+
+      setPrintMessage(result.message);
+    } finally {
+      setPrinting(false);
+    }
+  };
+
   return (
     <Card className={cn("flex flex-col", fill && "h-full min-h-[280px] xl:min-h-0")}>
       <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 border-b border-border-default/60 py-3">
@@ -78,9 +118,15 @@ export function ExpenseVoucherPreview({
             {transaction.title} · {lineCount} รายการ · {formatCurrency(transaction.amount)}
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={handlePrint} className="gap-1.5 shrink-0 px-2.5">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void handlePrint()}
+          disabled={printing}
+          className="gap-1.5 shrink-0 px-2.5"
+        >
           <Printer size={15} />
-          พิมพ์
+          {printing ? "กำลังพิมพ์..." : "พิมพ์"}
         </Button>
       </CardHeader>
       <CardContent
@@ -111,6 +157,11 @@ export function ExpenseVoucherPreview({
             />
           </div>
         </div>
+        {!compact && !fill && (
+          <p className="mt-3 shrink-0 text-xs text-text-muted">
+            {printMessage ?? "บน iMin กดพิมพ์ได้ทันที (ไม่ต้องใส่ IP)"}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

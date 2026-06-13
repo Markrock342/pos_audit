@@ -3,6 +3,7 @@ import { z } from "zod";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getOrganization } from "@/lib/services/db/organizations";
 import { buildEscPosReceipt } from "@/lib/hardware/escposReceipt";
+import { buildEscPosExpenseVoucher } from "@/lib/hardware/escposExpenseVoucher";
 import { dispatchPrintJob } from "@/lib/hardware/printTransport";
 import type { HardwareConfig } from "@/types";
 
@@ -57,6 +58,9 @@ const bodySchema = z.object({
   shopName: z.string().optional(),
   footer: z.string().optional(),
   sellerName: z.string().optional(),
+  recorderName: z.string().optional(),
+  voucherNumber: z.string().optional(),
+  categoryNames: z.record(z.string(), z.string()).optional(),
   openDrawer: z.boolean().optional(),
   hardwareConfig: hardwareConfigSchema,
 });
@@ -90,22 +94,36 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = buildEscPosReceipt(
-      {
-        transaction: {
-          ...parsed.data.transaction,
-          isPrinted: parsed.data.transaction.isPrinted ?? false,
-        },
-        receipt: parsed.data.receipt,
-        shopName: parsed.data.shopName ?? org?.receiptConfig?.header ?? org?.name,
-        footer: parsed.data.footer ?? org?.receiptConfig?.footer,
-        sellerName: parsed.data.sellerName,
-      },
-      {
-        openDrawer: parsed.data.openDrawer,
-        drawerPin: hw.drawerPin ?? "pin2",
-      }
-    );
+    const tx = {
+      ...parsed.data.transaction,
+      isPrinted: parsed.data.transaction.isPrinted ?? false,
+    };
+    const shopName = parsed.data.shopName ?? org?.receiptConfig?.header ?? org?.name;
+    const footer = parsed.data.footer ?? org?.receiptConfig?.footer;
+
+    const data =
+      tx.type === "expense"
+        ? buildEscPosExpenseVoucher({
+            transaction: tx,
+            voucherNumber: parsed.data.voucherNumber ?? parsed.data.receipt.receiptNumber,
+            shopName,
+            footer,
+            recorderName: parsed.data.recorderName,
+            categoryNames: parsed.data.categoryNames,
+          })
+        : buildEscPosReceipt(
+            {
+              transaction: tx,
+              receipt: parsed.data.receipt,
+              shopName,
+              footer,
+              sellerName: parsed.data.sellerName,
+            },
+            {
+              openDrawer: parsed.data.openDrawer,
+              drawerPin: hw.drawerPin ?? "pin2",
+            }
+          );
 
     const result = await dispatchPrintJob(hw, data);
 
@@ -113,7 +131,7 @@ export async function POST(request: Request) {
       data: {
         success: true,
         mode: result.mode,
-        message: "พิมพ์ใบเสร็จแล้ว",
+        message: tx.type === "expense" ? "พิมพ์ใบบันทึกรายจ่ายแล้ว" : "พิมพ์ใบเสร็จแล้ว",
       },
     });
   } catch (e) {

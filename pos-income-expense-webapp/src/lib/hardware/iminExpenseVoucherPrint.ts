@@ -1,13 +1,13 @@
-import type { Receipt, Transaction } from "@/types";
+import type { Transaction } from "@/types";
 import { SHOP_NAME } from "@/constants";
 import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
   formatReceiptDateTime,
   hasDistinctTransactionDate,
+  resolveExpenseVoucherNumber,
   resolvePaymentLabel,
   resolveReceiptLines,
-  resolveReceiptNumber,
   sumLineItems,
 } from "@/lib/utils/receiptFormat";
 import type { IminPrinterInstance } from "@/lib/hardware/iminPrinter.types";
@@ -21,42 +21,43 @@ import {
   thermalRule,
 } from "@/lib/hardware/iminThermalLayout";
 
-export interface IminReceiptContext {
+const DEFAULT_FOOTER = "เอกสารบันทึกภายใน — ไม่ใช่ใบกำกับภาษี";
+
+export interface IminExpenseVoucherContext {
   transaction: Transaction;
-  receipt: Receipt;
+  voucherNumber?: string;
   shopName?: string;
   footer?: string;
-  sellerName?: string;
-  openDrawer?: boolean;
+  recorderName?: string;
+  categoryNames?: Record<string, string>;
 }
 
-export function printReceiptOnImin(
+export function printExpenseVoucherOnImin(
   printer: IminPrinterInstance,
-  ctx: IminReceiptContext
+  ctx: IminExpenseVoucherContext
 ): void {
-  const { transaction, receipt } = ctx;
+  const { transaction } = ctx;
   const shopName = ctx.shopName?.trim() || SHOP_NAME;
-  const footer = ctx.footer?.trim() || "ขอบคุณที่ใช้บริการ";
-  const seller = ctx.sellerName?.trim() || "-";
+  const footer = ctx.footer?.trim() || DEFAULT_FOOTER;
+  const recorder = ctx.recorderName?.trim() || "-";
+  const categoryNames = ctx.categoryNames ?? {};
 
   const lines = resolveReceiptLines(transaction);
-  const subtotal = sumLineItems(lines);
-  const netTotal = transaction.amount ?? subtotal;
+  const total = transaction.amount ?? sumLineItems(lines);
   const paymentLabel = resolvePaymentLabel(transaction.paymentMethod);
-  const isCash = transaction.paymentMethod === "cash";
-  const receiptNo = resolveReceiptNumber(transaction, receipt.receiptNumber);
-  const printedAt = formatReceiptDateTime(transaction.createdAt);
+  const docNo = resolveExpenseVoucherNumber(transaction, ctx.voucherNumber);
+  const recordedAt = formatReceiptDateTime(transaction.createdAt);
   const billTitle = transaction.title?.trim();
 
   initThermalLayout(printer);
 
-  thermalCenterLines(printer, [shopName, "ใบเสร็จรับเงิน / Receipt"], true);
+  thermalCenterLines(printer, [shopName, "ใบบันทึกรายจ่าย"], true);
   thermalBlankLine(printer);
   thermalRule(printer);
 
-  thermalRow(printer, "เลขที่", receiptNo);
-  thermalRow(printer, "วันที่", printedAt);
-  thermalRow(printer, "ผู้ขาย", seller);
+  thermalRow(printer, "เลขที่", docNo);
+  thermalRow(printer, "วันที่บันทึก", recordedAt);
+  thermalRow(printer, "ผู้บันทึก", recorder);
   if (billTitle) thermalRow(printer, "ชื่อบิล", billTitle);
   if (hasDistinctTransactionDate(transaction)) {
     thermalRow(printer, "วันที่รายการ", formatDateShort(transaction.transactionDate));
@@ -70,6 +71,10 @@ export function printReceiptOnImin(
   } else {
     for (const line of lines) {
       printer.printText(line.title);
+      const categoryName = categoryNames[line.categoryId];
+      if (categoryName) {
+        printer.printText(`หมวด: ${categoryName}`);
+      }
       thermalItemLine(
         printer,
         `${line.quantity} x ${formatReceiptAmount(line.unitPrice)}`,
@@ -82,13 +87,10 @@ export function printReceiptOnImin(
   thermalRule(printer, ".");
   thermalBlankLine(printer);
 
-  thermalRow(printer, "รวม", formatReceiptAmount(subtotal));
-  thermalRow(printer, "ส่วนลด", formatReceiptAmount(0));
-  thermalRow(printer, "สุทธิ", formatReceiptAmount(netTotal), true);
+  thermalRow(printer, "รวมจ่าย", formatReceiptAmount(total), true);
   thermalRow(printer, "ชำระโดย", paymentLabel);
-  if (isCash) {
-    thermalRow(printer, "รับเงิน", formatReceiptAmount(netTotal));
-    thermalRow(printer, "เงินทอน", formatReceiptAmount(0));
+  if (transaction.referenceNo?.trim()) {
+    thermalRow(printer, "เลขที่อ้างอิง", transaction.referenceNo.trim());
   }
   if (transaction.note?.trim()) {
     thermalRow(printer, "หมายเหตุ", transaction.note.trim());
@@ -97,5 +99,5 @@ export function printReceiptOnImin(
   thermalBlankLine(printer);
   thermalRule(printer);
   thermalCenterLines(printer, [footer]);
-  thermalFinish(printer, ctx.openDrawer && isCash);
+  thermalFinish(printer, false);
 }

@@ -2,9 +2,13 @@ import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
 import { PAYMENT_METHODS } from "@/constants";
 import type { PaymentMethod, Transaction, TransactionLineItem } from "@/types";
 
-/** จำนวนเงินบนใบเสร็จ — ทศนิยม 2 ตำแหน่ง ไม่มีสัญลักษณ์ ฿ */
+/** จำนวนเงินบนใบเสร็จ — ทศนิยม 2 ตำแหน่ง มีคั่นหลัก เช่น 1,000.00 */
 export function formatReceiptAmount(amount: number): string {
-  return (Math.round(amount * 100) / 100).toFixed(2);
+  const rounded = Math.round(amount * 100) / 100;
+  return rounded.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 /** วันที่+เวลาบนใบเสร็จ YYYY-MM-DD HH:mm:ss */

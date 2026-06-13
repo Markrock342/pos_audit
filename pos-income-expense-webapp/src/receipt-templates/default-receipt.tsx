@@ -11,6 +11,16 @@ import {
   sumLineItems,
 } from "@/lib/utils/receiptFormat";
 import { SHOP_NAME } from "@/constants";
+import {
+  ReceiptAmountRow,
+  ReceiptDivider,
+  ReceiptFooter,
+  ReceiptHeader,
+  ReceiptLineItem,
+  ReceiptMetaRow,
+  ReceiptShell,
+  ReceiptTotalsBlock,
+} from "@/receipt-templates/shared";
 
 interface DefaultReceiptProps {
   transaction: Transaction;
@@ -19,34 +29,6 @@ interface DefaultReceiptProps {
   footer?: string;
   sellerName?: string;
   fullWidth?: boolean;
-}
-
-function ReceiptRule({ char = "-" }: { char?: string }) {
-  return (
-    <div
-      className="my-2 overflow-hidden whitespace-nowrap text-[10px] leading-none text-gray-500"
-      aria-hidden
-    >
-      {char.repeat(42)}
-    </div>
-  );
-}
-
-function ReceiptRow({
-  label,
-  value,
-  bold,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-}) {
-  return (
-    <div className={`flex justify-between gap-2 text-[11px] ${bold ? "font-bold" : ""}`}>
-      <span className="shrink-0">{label}</span>
-      <span className="text-right tabular-nums">{value}</span>
-    </div>
-  );
 }
 
 export function DefaultReceiptTemplate({
@@ -70,71 +52,54 @@ export function DefaultReceiptTemplate({
   const billTitle = transaction.title?.trim();
 
   return (
-    <div
-      className={`mx-auto bg-white p-4 font-mono text-[11px] leading-snug text-black ${
-        fullWidth ? "w-full" : "w-[300px]"
-      }`}
-    >
-      <div className="text-center">
-        <p className="text-sm font-bold uppercase tracking-wide">{shopName}</p>
-        <p className="mt-1 text-[10px] text-gray-700">ใบเสร็จรับเงิน / Receipt</p>
-      </div>
+    <ReceiptShell fullWidth={fullWidth}>
+      <ReceiptHeader shopName={shopName} subtitle="ใบเสร็จรับเงิน / Receipt" />
 
-      <ReceiptRule char="-" />
-
-      <div className="space-y-0.5 text-[11px]">
-        <ReceiptRow label="เลขที่:" value={receiptNo} />
-        <ReceiptRow label="วันที่:" value={printedAt} />
-        <ReceiptRow label="ผู้ขาย:" value={seller} />
-        {billTitle && <ReceiptRow label="ชื่อบิล:" value={billTitle} />}
+      <div className="mt-3 space-y-1">
+        <ReceiptMetaRow label="เลขที่" value={receiptNo} />
+        <ReceiptMetaRow label="วันที่" value={printedAt} />
+        <ReceiptMetaRow label="ผู้ขาย" value={seller} />
+        {billTitle && <ReceiptMetaRow label="ชื่อบิล" value={billTitle} />}
         {showTxDate && (
-          <ReceiptRow
-            label="วันที่รายการ:"
-            value={formatDateShort(transaction.transactionDate)}
-          />
+          <ReceiptMetaRow label="วันที่รายการ" value={formatDateShort(transaction.transactionDate)} />
         )}
       </div>
 
-      <ReceiptRule char="." />
+      <ReceiptDivider char="." />
 
       <div className="space-y-2">
         {lines.length === 0 && (
           <p className="text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
         )}
         {lines.map((line, index) => (
-          <div key={line.id ?? index}>
-            <p className="text-[11px] leading-tight">{line.title}</p>
-            <div className="flex justify-between gap-2 text-[11px] tabular-nums">
-              <span>
-                {line.quantity} x {formatReceiptAmount(line.unitPrice)}
-              </span>
-              <span>{formatReceiptAmount(line.lineAmount)}</span>
-            </div>
-          </div>
+          <ReceiptLineItem
+            key={line.id ?? index}
+            title={line.title}
+            detail={`${line.quantity} x ${formatReceiptAmount(line.unitPrice)}`}
+            amount={formatReceiptAmount(line.lineAmount)}
+          />
         ))}
       </div>
 
-      <ReceiptRule char="." />
+      <ReceiptDivider char="." />
 
-      <div className="space-y-0.5">
-        <ReceiptRow label="รวม" value={formatReceiptAmount(subtotal)} />
-        <ReceiptRow label="ส่วนลด" value={formatReceiptAmount(discount)} />
-        <ReceiptRow label="สุทธิ" value={formatReceiptAmount(netTotal)} bold />
-        <ReceiptRow label="ชำระโดย" value={paymentLabel} />
+      <ReceiptTotalsBlock>
+        <ReceiptAmountRow label="รวม" value={formatReceiptAmount(subtotal)} />
+        <ReceiptAmountRow label="ส่วนลด" value={formatReceiptAmount(discount)} />
+        <ReceiptAmountRow label="สุทธิ" value={formatReceiptAmount(netTotal)} bold />
+        <ReceiptAmountRow label="ชำระโดย" value={paymentLabel} />
         {isCash && (
           <>
-            <ReceiptRow label="รับเงิน" value={formatReceiptAmount(netTotal)} />
-            <ReceiptRow label="เงินทอน" value={formatReceiptAmount(0)} />
+            <ReceiptAmountRow label="รับเงิน" value={formatReceiptAmount(netTotal)} />
+            <ReceiptAmountRow label="เงินทอน" value={formatReceiptAmount(0)} />
           </>
         )}
         {transaction.note?.trim() && (
-          <ReceiptRow label="หมายเหตุ" value={transaction.note.trim()} />
+          <ReceiptMetaRow label="หมายเหตุ" value={transaction.note.trim()} />
         )}
-      </div>
+      </ReceiptTotalsBlock>
 
-      <ReceiptRule char="." />
-
-      <p className="pt-1 text-center text-[10px] text-gray-700">{footer}</p>
-    </div>
+      <ReceiptFooter text={footer} />
+    </ReceiptShell>
   );
 }
