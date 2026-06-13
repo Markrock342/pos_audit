@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Printer } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import { shouldOpenCashDrawer } from "@/lib/hardware/cashDrawerPolicy";
 import { printReceipt } from "@/lib/hardware/printer";
 
 interface ReceiptPreviewProps {
@@ -50,8 +51,9 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
       <!DOCTYPE html>
       <html><head><title>ใบเสร็จ</title>
       <style>
-        body{margin:0;padding:8px;font-family:"Courier New",Consolas,monospace;font-size:11px;}
-        *{box-sizing:border-box;}
+        body{margin:0;padding:8px;font-family:system-ui,"Noto Sans Thai",sans-serif;font-size:12px;color:#000;}
+        *{box-sizing:border-box;color:#000;}
+        hr{border:0;border-top:1px solid #000;}
       </style>
       </head><body>${el.innerHTML}</body></html>
     `);
@@ -66,7 +68,7 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
     setPrintMessage(null);
     try {
       const result = await printReceipt(transaction, receipt, {
-        openDrawer: transaction.paymentMethod === "cash",
+        openDrawer: shouldOpenCashDrawer(transaction),
         shopName,
         footer: receiptFooter,
         sellerName,

@@ -49,21 +49,21 @@ function EmptyDraftSlip({
   shopName: string;
 }) {
   return (
-    <div className="mx-auto w-full bg-white p-4 font-mono text-[11px] leading-snug text-black">
+    <div className="mx-auto w-full max-w-[302px] bg-white p-4 font-sans text-[12px] leading-snug text-black">
       <div className="text-center">
-        <p className="text-sm font-bold uppercase tracking-wide">{shopName}</p>
-        <p className="mt-1 text-[10px] text-gray-700">
+        <p className="text-[16px] font-bold">{shopName}</p>
+        <p className="mt-0.5 text-[11px] font-semibold">
           {type === "income" ? "ใบเสร็จรับเงิน / Receipt" : "ใบบันทึกรายจ่าย"}
         </p>
       </div>
-      <hr className="my-3 w-full border-0 border-t border-dashed border-gray-400" aria-hidden />
-      <p className="py-10 text-center text-[11px] leading-relaxed text-gray-500">
+      <hr className="receipt-thermal-hr my-3 w-full" aria-hidden />
+      <p className="py-10 text-center text-[12px] leading-relaxed text-black/70">
         เลือกหมวด + ใส่ราคา
         <br />
         ใบเสร็จจะอัปเดตอัตโนมัติ
       </p>
-      <hr className="w-full border-0 border-t border-dotted border-gray-400" aria-hidden />
-      <p className="pt-2 text-center text-[10px] text-gray-500">— ตัวอย่าง —</p>
+      <hr className="receipt-thermal-hr w-full" aria-hidden />
+      <p className="pt-2 text-center text-[11px] text-black/70">— ตัวอย่าง —</p>
     </div>
   );
 }
@@ -130,7 +130,7 @@ export function DraftBillPreview({
         </CardHeader>
         <CardContent className="min-h-0 overflow-hidden p-1.5 2xl:p-2">
           <div className="flex min-h-[160px] flex-1 flex-col rounded-lg border border-border-default bg-[#f4f4f5] p-1.5 2xl:min-h-[200px] 2xl:rounded-xl 2xl:p-2">
-            <div className="w-full overflow-y-auto rounded-lg bg-white shadow-lg">
+            <div className="flex w-full justify-center overflow-y-auto rounded-lg bg-white shadow-lg">
               {draftTransaction ? (
                 type === "income" ? (
                   <DefaultReceiptTemplate

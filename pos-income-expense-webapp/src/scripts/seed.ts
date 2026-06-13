@@ -85,17 +85,14 @@ async function seed() {
   assertOk(userErr, "users");
   console.log(`  ✓ 2 users — ลูกค้า: "${customerAccount.username}" / dev: "${devAccount.username}"`);
 
-  // Categories — เฉพาะ org ลูกค้า
+  // Categories — ตามสเปกลูกค้า (รายรับ 2 / รายจ่าย 4)
   const categories = [
-    { id: "55555555-5555-5555-5555-555555555501", organization_id: ORG_IDS.customer, name: "ค่าสินค้า (ขายวัสดุ/อุปกรณ์)", type: "income", color: "#4CAF50", sort_order: 10, is_active: true },
-    { id: "55555555-5555-5555-5555-555555555502", organization_id: ORG_IDS.customer, name: "ค่าบริการ (จัดสวน/ช่าง)", type: "income", color: "#2196F3", sort_order: 20, is_active: true },
-    { id: "55555555-5555-5555-5555-555555555503", organization_id: ORG_IDS.customer, name: "เงินสดหน้าร้าน", type: "income", color: "#FF9800", sort_order: 30, is_active: true },
-    { id: "55555555-5555-5555-5555-555555555504", organization_id: ORG_IDS.customer, name: "รายได้อื่น", type: "income", color: "#8BC34A", sort_order: 40, is_active: true },
-    { id: "55555555-5555-5555-5555-555555555505", organization_id: ORG_IDS.customer, name: "ค่าแรงงาน", type: "expense", color: "#B22222", sort_order: 10, is_active: true },
+    { id: "55555555-5555-5555-5555-555555555501", organization_id: ORG_IDS.customer, name: "ค่าสินค้า", type: "income", color: "#4CAF50", sort_order: 10, is_active: true },
+    { id: "55555555-5555-5555-5555-555555555502", organization_id: ORG_IDS.customer, name: "ค่าอื่นๆ", type: "income", color: "#8BC34A", sort_order: 20, is_active: true },
+    { id: "55555555-5555-5555-5555-555555555505", organization_id: ORG_IDS.customer, name: "ค่าคนงาน", type: "expense", color: "#B22222", sort_order: 10, is_active: true },
     { id: "55555555-5555-5555-5555-555555555506", organization_id: ORG_IDS.customer, name: "ค่าขนส่ง", type: "expense", color: "#6B8E23", sort_order: 20, is_active: true },
-    { id: "55555555-5555-5555-5555-555555555507", organization_id: ORG_IDS.customer, name: "ค่าสินค้า (ซื้อเข้า)", type: "expense", color: "#4682B4", sort_order: 30, is_active: true },
-    { id: "55555555-5555-5555-5555-555555555508", organization_id: ORG_IDS.customer, name: "ค่าเช่า / น้ำ-ไฟ", type: "expense", color: "#708090", sort_order: 40, is_active: true },
-    { id: "55555555-5555-5555-5555-555555555509", organization_id: ORG_IDS.customer, name: "ค่าใช้จ่ายอื่น", type: "expense", color: "#9E9E9E", sort_order: 50, is_active: true },
+    { id: "55555555-5555-5555-5555-555555555507", organization_id: ORG_IDS.customer, name: "ค่าสินค้า", type: "expense", color: "#4682B4", sort_order: 30, is_active: true },
+    { id: "55555555-5555-5555-5555-555555555508", organization_id: ORG_IDS.customer, name: "ค่าเบี้ยเลี้ยง", type: "expense", color: "#708090", sort_order: 40, is_active: true },
   ];
 
   const { error: catErr } = await db.from("categories").upsert(categories);

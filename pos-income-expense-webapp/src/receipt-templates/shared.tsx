@@ -16,6 +16,9 @@ export {
   splitReceiptDateTime,
 } from "@/lib/utils/receiptRule";
 
+/** ความกว้างใบเสร็จ 80mm — ให้ preview ตรงกับ thermal print */
+export const RECEIPT_THERMAL_WIDTH = "302px";
+
 export function ReceiptShell({
   children,
   fullWidth,
@@ -24,12 +27,13 @@ export function ReceiptShell({
   fullWidth?: boolean;
 }) {
   return (
-    <div
-      className={`mx-auto bg-white px-2 py-3 font-mono text-[11px] leading-snug text-black ${
-        fullWidth ? "w-full" : "w-[300px]"
-      }`}
-    >
-      {children}
+    <div className={fullWidth ? "w-full bg-white py-2" : "mx-auto bg-white py-3"}>
+      <div
+        className="receipt-thermal mx-auto w-full px-3 py-2 font-sans text-[12px] leading-snug text-black"
+        style={{ maxWidth: RECEIPT_THERMAL_WIDTH }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -42,21 +46,19 @@ export function ReceiptHeader({
   subtitle: string;
 }) {
   return (
-    <div className="text-center">
-      <p className="text-[15px] font-bold leading-tight tracking-tight">{shopName}</p>
-      <p className="mt-0.5 text-[10px] font-medium text-gray-700">{subtitle}</p>
+    <div className="text-center text-black">
+      <p className="text-[16px] font-bold leading-tight">{shopName}</p>
+      <p className="mt-0.5 text-[11px] font-semibold">{subtitle}</p>
       <ReceiptDivider />
     </div>
   );
 }
 
-/** เส้นคั่นเต็มความกว้าง — แบบ POS 80mm */
+/** เส้นคั่นเต็มความกว้าง — solid แบบ thermal */
 export function ReceiptDivider({ total }: { total?: boolean }) {
   return (
     <hr
-      className={`my-1.5 w-full border-0 border-t border-black ${
-        total ? "border-solid border-t-2" : "border-dashed"
-      }`}
+      className={`receipt-thermal-hr w-full ${total ? "receipt-thermal-hr--total my-2" : "my-1.5"}`}
       aria-hidden
     />
   );
@@ -66,7 +68,7 @@ export function ReceiptDivider({ total }: { total?: boolean }) {
 export function ReceiptDividerPrint({ total }: { total?: boolean }) {
   return (
     <div
-      className="my-1.5 overflow-hidden whitespace-nowrap text-[10px] leading-none text-black"
+      className="receipt-thermal-rule my-1.5 w-full overflow-hidden whitespace-nowrap text-black"
       aria-hidden
     >
       {total ? receiptTotalRuleLine() : receiptRuleLine()}
@@ -76,24 +78,33 @@ export function ReceiptDividerPrint({ total }: { total?: boolean }) {
 
 export function ReceiptMetaPair({ left, right }: { left: string; right: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 text-[11px] leading-snug">
-      <span className="min-w-0 flex-1 break-words">{left}</span>
-      <span className="shrink-0 max-w-[46%] text-right break-words tabular-nums">{right}</span>
+    <div className="flex items-start justify-between gap-4 text-[12px] leading-snug text-black">
+      <span className="min-w-0 flex-1">{left}</span>
+      <span className="shrink-0 max-w-[48%] text-right tabular-nums">{right}</span>
     </div>
   );
 }
 
 export function ReceiptMetaSingle({ text }: { text: string }) {
-  return <p className="text-[11px] leading-snug">{text}</p>;
+  return <p className="text-[12px] leading-snug text-black">{text}</p>;
 }
 
 export function ReceiptItemTableHeader() {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_3.25rem_5.5rem] items-baseline gap-x-1 text-[10px] font-bold uppercase tracking-tight">
-      <span>รายการ</span>
-      <span className="text-center">จำนวน</span>
-      <span className="text-right">รวม</span>
-    </div>
+    <table className="receipt-thermal-table w-full table-fixed border-collapse text-[11px] font-bold text-black">
+      <colgroup>
+        <col className="w-[52%]" />
+        <col className="w-[16%]" />
+        <col className="w-[32%]" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th className="pb-0.5 text-left font-bold">รายการ</th>
+          <th className="pb-0.5 text-center font-bold">จำนวน</th>
+          <th className="pb-0.5 text-right font-bold">รวม</th>
+        </tr>
+      </thead>
+    </table>
   );
 }
 
@@ -106,17 +117,25 @@ export function ReceiptItemTableRow({
   title: string;
   qty: string | number;
   amount: string;
-  /** บรรทัดเสริมเล็กน้อย เช่น หมวดหมู่ (รายจ่าย) — ไม่แสดงราคาต่อหน่วย */
   hint?: string;
 }) {
   return (
-    <div className="py-0.5">
-      <div className="grid grid-cols-[minmax(0,1fr)_3.25rem_5.5rem] items-start gap-x-1 text-[11px]">
-        <span className="leading-snug">{title}</span>
-        <span className="text-center tabular-nums">{qty}</span>
-        <span className="text-right tabular-nums">{amount}</span>
-      </div>
-      {hint && <p className="mt-0.5 text-[10px] text-gray-600">{hint}</p>}
+    <div className="py-0.5 text-black">
+      <table className="receipt-thermal-table w-full table-fixed border-collapse text-[12px]">
+        <colgroup>
+          <col className="w-[52%]" />
+          <col className="w-[16%]" />
+          <col className="w-[32%]" />
+        </colgroup>
+        <tbody>
+          <tr className="align-top">
+            <td className="pr-1 leading-snug">{title}</td>
+            <td className="whitespace-nowrap px-0.5 text-center tabular-nums">{qty}</td>
+            <td className="whitespace-nowrap pl-1 text-right tabular-nums">{amount}</td>
+          </tr>
+        </tbody>
+      </table>
+      {hint && <p className="mt-0.5 text-[10px] text-black/80">{hint}</p>}
     </div>
   );
 }
@@ -134,8 +153,8 @@ export function ReceiptSummaryRow({
 }) {
   return (
     <div
-      className={`flex items-baseline justify-between gap-3 ${
-        large ? "text-[13px] font-bold" : bold ? "text-[12px] font-bold" : "text-[11px]"
+      className={`flex items-baseline justify-between gap-4 text-black ${
+        large ? "text-[14px] font-bold" : bold ? "text-[12px] font-bold" : "text-[12px]"
       }`}
     >
       <span className="min-w-0">{label}</span>
@@ -146,9 +165,9 @@ export function ReceiptSummaryRow({
 
 export function ReceiptFooter({ text }: { text: string }) {
   return (
-    <div>
+    <div className="text-black">
       <ReceiptDivider />
-      <p className="pt-1 text-center text-[10px] leading-snug text-gray-700">{text}</p>
+      <p className="pt-1 text-center text-[11px] leading-snug font-medium">{text}</p>
     </div>
   );
 }

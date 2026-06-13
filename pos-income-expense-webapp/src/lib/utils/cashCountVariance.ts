@@ -6,17 +6,17 @@ export function getCashCountStatusFromVariance(variance: number): CashCountStatu
   return "overage";
 }
 
-/** ข้อความสถานะ — เน้นการกระทบยอดเงินสด ไม่ใช่กำไร/ขาดทุน */
+/** ข้อความสถานะ — ตามสเปกลูกค้า: เงินขาด / เงินเกิน */
 export const CASH_COUNT_STATUS_LABEL: Record<CashCountStatus, string> = {
   balanced: "ตรงยอด",
-  short: "เงินสดขาดจากที่บันทึก",
-  overage: "เงินสดเกินจากที่บันทึก",
+  short: "เงินขาด",
+  overage: "เงินเกิน",
 };
 
 export const CASH_COUNT_PENDING_LABEL = "ยังไม่ได้นับ";
 
 export const CASH_COUNT_VARIANCE_HINT =
-  "ส่วนต่าง = ยอดนับจริง − ยอดที่ระบบคาดหวัง · ใช้ตรวจว่าเงินสดตรงกับรายการที่บันทึก (ไม่ใช่กำไร/ขาดทุน)";
+  "ยอดเงินคงเหลือ − ยอดที่นับได้ = เงินขาด/เงินเกิน · ใช้ตรวจว่าเงินสดในลิ้นชักตรงกับที่บันทึก";
 
 export function isCashCountPending(row: Pick<CashCount, "hasManualCount" | "closedAt">): boolean {
   return !row.hasManualCount && !row.closedAt;

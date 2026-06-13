@@ -1,4 +1,5 @@
 import { fetchOrganization } from "@/lib/api/client";
+import { shouldOpenCashDrawer } from "@/lib/hardware/cashDrawerPolicy";
 import { printReceipt } from "@/lib/hardware/printer";
 import { KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
 import {
@@ -43,7 +44,7 @@ export async function printTransactionDocument(
         receiptNumber: voucherNumber,
       },
       {
-        openDrawer: false,
+        openDrawer: shouldOpenCashDrawer(transaction),
         shopName,
         footer,
         recorderName: displayName,
@@ -61,7 +62,7 @@ export async function printTransactionDocument(
       receiptNumber: resolveReceiptNumber(transaction),
     },
     {
-      openDrawer: transaction.paymentMethod === "cash",
+      openDrawer: shouldOpenCashDrawer(transaction),
       shopName,
       footer,
       sellerName: displayName,

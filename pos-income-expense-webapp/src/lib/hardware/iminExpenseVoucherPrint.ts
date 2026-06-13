@@ -34,6 +34,7 @@ export interface IminExpenseVoucherContext {
   footer?: string;
   recorderName?: string;
   categoryNames?: Record<string, string>;
+  openDrawer?: boolean;
 }
 
 export function printExpenseVoucherOnImin(
@@ -98,5 +99,6 @@ export function printExpenseVoucherOnImin(
 
   thermalRule(printer);
   thermalCenterLines(printer, [footer]);
-  thermalFinish(printer, false);
+  const isCash = transaction.paymentMethod === "cash";
+  thermalFinish(printer, ctx.openDrawer && isCash);
 }

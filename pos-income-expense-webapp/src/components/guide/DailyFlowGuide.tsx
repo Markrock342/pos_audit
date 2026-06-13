@@ -3,9 +3,9 @@
 import Link from "next/link";
 
 const STEPS = [
-  { n: 1, text: "เช้า — ใส่ยอดเปิดร้าน", href: "/cash-count" },
-  { n: 2, text: "วัน — บันทึกรายรับ / รายจ่าย", href: "/income/add" },
-  { n: 3, text: "เย็น — นับเงินสดจริง", href: "/cash-count" },
+  { n: 1, text: "เช้า — ใส่ยอดเงินทอน", href: "/cash-count" },
+  { n: 2, text: "วัน — บันทึกรายรับ / รายจ่าย (ลิ้นชักเด้ง)", href: "/income/add" },
+  { n: 3, text: "เย็น — นับเงินที่นับได้ทั้งหมด", href: "/cash-count" },
 ] as const;
 
 export function DailyFlowGuide() {
@@ -25,7 +25,7 @@ export function DailyFlowGuide() {
       </ol>
 
       <p className="rounded-lg bg-surface-inset px-3 py-2 text-sm text-text-secondary">
-        เปิดเช้า + รับ(สด) − จ่าย(สด) = ยอดที่ควรมี → นับจริงเทียบ = ผลต่างจากที่บันทึก
+        ยอดเงินทอน + รายรับ(สด) − รายจ่าย(สด) = ยอดเงินคงเหลือ → เทียบกับที่นับได้ = เงินขาด/เงินเกิน
       </p>
 
       <div className="space-y-1 border-t border-border-default pt-3 text-sm text-text-muted">

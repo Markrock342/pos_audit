@@ -10,6 +10,7 @@ import {
 } from "@/lib/utils/receiptFormat";
 import { RECEIPT_ITEM_HEADER, splitReceiptDateTime } from "@/lib/utils/receiptRule";
 import { SHOP_NAME } from "@/constants";
+import { buildDrawerKickCommand, type DrawerKickPin } from "@/lib/hardware/cashDrawer";
 import {
   escBold,
   escCenterLines,
@@ -37,7 +38,15 @@ export interface ExpenseVoucherPrintContext {
   categoryNames?: Record<string, string>;
 }
 
-export function buildEscPosExpenseVoucher(ctx: ExpenseVoucherPrintContext): Uint8Array {
+export interface BuildEscPosExpenseVoucherOptions {
+  openDrawer?: boolean;
+  drawerPin?: DrawerKickPin;
+}
+
+export function buildEscPosExpenseVoucher(
+  ctx: ExpenseVoucherPrintContext,
+  options?: BuildEscPosExpenseVoucherOptions
+): Uint8Array {
   const { transaction } = ctx;
   const shopName = ctx.shopName?.trim() || SHOP_NAME;
   const footer = ctx.footer?.trim() || DEFAULT_FOOTER;
@@ -47,6 +56,7 @@ export function buildEscPosExpenseVoucher(ctx: ExpenseVoucherPrintContext): Uint
   const lines = resolveReceiptLines(transaction);
   const total = transaction.amount ?? sumLineItems(lines);
   const paymentLabel = resolvePaymentLabel(transaction.paymentMethod);
+  const isCash = transaction.paymentMethod === "cash";
   const docNo = resolveExpenseVoucherNumber(transaction, ctx.voucherNumber);
   const { date, time } = splitReceiptDateTime(transaction.createdAt);
   const billTitle = transaction.title?.trim() || "-";
@@ -94,6 +104,11 @@ export function buildEscPosExpenseVoucher(ctx: ExpenseVoucherPrintContext): Uint
   chunks.push(escRule());
   chunks.push(escCenterLines([footer]));
   chunks.push(escFeed(3));
+
+  if (options?.openDrawer && isCash) {
+    chunks.push(buildDrawerKickCommand({ pin: options.drawerPin ?? "pin2" }));
+  }
+
   chunks.push(escCut());
 
   return escConcat(chunks);

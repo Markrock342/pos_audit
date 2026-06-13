@@ -11,6 +11,7 @@ import { Printer } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { resolveExpenseVoucherNumber } from "@/lib/utils/receiptFormat";
 import { cn } from "@/lib/utils/cn";
+import { shouldOpenCashDrawer } from "@/lib/hardware/cashDrawerPolicy";
 import { printReceipt } from "@/lib/hardware/printer";
 
 interface ExpenseVoucherPreviewProps {
@@ -61,8 +62,9 @@ export function ExpenseVoucherPreview({
       <!DOCTYPE html>
       <html><head><title>ใบบันทึกรายจ่าย</title>
       <style>
-        body{margin:0;padding:8px;font-family:"Courier New",Consolas,monospace;font-size:11px;}
-        *{box-sizing:border-box;}
+        body{margin:0;padding:8px;font-family:system-ui,"Noto Sans Thai",sans-serif;font-size:12px;color:#000;}
+        *{box-sizing:border-box;color:#000;}
+        hr{border:0;border-top:1px solid #000;}
       </style>
       </head><body>${el.innerHTML}</body></html>
     `);
@@ -84,7 +86,7 @@ export function ExpenseVoucherPreview({
           receiptNumber: voucherNumber,
         },
         {
-          openDrawer: false,
+          openDrawer: shouldOpenCashDrawer(transaction),
           shopName,
           recorderName,
           voucherNumber,

@@ -190,22 +190,22 @@ export default function CashCountPage() {
                   </div>
 
                   <div className="rounded-xl bg-surface-inset p-4">
-                    <p className="text-sm text-text-muted">ยอดที่ระบบคาดหวัง</p>
+                    <p className="text-sm text-text-muted">ยอดเงินคงเหลือ (ที่ระบบคำนวณ)</p>
                     <p className="text-3xl font-black text-brand">{formatCurrency(expectedBalance)}</p>
                     <p className="mt-1 text-xs text-text-muted">
-                      ยอดเปิด + รายรับเงินสด − รายจ่ายเงินสด
+                      ยอดเงินทอน + รายรับเงินสด − รายจ่ายเงินสด
                     </p>
                   </div>
 
                   <AmountDisplay
-                    label="ยอดเงินสดเปิดร้าน (เช้า)"
+                    label="ยอดเงินทอน (เปิดวัน)"
                     value={openingBalance}
                     active={!readOnly && activeField === "opening"}
                     onClick={() => !readOnly && setActiveField("opening")}
                   />
 
                   <AmountDisplay
-                    label="ยอดเงินสดที่นับได้จริง (ตอนปิด)"
+                    label="ยอดเงินที่นับได้ (รวมทั้งหมด)"
                     value={actualBalance}
                     active={!readOnly && activeField === "actual"}
                     onClick={() => !readOnly && setActiveField("actual")}
@@ -252,7 +252,7 @@ export default function CashCountPage() {
                   {!readOnly && (
                     <>
                       <p className="text-center text-sm font-bold text-text-muted">
-                        กำลังกรอก: {activeField === "opening" ? "ยอดเปิดร้าน" : "ยอดนับจริง"}
+                        กำลังกรอก: {activeField === "opening" ? "ยอดเงินทอน" : "ยอดที่นับได้"}
                       </p>
                       <AmountNumpad value={numpadValue} onChange={handleNumpadChange} />
                     </>

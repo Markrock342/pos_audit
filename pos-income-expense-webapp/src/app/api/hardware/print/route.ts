@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getOrganization } from "@/lib/services/db/organizations";
+import { shouldOpenCashDrawer } from "@/lib/hardware/cashDrawerPolicy";
 import { buildEscPosReceipt } from "@/lib/hardware/escposReceipt";
 import { buildEscPosExpenseVoucher } from "@/lib/hardware/escposExpenseVoucher";
 import { dispatchPrintJob } from "@/lib/hardware/printTransport";
@@ -101,16 +102,24 @@ export async function POST(request: Request) {
     const shopName = parsed.data.shopName ?? org?.receiptConfig?.header ?? org?.name;
     const footer = parsed.data.footer ?? org?.receiptConfig?.footer;
 
+    const openDrawer = parsed.data.openDrawer ?? shouldOpenCashDrawer(tx);
+
     const data =
       tx.type === "expense"
-        ? buildEscPosExpenseVoucher({
-            transaction: tx,
-            voucherNumber: parsed.data.voucherNumber ?? parsed.data.receipt.receiptNumber,
-            shopName,
-            footer,
-            recorderName: parsed.data.recorderName,
-            categoryNames: parsed.data.categoryNames,
-          })
+        ? buildEscPosExpenseVoucher(
+            {
+              transaction: tx,
+              voucherNumber: parsed.data.voucherNumber ?? parsed.data.receipt.receiptNumber,
+              shopName,
+              footer,
+              recorderName: parsed.data.recorderName,
+              categoryNames: parsed.data.categoryNames,
+            },
+            {
+              openDrawer,
+              drawerPin: hw.drawerPin ?? "pin2",
+            }
+          )
         : buildEscPosReceipt(
             {
               transaction: tx,

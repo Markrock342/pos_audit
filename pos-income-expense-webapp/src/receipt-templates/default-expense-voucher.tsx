@@ -72,7 +72,7 @@ export function DefaultExpenseVoucherTemplate({
 
       <div>
         {lines.length === 0 && (
-          <p className="py-2 text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
+          <p className="py-2 text-center text-[11px] text-black">ยังไม่มีรายการ</p>
         )}
         {lines.map((line, index) => {
           const categoryName = categoryNames[line.categoryId];

@@ -229,3 +229,41 @@ html {
     box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.12);
   }
 }
+
+/* ─── Thermal receipt preview (80mm) — ตรงกับที่พิมพ์จริง ─── */
+.receipt-thermal {
+  color: #000;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.receipt-thermal-hr {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid #000;
+  opacity: 1;
+}
+
+.receipt-thermal-hr--total {
+  border-top: 3px double #000;
+}
+
+.receipt-thermal-rule {
+  font-family: ui-monospace, "Courier New", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.receipt-thermal-rule--total {
+  font-size: 12px;
+}
+
+.receipt-thermal-table th,
+.receipt-thermal-table td {
+  color: #000;
+  font-weight: inherit;
+}

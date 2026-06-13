@@ -1,4 +1,5 @@
 import { fetchOrganization } from "@/lib/api/client";
+import { shouldOpenCashDrawer } from "@/lib/hardware/cashDrawerPolicy";
 import { printExpenseVoucherOnImin } from "@/lib/hardware/iminExpenseVoucherPrint";
 import {
   getConnectedIminPrinter,
@@ -64,7 +65,7 @@ async function printViaServerApi(
     body: JSON.stringify({
       transaction,
       receipt,
-      openDrawer: options?.openDrawer ?? transaction.paymentMethod === "cash",
+      openDrawer: options?.openDrawer ?? shouldOpenCashDrawer(transaction),
       hardwareConfig: options?.hardwareConfig ?? hw,
       shopName: options?.shopName,
       footer: options?.footer,
@@ -112,6 +113,7 @@ async function printViaImin(
   const printer = await getConnectedIminPrinter(hw);
 
   if (transaction.type === "expense") {
+    const openDrawer = options?.openDrawer ?? shouldOpenCashDrawer(transaction);
     printExpenseVoucherOnImin(printer, {
       transaction,
       voucherNumber: options?.voucherNumber ?? receipt.receiptNumber,
@@ -119,6 +121,7 @@ async function printViaImin(
       footer: options?.footer,
       recorderName: options?.recorderName,
       categoryNames: options?.categoryNames,
+      openDrawer,
     });
   } else {
     printReceiptOnImin(printer, {
@@ -127,7 +130,7 @@ async function printViaImin(
       shopName: options?.shopName,
       footer: options?.footer,
       sellerName: options?.sellerName,
-      openDrawer: options?.openDrawer ?? transaction.paymentMethod === "cash",
+      openDrawer: options?.openDrawer ?? shouldOpenCashDrawer(transaction),
     });
   }
 
