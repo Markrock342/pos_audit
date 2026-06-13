@@ -141,6 +141,7 @@ export async function updateOrganizationApi(
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      cache: "no-store",
     })
   );
   return data;

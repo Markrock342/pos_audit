@@ -57,9 +57,21 @@ async function seed() {
     },
   ];
 
-  const { error: orgErr } = await db.from("organizations").upsert(orgs);
-  assertOk(orgErr, "organizations");
-  console.log("  ✓ 2 organizations (ลูกค้า + dev)");
+  // ไม่ upsert ทับ — เก็บข้อมูลร้านที่ลูกค้าแก้ในหน้าตั้งค่า
+  for (const org of orgs) {
+    const { data: existing } = await db
+      .from("organizations")
+      .select("id")
+      .eq("id", org.id)
+      .maybeSingle();
+    if (existing) {
+      console.log(`  · organizations: ข้าม ${org.name} (มีอยู่แล้ว — ไม่ทับ)`);
+      continue;
+    }
+    const { error } = await db.from("organizations").insert(org);
+    assertOk(error, `organizations ${org.id}`);
+    console.log(`  ✓ organizations: สร้าง ${org.name}`);
+  }
 
   // Users — ชื่อผู้ใช้แยกกัน
   const users = [

@@ -21,24 +21,27 @@ export function ShopSettingsForm() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const applyOrg = useCallback((org: Awaited<ReturnType<typeof fetchOrganization>>) => {
+    setName(org.name || SHOP_NAME);
+    setAddress(org.address ?? "");
+    setPhone(org.phone ?? "");
+    setTaxId(org.taxId ?? "");
+    setReceiptHeader(org.receiptConfig?.header ?? org.name);
+    setReceiptFooter(org.receiptConfig?.footer ?? "");
+    setOpeningCash(String(org.financeConfig?.openingCashBalance ?? 0));
+    setOpeningSavings(String(org.financeConfig?.openingSavingsBalance ?? 0));
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const org = await fetchOrganization();
-      setName(org.name || SHOP_NAME);
-      setAddress(org.address ?? "");
-      setPhone(org.phone ?? "");
-      setTaxId(org.taxId ?? "");
-      setReceiptHeader(org.receiptConfig?.header ?? org.name);
-      setReceiptFooter(org.receiptConfig?.footer ?? "");
-      setOpeningCash(String(org.financeConfig?.openingCashBalance ?? 0));
-      setOpeningSavings(String(org.financeConfig?.openingSavingsBalance ?? 0));
+      applyOrg(await fetchOrganization());
     } catch {
       setMessage("โหลดข้อมูลร้านไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applyOrg]);
 
   useEffect(() => {
     void load();
@@ -51,7 +54,7 @@ export function ShopSettingsForm() {
       const now = new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-      await updateOrganizationApi({
+      const saved = await updateOrganizationApi({
         name: name.trim(),
         address: address.trim() || undefined,
         phone: phone.trim() || undefined,
@@ -66,6 +69,7 @@ export function ShopSettingsForm() {
           openingBalanceMonth: month,
         },
       });
+      applyOrg(saved);
       setMessage("บันทึกข้อมูลร้านแล้ว");
       await refreshOrg();
     } catch (e) {
