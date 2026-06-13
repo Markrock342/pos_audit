@@ -7,7 +7,8 @@ import {
 import type { Category } from "@/types";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
-export const revalidate = 300;
+// หมวดหมู่ต้องสดเสมอ — เพิ่ม/แก้แล้วต้องเห็นทันทีในหน้าเพิ่มรายการ
+export const dynamic = "force-dynamic";
 
 const postSchema = z.object({
   name: z.string().min(1).max(50),

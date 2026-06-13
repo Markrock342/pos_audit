@@ -63,7 +63,9 @@ export async function fetchTransactions(type?: "income" | "expense"): Promise<Tr
 
 export async function fetchCategories(type?: "income" | "expense"): Promise<Category[]> {
   const qs = type ? `?type=${type}` : "";
-  const { data } = await parseJson<{ data: Category[] }>(await fetch(`/api/categories${qs}`));
+  const { data } = await parseJson<{ data: Category[] }>(
+    await fetch(`/api/categories${qs}`, { cache: "no-store" })
+  );
   return data;
 }
 
