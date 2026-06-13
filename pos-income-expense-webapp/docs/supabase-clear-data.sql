@@ -10,6 +10,7 @@
 
 DELETE FROM audit_logs;
 DELETE FROM cash_counts;
+DELETE FROM transaction_line_items;
 DELETE FROM transactions;
 
 -- ถ้าต้องการลบหมวดหมู่ที่เพิ่มเองด้วย (เก็บแค่ 9 หมวดเริ่มต้น) ให้ uncomment:

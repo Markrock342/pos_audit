@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx src/scripts/seed.ts",
+    "db:clear": "tsx src/scripts/clear-data.ts",
     "bridge": "node hardware-bridge/server.mjs"
   },
   "dependencies": {
