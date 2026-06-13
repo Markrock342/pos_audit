@@ -67,7 +67,6 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     const cached = readOrgCache();
     if (cached) {
       setOrganization(cached);
-      return;
     }
 
     void refresh();

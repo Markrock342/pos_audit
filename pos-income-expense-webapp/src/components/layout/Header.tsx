@@ -60,7 +60,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           </Button>
         )}
         <div className="min-w-0">
-          <p className="hidden truncate text-sm font-semibold text-text-secondary 2xl:block">
+          <p className="hidden truncate text-sm font-semibold text-text-secondary lg:block">
             {shopName}
           </p>
           <h2 className="truncate text-lg font-bold text-text-main 2xl:text-xl">{title}</h2>
@@ -77,7 +77,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           <span className="block text-xl font-bold tabular-nums text-text-main 2xl:text-2xl">
             {time}
           </span>
-          <span className="hidden text-sm font-bold text-text-muted 2xl:block">{date}</span>
+          <span className="block text-xs font-bold text-text-muted lg:text-sm">{date}</span>
         </div>
         <Button
           variant="ghost"

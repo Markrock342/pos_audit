@@ -2,6 +2,7 @@ import { getTransactions } from "./transactions";
 import { getOrganization } from "./organizations";
 import { getDb } from "@/lib/db/supabase";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
+import { getBusinessToday } from "@/lib/utils/businessDate";
 import type { BalanceSummary } from "@/types";
 
 export interface DashboardData {
@@ -125,10 +126,9 @@ export async function getDailyChart(
 }
 
 export async function getDashboard(): Promise<DashboardData> {
-  const today = new Date().toISOString().slice(0, 10);
-  const now = new Date();
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-  const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const today = getBusinessToday();
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const monthEnd = today;
 
   // Active transactions for today
   const todayTransactions = await getTransactions(DEFAULT_ORG_ID, {

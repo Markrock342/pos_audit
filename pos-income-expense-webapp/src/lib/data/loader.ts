@@ -1,6 +1,7 @@
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getCategories } from "@/lib/services/db/categories";
 import { getTransactions } from "@/lib/services/db/transactions";
+import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
 import type { Category, Transaction, TransactionType } from "@/types";
 
 type TransactionFilters = {
@@ -35,9 +36,7 @@ export async function loadRecentTransactions(limit = 5): Promise<Transaction[]> 
 }
 
 export async function loadChartTransactions(days = 6): Promise<Transaction[]> {
-  const start = new Date();
-  start.setDate(start.getDate() - (days - 1));
-  const startDate = start.toISOString().slice(0, 10);
+  const startDate = shiftBusinessDate(getBusinessToday(), -(days - 1));
 
   return getTransactions(
     DEFAULT_ORG_ID,
