@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchCashWithdrawals } from "@/lib/api/client";
-import { formatCurrency, formatDateShort, formatDateTime } from "@/lib/utils/format";
+import { formatCurrency, formatDateShort, formatDateTime, formatWithdrawalAmount } from "@/lib/utils/format";
 import type { CashWithdrawal } from "@/types";
 import { ArrowLeft, ArrowDownCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -99,7 +99,7 @@ export default function CashWithdrawHistoryPage() {
               {formatDateShort(startDate)} – {formatDateShort(endDate)}
             </p>
             <p className="mt-2 text-3xl font-black text-expense">
-              {loading ? "…" : `−${formatCurrency(totalWithdrawn)}`}
+              {loading ? "…" : formatWithdrawalAmount(totalWithdrawn)}
             </p>
             {!loading && (
               <p className="mt-1 text-sm text-text-muted">{items.length} รายการ</p>

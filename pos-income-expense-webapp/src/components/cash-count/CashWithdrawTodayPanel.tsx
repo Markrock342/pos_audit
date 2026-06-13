@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { formatCurrency, formatDateTime } from "@/lib/utils/format";
+import { formatCurrency, formatDateTime, formatWithdrawalAmount } from "@/lib/utils/format";
 import type { CashWithdrawal } from "@/types";
 import { ArrowDownCircle, History } from "lucide-react";
 
@@ -48,7 +48,7 @@ export function CashWithdrawTodayPanel({
       <div className="mt-4 rounded-xl bg-surface-inset px-4 py-3">
         <p className="text-sm text-text-muted">ถอนรวมวันนี้</p>
         <p className="text-2xl font-black text-expense">
-          {loading ? "…" : `−${formatCurrency(totalWithdrawn)}`}
+          {loading ? "…" : formatWithdrawalAmount(totalWithdrawn)}
         </p>
         {!loading && count > 0 && (
           <p className="mt-0.5 text-xs text-text-muted">{count} ครั้ง</p>

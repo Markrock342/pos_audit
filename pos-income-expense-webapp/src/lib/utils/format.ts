@@ -7,6 +7,12 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+/** ยอดถอนเงิน — ใส่ − เฉพาะเมื่อมียอดจริง (0 แสดง ฿0 ไม่ใช่ −฿0) */
+export function formatWithdrawalAmount(amount: number): string {
+  if (amount <= 0) return formatCurrency(0);
+  return `−${formatCurrency(amount)}`;
+}
+
 function toValidDate(date: string | undefined | null): Date | null {
   if (!date) return null;
   const normalized = /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T12:00:00` : date;

@@ -6,7 +6,8 @@ import {
 
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
-export const revalidate = 300;
+// ข้อมูลร้านต้องสดเสมอ — บันทึกแล้วต้องเห็นทันทีหลังรีเฟรช (ไม่ cache)
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const org = await getOrganization(DEFAULT_ORG_ID);

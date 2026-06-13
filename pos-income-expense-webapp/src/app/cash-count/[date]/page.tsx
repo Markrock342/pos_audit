@@ -11,7 +11,7 @@ import {
   fetchCashWithdrawals,
   fetchDailyCloseByDate,
 } from "@/lib/api/client";
-import { formatCurrency, formatDateShort } from "@/lib/utils/format";
+import { formatCurrency, formatDateShort, formatWithdrawalAmount } from "@/lib/utils/format";
 import type { CashCount, CashWithdrawal, DailyLedgerSummary } from "@/types";
 import { ArrowLeft, ArrowDownCircle, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -125,7 +125,7 @@ export default function CashCountDayPage() {
                   <>
                     <p className="mb-3 text-sm text-text-muted">
                       รวม {withdrawals.length} รายการ ·{" "}
-                      <span className="font-bold text-expense">−{formatCurrency(withdrawTotal)}</span>
+                      <span className="font-bold text-expense">{formatWithdrawalAmount(withdrawTotal)}</span>
                     </p>
                     <div className="space-y-2">
                       {withdrawals.map((row) => (

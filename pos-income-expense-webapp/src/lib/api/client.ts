@@ -122,7 +122,9 @@ export async function downloadReportCsv(start: string, end: string): Promise<voi
 }
 
 export async function fetchOrganization(): Promise<Organization> {
-  const { data } = await parseJson<{ data: Organization }>(await fetch("/api/organizations"));
+  const { data } = await parseJson<{ data: Organization }>(
+    await fetch("/api/organizations", { cache: "no-store" })
+  );
   return data;
 }
 
