@@ -16,16 +16,63 @@ export {
   splitReceiptDateTime,
 } from "@/lib/utils/receiptRule";
 
-/** CSS สำหรับพิมพ์ผ่าน browser — กระดาษ 80mm */
+/**
+ * CSS สำหรับพิมพ์ผ่าน browser — กระดาษ 80mm
+ * หน้าต่างพิมพ์มีแค่ CSS นี้ (ไม่มี Tailwind) จึง style ผ่าน semantic class `.rcpt-*`
+ * ที่ component ใส่ไว้คู่กับ Tailwind เพื่อให้ preview กับงานพิมพ์เหมือนกัน
+ */
 export const RECEIPT_BROWSER_PRINT_CSS = `
 @page { size: 80mm auto; margin: 0; }
-html, body { margin: 0; padding: 2mm; width: 80mm; max-width: 80mm; }
-body { font-family: system-ui, "Noto Sans Thai", sans-serif; font-size: 12px; color: #000; background: #fff; }
-*, *::before, *::after { box-sizing: border-box; color: #000; }
-hr, .receipt-thermal-hr { border: 0; border-top: 1px solid #000; margin: 6px 0; }
-.receipt-thermal-hr--total { border-top: 3px double #000; }
-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
-th, td { color: #000; padding: 0; }
+html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #fff; }
+* , *::before, *::after {
+  box-sizing: border-box;
+  color: #000;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+body {
+  font-family: "Noto Sans Thai", system-ui, -apple-system, sans-serif;
+  font-size: 12px; line-height: 1.4; color: #000; background: #fff;
+  font-weight: 500;
+}
+.rcpt { width: 80mm; max-width: 80mm; padding: 3mm 3.5mm 4mm; }
+.rcpt-center { text-align: center; }
+.rcpt-shop { font-size: 19px; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; }
+.rcpt-contact { font-size: 10.5px; font-weight: 500; line-height: 1.35; }
+/* ข้อความบนแถบพื้นดำต้องเป็นสีขาว — ทับ rule * { color:#000 } ด้านบน */
+.rcpt-title, .rcpt-title *, .rcpt-total, .rcpt-total * { color: #fff !important; }
+.rcpt-title {
+  margin: 7px 0 0; padding: 3px 0; background: #000; color: #fff;
+  text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.22em;
+}
+.rcpt-title-sub { margin-top: 2px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.32em; }
+.rcpt-meta { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; line-height: 1.5; }
+.rcpt-meta > span:first-child { min-width: 0; }
+.rcpt-meta > span:last-child { flex-shrink: 0; max-width: 52%; text-align: right; font-variant-numeric: tabular-nums; }
+.rcpt-meta-single { font-size: 11px; line-height: 1.5; }
+.rcpt-hr { border: 0; border-top: 1px solid #000; margin: 6px 0; }
+.rcpt-hr--dashed { border-top: 1px dashed #000; }
+.rcpt-hr--total { border-top: 2px solid #000; margin: 7px 0; }
+.rcpt-tbl { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.rcpt-tbl th, .rcpt-tbl td { padding: 0; color: #000; }
+.rcpt-th { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+.rcpt-row { padding: 3px 0; }
+.rcpt-row td { font-size: 12px; font-weight: 600; vertical-align: top; line-height: 1.35; }
+.rcpt-row .c-qty { text-align: center; font-variant-numeric: tabular-nums; }
+.rcpt-row .c-amt { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rcpt-row-hint { font-size: 10px; font-weight: 500; margin-top: 1px; }
+.rcpt-sum { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px; line-height: 1.6; }
+.rcpt-sum > span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rcpt-sum--bold { font-weight: 800; }
+.rcpt-total {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 7px 0; padding: 5px 9px; background: #000; color: #fff; border-radius: 2px;
+}
+.rcpt-total .lbl { font-size: 12.5px; font-weight: 800; letter-spacing: 0.02em; }
+.rcpt-total .val { font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rcpt-foot { text-align: center; }
+.rcpt-foot-main { font-size: 11.5px; font-weight: 800; line-height: 1.4; }
+.rcpt-foot-note { margin-top: 2px; font-size: 9px; font-weight: 500; letter-spacing: 0.02em; }
 `;
 
 /** ความกว้างใบเสร็จ 80mm */
@@ -41,7 +88,7 @@ export function ReceiptShell({
   return (
     <div className={fullWidth ? "w-full bg-white py-2" : "mx-auto bg-white py-3"}>
       <div
-        className="receipt-thermal mx-auto w-full px-3 py-2 font-sans text-[12px] leading-snug text-black"
+        className="rcpt receipt-thermal mx-auto w-full px-[3.5mm] py-[3mm] font-sans text-[12px] font-medium leading-[1.4] text-black"
         style={{ maxWidth: RECEIPT_THERMAL_WIDTH }}
       >
         {children}
@@ -53,27 +100,53 @@ export function ReceiptShell({
 export function ReceiptHeader({
   shopName,
   subtitle,
+  subtitleEn,
+  address,
+  phone,
+  taxId,
 }: {
   shopName: string;
   subtitle: string;
+  subtitleEn?: string;
+  address?: string;
+  phone?: string;
+  taxId?: string;
 }) {
+  const contactLine2 = [phone ? `โทร. ${phone}` : null, taxId ? `เลขภาษี ${taxId}` : null]
+    .filter(Boolean)
+    .join("  ·  ");
+
   return (
-    <div className="text-center text-black">
-      <p className="text-[16px] font-bold leading-tight">{shopName}</p>
-      <p className="mt-0.5 text-[11px] font-semibold">{subtitle}</p>
-      <ReceiptDivider />
+    <div className="rcpt-center text-center text-black">
+      <p className="rcpt-shop text-[19px] font-extrabold leading-[1.15] tracking-tight">
+        {shopName}
+      </p>
+      {address && (
+        <p className="rcpt-contact mt-0.5 text-[10.5px] font-medium leading-snug">{address}</p>
+      )}
+      {contactLine2 && (
+        <p className="rcpt-contact text-[10.5px] font-medium leading-snug">{contactLine2}</p>
+      )}
+      <div className="rcpt-title mt-2 bg-black py-[3px] text-center text-[12px] font-extrabold tracking-[0.22em] text-white">
+        {subtitle}
+        {subtitleEn && (
+          <span className="rcpt-title-sub mt-0.5 block text-[9.5px] font-bold tracking-[0.32em]">
+            {subtitleEn}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
-/** เส้นคั่นเต็มความกว้าง — solid แบบ thermal */
-export function ReceiptDivider({ total }: { total?: boolean }) {
-  return (
-    <hr
-      className={`receipt-thermal-hr w-full ${total ? "receipt-thermal-hr--total my-2" : "my-1.5"}`}
-      aria-hidden
-    />
-  );
+/** เส้นคั่นเต็มความกว้าง */
+export function ReceiptDivider({ total, dashed }: { total?: boolean; dashed?: boolean }) {
+  const cls = total
+    ? "rcpt-hr rcpt-hr--total my-[7px] border-t-2 border-black"
+    : dashed
+      ? "rcpt-hr rcpt-hr--dashed my-1.5 border-t border-dashed border-black"
+      : "rcpt-hr my-1.5 border-t border-black";
+  return <hr className={`w-full ${cls}`} aria-hidden />;
 }
 
 /** เส้นคั่นสำหรับพิมพ์ thermal (ตัวอักษร) */
@@ -90,30 +163,30 @@ export function ReceiptDividerPrint({ total }: { total?: boolean }) {
 
 export function ReceiptMetaPair({ left, right }: { left: string; right: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 text-[12px] leading-snug text-black">
+    <div className="rcpt-meta flex items-start justify-between gap-2.5 text-[11px] leading-normal text-black">
       <span className="min-w-0 flex-1">{left}</span>
-      <span className="shrink-0 max-w-[48%] text-right tabular-nums">{right}</span>
+      <span className="max-w-[52%] shrink-0 text-right tabular-nums">{right}</span>
     </div>
   );
 }
 
 export function ReceiptMetaSingle({ text }: { text: string }) {
-  return <p className="text-[12px] leading-snug text-black">{text}</p>;
+  return <p className="rcpt-meta-single text-[11px] leading-normal text-black">{text}</p>;
 }
 
 export function ReceiptItemTableHeader() {
   return (
-    <table className="receipt-thermal-table w-full table-fixed border-collapse text-[11px] font-bold text-black">
+    <table className="rcpt-tbl receipt-thermal-table w-full table-fixed border-collapse">
       <colgroup>
-        <col style={{ width: "54%" }} />
-        <col style={{ width: "12.5%" }} />
-        <col style={{ width: "33.5%" }} />
+        <col style={{ width: "56%" }} />
+        <col style={{ width: "13%" }} />
+        <col style={{ width: "31%" }} />
       </colgroup>
       <thead>
-        <tr>
-          <th className="pb-0.5 text-left font-bold">รายการ</th>
-          <th className="pb-0.5 text-center font-bold">จำนวน</th>
-          <th className="pb-0.5 text-right font-bold">รวม</th>
+        <tr className="rcpt-th text-[10.5px] font-extrabold uppercase tracking-wide text-black">
+          <th className="pb-0.5 text-left">รายการ</th>
+          <th className="pb-0.5 text-center">จำนวน</th>
+          <th className="pb-0.5 text-right">รวม</th>
         </tr>
       </thead>
     </table>
@@ -132,22 +205,26 @@ export function ReceiptItemTableRow({
   hint?: string;
 }) {
   return (
-    <div className="py-0.5 text-black">
-      <table className="receipt-thermal-table w-full table-fixed border-collapse text-[12px]">
+    <div className="rcpt-row py-[3px] text-black">
+      <table className="rcpt-tbl receipt-thermal-table w-full table-fixed border-collapse">
         <colgroup>
-          <col style={{ width: "54%" }} />
-          <col style={{ width: "12.5%" }} />
-          <col style={{ width: "33.5%" }} />
+          <col style={{ width: "56%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "31%" }} />
         </colgroup>
         <tbody>
           <tr className="align-top">
-            <td className="pr-1 leading-snug">{title}</td>
-            <td className="whitespace-nowrap px-0.5 text-center tabular-nums">{qty}</td>
-            <td className="whitespace-nowrap pl-1 text-right tabular-nums">{amount}</td>
+            <td className="pr-1 text-[12px] font-semibold leading-snug">{title}</td>
+            <td className="c-qty whitespace-nowrap px-0.5 text-center text-[12px] font-semibold tabular-nums">
+              {qty}
+            </td>
+            <td className="c-amt whitespace-nowrap pl-1 text-right text-[12px] font-semibold tabular-nums">
+              {amount}
+            </td>
           </tr>
         </tbody>
       </table>
-      {hint && <p className="mt-0.5 text-[10px] text-black/80">{hint}</p>}
+      {hint && <p className="rcpt-row-hint mt-px text-[10px] font-medium text-black">{hint}</p>}
     </div>
   );
 }
@@ -156,30 +233,45 @@ export function ReceiptSummaryRow({
   label,
   value,
   bold,
-  large,
 }: {
   label: string;
   value: string;
   bold?: boolean;
+  /** @deprecated ใช้ ReceiptTotalBand สำหรับยอดสุทธิแทน */
   large?: boolean;
 }) {
   return (
     <div
-      className={`flex items-baseline justify-between gap-4 text-black ${
-        large ? "text-[14px] font-bold" : bold ? "text-[12px] font-bold" : "text-[12px]"
+      className={`rcpt-sum flex items-baseline justify-between gap-2.5 text-[11.5px] text-black ${
+        bold ? "rcpt-sum--bold font-extrabold" : "font-medium"
       }`}
     >
       <span className="min-w-0">{label}</span>
-      <span className="shrink-0 tabular-nums">{value}</span>
+      <span className="shrink-0 whitespace-nowrap tabular-nums">{value}</span>
     </div>
   );
 }
 
-export function ReceiptFooter({ text }: { text: string }) {
+/** แถบยอดสุทธิ — พื้นดำตัวอักษรขาว ดึงสายตาแบบใบเสร็จมืออาชีพ */
+export function ReceiptTotalBand({ label, value }: { label: string; value: string }) {
   return (
-    <div className="text-black">
-      <ReceiptDivider />
-      <p className="pt-1 text-center text-[11px] leading-snug font-medium">{text}</p>
+    <div className="rcpt-total my-[7px] flex items-center justify-between gap-2.5 rounded-[2px] bg-black px-[9px] py-[5px] text-white">
+      <span className="lbl text-[12.5px] font-extrabold tracking-wide">{label}</span>
+      <span className="val whitespace-nowrap text-[19px] font-extrabold tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+export function ReceiptFooter({ text, note }: { text: string; note?: string }) {
+  return (
+    <div className="rcpt-foot text-center text-black">
+      <ReceiptDivider dashed />
+      <p className="rcpt-foot-main pt-1 text-center text-[11.5px] font-extrabold leading-snug">
+        {text}
+      </p>
+      {note && (
+        <p className="rcpt-foot-note mt-0.5 text-[9px] font-medium leading-snug">{note}</p>
+      )}
     </div>
   );
 }

@@ -19,9 +19,9 @@ import {
   thermalItemTableHeader,
   thermalMetaPair,
   thermalRule,
-  thermalSubLine,
   thermalSummaryRow,
   thermalThreeColRow,
+  thermalTotalRow,
   thermalTotalRule,
 } from "@/lib/hardware/iminThermalLayout";
 
@@ -31,6 +31,9 @@ export interface IminReceiptContext {
   shopName?: string;
   footer?: string;
   sellerName?: string;
+  address?: string;
+  phone?: string;
+  taxId?: string;
   openDrawer?: boolean;
 }
 
@@ -52,10 +55,21 @@ export function printReceiptOnImin(
   const { date, time } = splitReceiptDateTime(transaction.createdAt);
   const billTitle = transaction.title?.trim() || "-";
 
+  const contactLines = [
+    ctx.address?.trim(),
+    [ctx.phone?.trim() ? `โทร. ${ctx.phone.trim()}` : null, ctx.taxId?.trim() ? `เลขภาษี ${ctx.taxId.trim()}` : null]
+      .filter(Boolean)
+      .join("  ") || null,
+  ].filter((l): l is string => Boolean(l));
+
   initThermalLayout(printer);
 
   thermalCenterLines(printer, [shopName], true, true);
-  thermalCenterLines(printer, ["ใบเสร็จรับเงิน / Receipt"]);
+  if (contactLines.length > 0) {
+    thermalCenterLines(printer, contactLines);
+  }
+  thermalBlankLine(printer);
+  thermalCenterLines(printer, ["*** ใบเสร็จรับเงิน / RECEIPT ***"], true);
   thermalBlankLine(printer);
   thermalRule(printer);
 
@@ -85,10 +99,11 @@ export function printReceiptOnImin(
 
   thermalRule(printer);
   thermalSummaryRow(printer, "รวมย่อย", formatReceiptAmount(subtotal));
-  thermalSummaryRow(printer, "ส่วนลด", formatReceiptAmount(0));
 
   thermalTotalRule(printer);
-  thermalSummaryRow(printer, `ยอดชำระ (${paymentLabel})`, formatReceiptAmount(netTotal), true);
+  thermalTotalRow(printer, "ยอดสุทธิ", formatReceiptAmount(netTotal));
+  thermalTotalRule(printer);
+  thermalSummaryRow(printer, "ชำระโดย", paymentLabel, true);
   if (isCash) {
     thermalSummaryRow(printer, "รับเงิน", formatReceiptAmount(netTotal));
     thermalSummaryRow(printer, "เงินทอน", formatReceiptAmount(0));
@@ -98,6 +113,8 @@ export function printReceiptOnImin(
   }
 
   thermalRule(printer);
-  thermalCenterLines(printer, [footer]);
+  thermalCenterLines(printer, [footer], true);
+  thermalBlankLine(printer);
+  thermalCenterLines(printer, ["เอกสารออกจากระบบ POS"]);
   thermalFinish(printer, ctx.openDrawer && isCash);
 }

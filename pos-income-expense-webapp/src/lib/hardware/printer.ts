@@ -19,6 +19,9 @@ export interface PrintReceiptOptions {
   recorderName?: string;
   voucherNumber?: string;
   categoryNames?: Record<string, string>;
+  address?: string;
+  phone?: string;
+  taxId?: string;
 }
 
 export interface PrintReceiptResult {
@@ -130,6 +133,9 @@ async function printViaImin(
       shopName: options?.shopName,
       footer: options?.footer,
       sellerName: options?.sellerName,
+      address: options?.address,
+      phone: options?.phone,
+      taxId: options?.taxId,
       openDrawer: options?.openDrawer ?? shouldOpenCashDrawer(transaction),
     });
   }

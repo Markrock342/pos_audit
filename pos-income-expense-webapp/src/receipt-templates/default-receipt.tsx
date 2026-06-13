@@ -21,6 +21,7 @@ import {
   ReceiptMetaSingle,
   ReceiptShell,
   ReceiptSummaryRow,
+  ReceiptTotalBand,
 } from "@/receipt-templates/shared";
 
 interface DefaultReceiptProps {
@@ -29,7 +30,17 @@ interface DefaultReceiptProps {
   shopName?: string;
   footer?: string;
   sellerName?: string;
+  address?: string;
+  phone?: string;
+  taxId?: string;
   fullWidth?: boolean;
+}
+
+/** ราคาต่อหน่วยจาก lineAmount/qty (กันหารศูนย์) */
+function unitHint(quantity: number, lineAmount: number): string | undefined {
+  if (quantity <= 1) return undefined;
+  const unit = lineAmount / quantity;
+  return `${quantity} × ${formatReceiptAmount(unit)}`;
 }
 
 export function DefaultReceiptTemplate({
@@ -38,6 +49,9 @@ export function DefaultReceiptTemplate({
   shopName = SHOP_NAME,
   footer = "ขอบคุณที่ใช้บริการ",
   sellerName,
+  address,
+  phone,
+  taxId,
   fullWidth,
 }: DefaultReceiptProps) {
   const lines = resolveReceiptLines(transaction);
@@ -51,14 +65,22 @@ export function DefaultReceiptTemplate({
   const { date, time } = splitReceiptDateTime(transaction.createdAt);
   const showTxDate = hasDistinctTransactionDate(transaction);
   const billTitle = transaction.title?.trim() || "—";
+  const itemCount = lines.reduce((n, l) => n + (Number(l.quantity) || 0), 0);
 
   return (
     <ReceiptShell fullWidth={fullWidth}>
-      <ReceiptHeader shopName={shopName} subtitle="ใบเสร็จรับเงิน / Receipt" />
+      <ReceiptHeader
+        shopName={shopName}
+        subtitle="ใบเสร็จรับเงิน"
+        subtitleEn="RECEIPT"
+        address={address}
+        phone={phone}
+        taxId={taxId}
+      />
 
-      <div className="space-y-0.5">
-        <ReceiptMetaPair left={`เลขที่: ${receiptNo}`} right={`ชื่อบิล: ${billTitle}`} />
-        <ReceiptMetaPair left={`วันที่: ${date}`} right={`เวลา: ${time}`} />
+      <div className="mt-2 space-y-0.5">
+        <ReceiptMetaPair left={`เลขที่ ${receiptNo}`} right={billTitle !== "—" ? billTitle : ""} />
+        <ReceiptMetaPair left={`วันที่ ${date}`} right={`เวลา ${time}`} />
         <ReceiptMetaSingle text={`ผู้ขาย: ${seller}`} />
         {showTxDate && (
           <ReceiptMetaSingle text={`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`} />
@@ -67,7 +89,7 @@ export function DefaultReceiptTemplate({
 
       <ReceiptDivider />
       <ReceiptItemTableHeader />
-      <ReceiptDivider />
+      <ReceiptDivider dashed />
 
       <div>
         {lines.length === 0 && (
@@ -79,6 +101,7 @@ export function DefaultReceiptTemplate({
             title={line.title}
             qty={line.quantity}
             amount={formatReceiptAmount(line.lineAmount)}
+            hint={unitHint(Number(line.quantity) || 0, line.lineAmount)}
           />
         ))}
       </div>
@@ -86,18 +109,16 @@ export function DefaultReceiptTemplate({
       <ReceiptDivider />
 
       <div className="space-y-0.5">
-        <ReceiptSummaryRow label="รวมย่อย" value={formatReceiptAmount(subtotal)} />
-        <ReceiptSummaryRow label="ส่วนลด" value={formatReceiptAmount(discount)} />
+        <ReceiptSummaryRow label={`รวมย่อย (${itemCount} ชิ้น)`} value={formatReceiptAmount(subtotal)} />
+        {discount > 0 && (
+          <ReceiptSummaryRow label="ส่วนลด" value={`-${formatReceiptAmount(discount)}`} />
+        )}
       </div>
 
-      <ReceiptDivider total />
+      <ReceiptTotalBand label="ยอดสุทธิ" value={formatReceiptAmount(netTotal)} />
 
       <div className="space-y-0.5">
-        <ReceiptSummaryRow
-          label={`ยอดชำระ (${paymentLabel})`}
-          value={formatReceiptAmount(netTotal)}
-          large
-        />
+        <ReceiptSummaryRow label="ชำระโดย" value={paymentLabel} bold />
         {isCash && (
           <>
             <ReceiptSummaryRow label="รับเงิน" value={formatReceiptAmount(netTotal)} />
@@ -109,7 +130,7 @@ export function DefaultReceiptTemplate({
         )}
       </div>
 
-      <ReceiptFooter text={footer} />
+      <ReceiptFooter text={footer} note="เอกสารออกจากระบบ POS · เก็บไว้เป็นหลักฐาน" />
     </ReceiptShell>
   );
 }

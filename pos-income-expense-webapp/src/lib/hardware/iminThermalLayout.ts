@@ -87,6 +87,23 @@ export function thermalSummaryRow(
   if (bold) printer.setTextStyle(0);
 }
 
+/** แถวยอดสุทธิ — ตัวหนา ขนาดใหญ่ ดึงสายตา */
+export function thermalTotalRow(
+  printer: IminPrinterInstance,
+  label: string,
+  value: string
+): void {
+  printer.setTextStyle(1);
+  printer.printColumnsText(
+    [label, value],
+    [...RECEIPT_SUMMARY_COL_WIDTHS],
+    [ALIGN_LEFT, ALIGN_RIGHT],
+    [THERMAL_TITLE_SIZE, THERMAL_TITLE_SIZE],
+    THERMAL_COL_WIDTH
+  );
+  printer.setTextStyle(0);
+}
+
 /** หัวตาราง 3 คอลัมน์ */
 export function thermalItemTableHeader(printer: IminPrinterInstance): void {
   thermalThreeColRow(printer, "รายการ", "จำนวน", "รวม", true);

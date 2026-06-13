@@ -69,6 +69,9 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
         shopName,
         footer: receiptFooter,
         sellerName,
+        address: organization?.address,
+        phone: organization?.phone,
+        taxId: organization?.taxId,
       });
 
       if (result.success) {
@@ -137,6 +140,9 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
               shopName={shopName}
               footer={receiptFooter}
               sellerName={sellerName}
+              address={organization?.address}
+              phone={organization?.phone}
+              taxId={organization?.taxId}
               fullWidth={compact || fill}
             />
           </div>

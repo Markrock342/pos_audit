@@ -21,6 +21,7 @@ import {
   ReceiptMetaSingle,
   ReceiptShell,
   ReceiptSummaryRow,
+  ReceiptTotalBand,
 } from "@/receipt-templates/shared";
 
 const DEFAULT_FOOTER = "เอกสารบันทึกภายใน — ไม่ใช่ใบกำกับภาษี";
@@ -32,6 +33,9 @@ interface DefaultExpenseVoucherProps {
   footer?: string;
   recorderName?: string;
   categoryNames?: Record<string, string>;
+  address?: string;
+  phone?: string;
+  taxId?: string;
   fullWidth?: boolean;
 }
 
@@ -42,6 +46,9 @@ export function DefaultExpenseVoucherTemplate({
   footer = DEFAULT_FOOTER,
   recorderName,
   categoryNames = {},
+  address,
+  phone,
+  taxId,
   fullWidth,
 }: DefaultExpenseVoucherProps) {
   const lines = resolveReceiptLines(transaction);
@@ -55,7 +62,14 @@ export function DefaultExpenseVoucherTemplate({
 
   return (
     <ReceiptShell fullWidth={fullWidth}>
-      <ReceiptHeader shopName={shopName} subtitle="ใบบันทึกรายจ่าย / Expense" />
+      <ReceiptHeader
+        shopName={shopName}
+        subtitle="ใบบันทึกรายจ่าย"
+        subtitleEn="EXPENSE"
+        address={address}
+        phone={phone}
+        taxId={taxId}
+      />
 
       <div className="space-y-0.5">
         <ReceiptMetaPair left={`เลขที่: ${docNo}`} right={`ชื่อบิล: ${billTitle}`} />
@@ -88,14 +102,12 @@ export function DefaultExpenseVoucherTemplate({
         })}
       </div>
 
-      <ReceiptDivider total />
+      <ReceiptDivider />
+
+      <ReceiptTotalBand label="ยอดจ่ายสุทธิ" value={formatReceiptAmount(total)} />
 
       <div className="space-y-0.5">
-        <ReceiptSummaryRow
-          label={`ยอดจ่าย (${paymentLabel})`}
-          value={formatReceiptAmount(total)}
-          large
-        />
+        <ReceiptSummaryRow label="ชำระโดย" value={paymentLabel} bold />
         {transaction.referenceNo?.trim() && (
           <ReceiptSummaryRow label="เลขที่อ้างอิง" value={transaction.referenceNo.trim()} />
         )}

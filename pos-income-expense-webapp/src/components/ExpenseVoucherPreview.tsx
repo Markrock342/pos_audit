@@ -152,6 +152,9 @@ export function ExpenseVoucherPreview({
               shopName={shopName}
               recorderName={recorderName}
               categoryNames={categoryNames}
+              address={organization?.address}
+              phone={organization?.phone}
+              taxId={organization?.taxId}
               fullWidth={compact || fill}
             />
           </div>
