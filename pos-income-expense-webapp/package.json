@@ -7,12 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:seed": "tsx src/scripts/seed.ts"
+    "db:seed": "tsx src/scripts/seed.ts",
+    "bridge": "node hardware-bridge/server.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
     "@supabase/supabase-js": "^2.107.0",
     "clsx": "^2.1.1",
+    "iconv-lite": "^0.6.3",
     "lucide-react": "^1.17.0",
     "next": "16.2.7",
     "react": "19.2.4",

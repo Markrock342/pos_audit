@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { DatabaseSettings } from "@/components/settings/DatabaseSettings";
+import { HardwareSettingsForm } from "@/components/settings/HardwareSettingsForm";
 import { ShopSettingsForm } from "@/components/settings/ShopSettingsForm";
 
 export default function SettingsPage() {
@@ -18,13 +19,10 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>อุปกรณ์ POS (เฟส 2)</CardTitle>
+            <CardTitle>อุปกรณ์ POS — เครื่องพิมพ์ / ลิ้นชัก</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              การตั้งค่าเครื่องพิมพ์ thermal และลิ้นชัก RJ12 จะเปิดใช้เมื่อติดตั้งอุปกรณ์จริง
-              ตอนนี้ใช้ <strong>พิมพ์ใบเสร็จผ่านเครื่องพิมพ์ทั่วไป</strong> ได้ที่หน้ารายรับ
-            </p>
+            <HardwareSettingsForm />
           </CardContent>
         </Card>
 

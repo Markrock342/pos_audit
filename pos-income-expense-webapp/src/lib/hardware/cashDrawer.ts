@@ -1,52 +1,62 @@
 /**
  * Cash Drawer integration (RJ11 / RJ12 via printer DK kick port).
- *
- * ลิ้นชักต่อเข้าช่อง Drawer Kick ที่เครื่องพิมพ์ thermal — ไม่ต่อตรงกับ tablet/PC
- * รองรับทั้ง RJ11 (6P4C) และ RJ12 (6P6C) ขึ้นกับรุ่นสาย/ลิ้นชัก
- *
- * ESC/POS: ESC p m t1 t2
- *   m = 0 → pin 2 (พบบ่อย)
- *   m = 1 → pin 5 (บางรุ่นลิ้นชัก RJ12 ใช้ขานี้)
- *
- * ต้องทดสอบกับอุปกรณ์จริงว่า pin ไหนเด้ง — ตั้งค่าได้ในหน้า Settings
  */
+import type { HardwareConfig } from "@/types";
 
 export type DrawerKickPin = "pin2" | "pin5";
 
 export interface DrawerKickOptions {
   pin?: DrawerKickPin;
-  /** Pulse on time (ms), ESC/POS uses 2ms units — default 50ms = 0x32 */
   onMs?: number;
-  /** Pulse off time (ms) */
   offMs?: number;
+  hardwareConfig?: HardwareConfig;
 }
 
 export async function openCashDrawer(
   options?: DrawerKickOptions
 ): Promise<{ success: boolean; message: string }> {
-  const pin = options?.pin ?? "pin2";
-  console.info("[Hardware] openCashDrawer called (mock)", { pin });
+  try {
+    const res = await fetch("/api/hardware/drawer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pin: options?.pin,
+        hardwareConfig: options?.hardwareConfig,
+      }),
+    });
 
-  return {
-    success: true,
-    message: `Cash drawer kick simulated (pin: ${pin}). Connect Local Bridge for real hardware.`,
-  };
+    const json = (await res.json()) as {
+      data?: { message: string };
+      error?: { message?: string };
+    };
+
+    if (!res.ok) {
+      return {
+        success: false,
+        message: json.error?.message ?? "เปิดลิ้นชักไม่สำเร็จ",
+      };
+    }
+
+    return {
+      success: true,
+      message: json.data?.message ?? "ส่งคำสั่งเปิดลิ้นชักแล้ว",
+    };
+  } catch (e) {
+    return {
+      success: false,
+      message: e instanceof Error ? e.message : "เปิดลิ้นชักไม่สำเร็จ",
+    };
+  }
 }
 
-/** Convert ms to ESC/POS time unit (2ms per unit), clamp 1–255 */
 function msToEscPosUnit(ms: number): number {
   return Math.min(255, Math.max(1, Math.round(ms / 2)));
 }
 
-/**
- * Build ESC/POS drawer kick bytes: ESC p m t1 t2
- * @see docs/hardware-plan.md
- */
 export function buildDrawerKickCommand(options?: DrawerKickOptions): Uint8Array {
   const pinByte = options?.pin === "pin5" ? 0x01 : 0x00;
   const t1 = msToEscPosUnit(options?.onMs ?? 50);
   const t2 = msToEscPosUnit(options?.offMs ?? 50);
-
   return new Uint8Array([0x1b, 0x70, pinByte, t1, t2]);
 }
 

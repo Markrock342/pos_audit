@@ -1,44 +1,77 @@
-import type { Receipt, Transaction } from "@/types";
+import type { HardwareConfig, Receipt, Transaction } from "@/types";
 
 export interface PrintReceiptOptions {
   copies?: number;
   openDrawer?: boolean;
+  hardwareConfig?: HardwareConfig;
+  shopName?: string;
+  footer?: string;
+  sellerName?: string;
 }
 
-/**
- * Thermal Printer integration placeholder (80mm, ESC/POS).
- *
- * Future implementation plan:
- * - Send ESC/POS commands to thermal printer
- * - Support USB / LAN via Local Bridge (PWA on Android tablet)
- * - Cash drawer kick via printer DK port (RJ11/RJ12) after print
- * - Format receipt from template in /receipt-templates
- *
- * ESC/POS reference commands (examples):
- * - ESC @  : Initialize printer
- * - ESC d n: Feed n lines
- * - GS V   : Cut paper
- */
+export interface PrintReceiptResult {
+  success: boolean;
+  message: string;
+  /** ใช้ window.print() แทนเมื่อไม่มีเครื่องพิมพ์ thermal */
+  fallback?: "browser";
+  mode?: "direct" | "bridge";
+}
+
 export async function printReceipt(
   transaction: Transaction,
   receipt: Receipt,
   options?: PrintReceiptOptions
-): Promise<{ success: boolean; message: string }> {
-  void options;
-  console.info("[Hardware] printReceipt called (mock)", {
-    transactionId: transaction.id,
-    receiptNumber: receipt.receiptNumber,
-  });
+): Promise<PrintReceiptResult> {
+  try {
+    const res = await fetch("/api/hardware/print", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        transaction,
+        receipt,
+        openDrawer: options?.openDrawer ?? transaction.paymentMethod === "cash",
+        hardwareConfig: options?.hardwareConfig,
+        shopName: options?.shopName,
+        footer: options?.footer,
+        sellerName: options?.sellerName,
+      }),
+    });
 
-  return {
-    success: true,
-    message: "Printer integration not yet connected. Receipt queued for preview only.",
-  };
+    const json = (await res.json()) as {
+      data?: { success: boolean; message: string; mode?: "direct" | "bridge" };
+      error?: { code?: string; message?: string };
+      fallback?: "browser";
+    };
+
+    if (!res.ok) {
+      if (json.error?.code === "NOT_CONFIGURED" || json.fallback === "browser") {
+        return {
+          success: false,
+          message: json.error?.message ?? "ยังไม่ได้ตั้งค่าเครื่องพิมพ์",
+          fallback: "browser",
+        };
+      }
+      return {
+        success: false,
+        message: json.error?.message ?? `พิมพ์ไม่สำเร็จ (${res.status})`,
+      };
+    }
+
+    return {
+      success: true,
+      message: json.data?.message ?? "พิมพ์ใบเสร็จแล้ว",
+      mode: json.data?.mode,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      message: e instanceof Error ? e.message : "พิมพ์ไม่สำเร็จ",
+    };
+  }
 }
 
 export function buildEscPosPayload(transaction: Transaction, receipt: Receipt): Uint8Array {
   void transaction;
   void receipt;
-  // TODO: build ESC/POS byte sequence for thermal printer
   return new Uint8Array();
 }

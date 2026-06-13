@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { Receipt, Transaction } from "@/types";
 import { DefaultReceiptTemplate } from "@/receipt-templates/default-receipt";
 import { useOrganization } from "@/components/providers/OrganizationProvider";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Printer } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import { printReceipt } from "@/lib/hardware/printer";
 
 interface ReceiptPreviewProps {
   transaction: Transaction;
@@ -33,12 +34,14 @@ function readSellerName(): string | undefined {
 
 export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptPreviewProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const [printing, setPrinting] = useState(false);
+  const [printMessage, setPrintMessage] = useState<string | null>(null);
   const { organization } = useOrganization();
   const shopName = organization?.receiptConfig?.header ?? organization?.name;
   const receiptFooter = organization?.receiptConfig?.footer;
   const sellerName = readSellerName();
 
-  const handlePrint = () => {
+  const printViaBrowser = () => {
     const el = printRef.current;
     if (!el) return;
     const win = window.open("", "_blank", "width=400,height=700");
@@ -58,6 +61,34 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
     win.close();
   };
 
+  const handlePrint = async () => {
+    setPrinting(true);
+    setPrintMessage(null);
+    try {
+      const result = await printReceipt(transaction, receipt, {
+        openDrawer: transaction.paymentMethod === "cash",
+        shopName,
+        footer: receiptFooter,
+        sellerName,
+      });
+
+      if (result.success) {
+        setPrintMessage(result.message);
+        return;
+      }
+
+      if (result.fallback === "browser") {
+        printViaBrowser();
+        setPrintMessage("พิมพ์ผ่านเบราว์เซอร์ (ยังไม่ได้ตั้งค่าเครื่องพิมพ์ thermal)");
+        return;
+      }
+
+      setPrintMessage(result.message);
+    } finally {
+      setPrinting(false);
+    }
+  };
+
   const lineCount = transaction.lineItems?.length ?? 1;
 
   return (
@@ -69,9 +100,15 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
             {transaction.title} · {lineCount} รายการ · {formatCurrency(transaction.amount)}
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={handlePrint} className="gap-1.5 shrink-0 px-2.5">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void handlePrint()}
+          disabled={printing}
+          className="gap-1.5 shrink-0 px-2.5"
+        >
           <Printer size={15} />
-          พิมพ์
+          {printing ? "กำลังพิมพ์..." : "พิมพ์"}
         </Button>
       </CardHeader>
       <CardContent
@@ -107,7 +144,7 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
         </div>
         {!compact && !fill && (
           <p className="mt-3 shrink-0 text-xs text-text-muted">
-            วันที่บนใบเสร็จ = เวลาที่บันทึกจริง
+            {printMessage ?? "วันที่บนใบเสร็จ = เวลาที่บันทึกจริง · ตั้งค่าเครื่องพิมพ์ที่ ตั้งค่า → อุปกรณ์ POS"}
           </p>
         )}
       </CardContent>

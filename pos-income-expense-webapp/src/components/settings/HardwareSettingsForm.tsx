@@ -63,6 +63,7 @@ export function HardwareSettingsForm() {
   };
 
   const handleTestPrint = async () => {
+    const config = buildConfig();
     const result = await printReceipt(
       {
         id: "test",
@@ -76,14 +77,30 @@ export function HardwareSettingsForm() {
         isPrinted: false,
         createdBy: "",
         createdAt: new Date().toISOString(),
+        lineItems: [
+          {
+            id: "test-line",
+            transactionId: "test",
+            sortOrder: 0,
+            title: "รายการทดสอบ",
+            quantity: 1,
+            unitPrice: 1,
+            lineAmount: 1,
+            categoryId: "",
+          },
+        ],
       },
-      { id: "test-receipt", transactionId: "test", receiptNumber: "TEST-001" }
+      { id: "test-receipt", transactionId: "test", receiptNumber: "TEST-001" },
+      { hardwareConfig: config, openDrawer: false }
     );
     setMessage(result.message);
   };
 
   const handleTestDrawer = async () => {
-    const result = await openCashDrawer({ pin: drawerPin ?? "pin2" });
+    const result = await openCashDrawer({
+      pin: drawerPin ?? "pin2",
+      hardwareConfig: buildConfig(),
+    });
     setMessage(result.message);
   };
 
@@ -142,7 +159,9 @@ export function HardwareSettingsForm() {
       </div>
       {message && <p className="text-xs text-text-secondary">{message}</p>}
       <p className="text-xs text-text-muted">
-        การพิมพ์/ลิ้นชักจริงต้องมี Local Bridge หรือเครื่องพิมพ์ LAN — ปุ่มทดสอบจะแจ้งสถานะการเชื่อมต่อ
+        1) ตั้ง IP เครื่องพิมพ์ (พอร์ต 9100) · 2) ถ้า deploy บน Vercel ให้รัน{" "}
+        <code className="rounded bg-surface-inset px-1">npm run bridge</code> แล้วใส่ URL Bridge ·
+        3) กดทดสอบพิมพ์
       </p>
     </div>
   );
