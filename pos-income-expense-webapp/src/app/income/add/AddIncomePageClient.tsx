@@ -16,16 +16,18 @@ export function AddIncomePageClient({ categories }: AddIncomePageClientProps) {
 
   return (
     <AppLayout title="เพิ่มรายรับ">
-      <TransactionForm
-        type="income"
-        categories={categories}
-        onCancel={() => router.back()}
-        successRedirect="/income"
-        onSubmit={async (data) => {
-          const transaction = await submitTransaction(data);
-          await printTransactionDocument(transaction);
-        }}
-      />
+      <div className="pos-page">
+        <TransactionForm
+          type="income"
+          categories={categories}
+          onCancel={() => router.back()}
+          successRedirect="/income"
+          onSubmit={async (data) => {
+            const transaction = await submitTransaction(data);
+            await printTransactionDocument(transaction);
+          }}
+        />
+      </div>
     </AppLayout>
   );
 }

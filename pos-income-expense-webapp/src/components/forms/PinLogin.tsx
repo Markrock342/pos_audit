@@ -190,7 +190,7 @@ export function PinLogin() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 w-full max-w-lg mx-auto">
+    <div className="pos-pin-compact flex flex-col items-center gap-3 w-full max-w-lg mx-auto">
       {/* Saved Profiles Dropdown */}
       {savedProfiles.filter((n) => !isHiddenFromProfiles(n)).length > 0 && (
         <div className="w-full relative" ref={dropdownRef}>
@@ -294,7 +294,7 @@ export function PinLogin() {
       )}
 
       {/* Numpad */}
-      <div className="grid w-full grid-cols-3 gap-3">
+      <div className="grid w-full grid-cols-3 gap-2 2xl:gap-2">
         {PIN_KEYS.map((key) => {
           if (key === "backspace") {
             return (
@@ -302,7 +302,7 @@ export function PinLogin() {
                 key={key}
                 type="button"
                 onClick={() => handleKey(key)}
-                className="flex h-[4.5rem] min-h-[72px] items-center justify-center rounded-2xl bg-surface-elevated text-text-secondary shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-surface-hover active:scale-[0.97] transition-all duration-150"
+                className="flex h-[4rem] min-h-[64px] items-center justify-center rounded-2xl bg-surface-elevated text-text-secondary shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-surface-hover active:scale-[0.97] transition-all duration-150 2xl:h-[3.5rem] 2xl:min-h-[56px]"
                 aria-label="ลบ"
               >
                 <Delete size={24} />
@@ -316,7 +316,7 @@ export function PinLogin() {
                 key={key}
                 type="button"
                 onClick={() => handleKey(key)}
-                className="flex h-[4.5rem] min-h-[72px] items-center justify-center rounded-2xl bg-surface-elevated text-text-muted text-base font-bold shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-surface-hover active:scale-[0.97] transition-all duration-150"
+                className="flex h-[4rem] min-h-[64px] items-center justify-center rounded-2xl bg-surface-elevated text-text-muted text-base font-bold shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-surface-hover active:scale-[0.97] transition-all duration-150 2xl:h-[3.5rem] 2xl:min-h-[56px]"
                 aria-label="ล้าง"
               >
                 C
@@ -329,7 +329,7 @@ export function PinLogin() {
               key={key}
               type="button"
               onClick={() => handleKey(key)}
-              className="flex h-[4.5rem] min-h-[72px] items-center justify-center rounded-2xl bg-surface-elevated text-text-main text-2xl font-black shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-brand active:text-text-inverse active:shadow-[0_4px_12px_rgba(255,107,53,0.35)] active:scale-[0.97] transition-all duration-150"
+              className="flex h-[4rem] min-h-[64px] items-center justify-center rounded-2xl bg-surface-elevated text-text-main text-2xl font-black shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:bg-brand active:text-text-inverse active:shadow-[0_4px_12px_rgba(255,107,53,0.35)] active:scale-[0.97] transition-all duration-150 2xl:h-[3.5rem] 2xl:min-h-[56px] 2xl:text-xl"
               aria-label={key}
             >
               {key}

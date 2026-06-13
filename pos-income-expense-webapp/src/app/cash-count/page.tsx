@@ -146,7 +146,7 @@ export default function CashCountPage() {
 
   return (
     <AppLayout title="ปิดยอดเงินสด" subtitle="ตัดยอดอัตโนมัติเที่ยงคืน · วันเก่าแก้ไขไม่ได้">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 pb-24 2xl:h-[calc(100vh-8rem)] 2xl:max-h-[calc(100vh-8rem)] 2xl:overflow-hidden 2xl:pb-0">
+      <div className="pos-page mx-auto flex max-w-5xl flex-col gap-4 pb-24 2xl:gap-4 2xl:pb-0">
         {message && (
           <p
             className={`shrink-0 rounded-xl px-4 py-3 text-sm font-bold ${
@@ -168,8 +168,8 @@ export default function CashCountPage() {
             {loading ? (
               <p className="text-text-muted">กำลังโหลด...</p>
             ) : (
-              <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2 2xl:gap-8">
-                <div className="flex flex-col gap-4">
+              <div className="pos-cash-grid pos-cash-form grid grid-cols-1 gap-6 2xl:grid-cols-2 2xl:gap-6">
+                <div className="pos-cash-form flex flex-col gap-4">
                   <div className="space-y-1">
                     <p className="text-sm text-text-secondary">
                       วันที่: <strong>{formatDateShort(countDate)}</strong>

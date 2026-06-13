@@ -19,7 +19,7 @@ export function BottomNav() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 border-t-2 border-border-default bg-surface-elevated pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-4px_20px_rgba(15,23,42,0.1)] 2xl:hidden"
+        className="pos-kiosk-bottom-nav fixed bottom-0 left-0 right-0 z-40 border-t-2 border-border-default bg-surface-elevated pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-4px_20px_rgba(15,23,42,0.1)] 2xl:hidden"
         aria-label="เมนูหลัก"
       >
         <div className="grid grid-cols-5 gap-1 px-2 py-2">
@@ -60,7 +60,7 @@ export function BottomNav() {
       </nav>
 
       {moreOpen && (
-        <div className="fixed inset-0 z-50 2xl:hidden">
+        <div className="pos-kiosk-bottom-nav fixed inset-0 z-50 2xl:hidden">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setMoreOpen(false)}

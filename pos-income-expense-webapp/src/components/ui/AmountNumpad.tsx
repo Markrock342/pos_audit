@@ -15,9 +15,11 @@ interface AmountNumpadProps {
   onChange: (value: string) => void;
   /** จำนวนเต็มบาท — ซ่อนปุ่ม . */
   integerOnly?: boolean;
+  /** ปุ่มใหญ่สำหรับ POS touch (min 56px) */
+  touch?: boolean;
 }
 
-export function AmountNumpad({ value, onChange, integerOnly }: AmountNumpadProps) {
+export function AmountNumpad({ value, onChange, integerOnly, touch }: AmountNumpadProps) {
   const handleKey = (key: string) => {
     let next: string;
     if (key === "C") {
@@ -34,8 +36,20 @@ export function AmountNumpad({ value, onChange, integerOnly }: AmountNumpadProps
     onChange(next);
   };
 
+  const keyClass = cn(
+    "pos-numpad-key rounded-xl font-bold shadow-md active:scale-95 text-text-main",
+    touch
+      ? "min-h-14 text-2xl"
+      : "min-h-[44px] text-xl"
+  );
+
   return (
-    <div className="grid grid-cols-3 gap-2 2xl:gap-3">
+    <div
+      className={cn(
+        "pos-numpad-grid grid w-full grid-cols-3",
+        touch ? "gap-2" : "gap-1.5 sm:gap-2"
+      )}
+    >
       {(integerOnly
         ? ["7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0"]
         : ["7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0", "."]
@@ -45,7 +59,7 @@ export function AmountNumpad({ value, onChange, integerOnly }: AmountNumpadProps
           type="button"
           onClick={() => handleKey(key)}
           className={cn(
-            "min-h-[52px] rounded-xl text-2xl font-bold shadow-md active:scale-95 text-text-main 2xl:min-h-[76px] 2xl:rounded-2xl 2xl:text-3xl",
+            keyClass,
             key === "C"
               ? "bg-expense-light text-expense active:bg-expense/20"
               : "bg-surface-hover active:bg-border-default"
@@ -57,14 +71,14 @@ export function AmountNumpad({ value, onChange, integerOnly }: AmountNumpadProps
       <button
         type="button"
         onClick={() => handleKey("⌫")}
-        className="min-h-[52px] rounded-xl bg-surface-hover text-2xl font-bold text-text-secondary active:bg-border-default shadow-md active:scale-95 2xl:min-h-[76px] 2xl:rounded-2xl 2xl:text-3xl"
+        className={cn(keyClass, "bg-surface-hover text-text-secondary active:bg-border-default")}
       >
         ⌫
       </button>
       <button
         type="button"
         onClick={() => handleKey("00")}
-        className="min-h-[52px] rounded-xl bg-surface-hover text-2xl font-bold text-text-main active:bg-border-default shadow-md active:scale-95 2xl:min-h-[76px] 2xl:rounded-2xl 2xl:text-3xl"
+        className={cn(keyClass, "col-span-2 bg-surface-hover active:bg-border-default")}
       >
         00
       </button>
@@ -76,28 +90,60 @@ interface AmountDisplayProps {
   value: string;
   label: string;
   active?: boolean;
+  compact?: boolean;
+  large?: boolean;
   onClick?: () => void;
 }
 
-export function AmountDisplay({ value, label, active, onClick }: AmountDisplayProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "w-full rounded-xl border-2 px-4 py-3 text-left shadow-sm transition-all 2xl:rounded-2xl 2xl:px-5 2xl:py-4",
-        active
-          ? "border-brand bg-brand/5 ring-4 ring-brand-ring"
-          : "border-border-default bg-surface-elevated active:bg-surface-hover"
-      )}
-    >
-      <p className="mb-1 text-sm font-bold text-text-secondary">{label}</p>
-      <div className="flex items-center">
-        <span className="text-3xl font-bold text-text-muted">฿</span>
-        <span className="ml-2 text-3xl font-black text-text-main 2xl:text-4xl">
+export function AmountDisplay({ value, label, active, compact, large, onClick }: AmountDisplayProps) {
+  const className = cn(
+    "w-full rounded-xl border-2 text-left shadow-sm transition-all",
+    large && "px-4 py-3",
+    compact && !large && "px-3 py-2",
+    !compact && !large && "px-4 py-3 2xl:rounded-2xl 2xl:px-5 2xl:py-4",
+    active
+      ? "border-brand bg-brand/5 ring-2 ring-brand-ring"
+      : "border-border-default bg-surface-elevated active:bg-surface-hover"
+  );
+
+  const content = (
+    <>
+      <p
+        className={cn(
+          "font-bold text-text-secondary",
+          large ? "mb-1 text-sm" : compact ? "mb-0.5 text-xs" : "mb-1 text-sm"
+        )}
+      >
+        {label}
+      </p>
+      <div className="flex items-baseline">
+        <span
+          className={cn(
+            "font-bold text-text-muted",
+            large ? "text-2xl" : compact ? "text-xl" : "text-3xl"
+          )}
+        >
+          ฿
+        </span>
+        <span
+          className={cn(
+            "ml-2 font-black tabular-nums text-text-main",
+            large ? "text-4xl" : compact ? "text-2xl" : "text-3xl 2xl:text-4xl"
+          )}
+        >
           {formatDisplay(value)}
         </span>
       </div>
-    </button>
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
 }

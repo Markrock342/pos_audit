@@ -16,7 +16,7 @@ export function FloatingSlipFollow({ children, className }: FloatingSlipFollowPr
   return (
     <div
       className={cn(
-        "relative w-full max-w-[240px] lg:max-w-[260px] lg:self-stretch xl:max-w-[280px] 2xl:max-w-[320px]",
+        "pos-kiosk-slip-sticky relative w-full max-w-[240px] lg:max-w-[260px] lg:self-stretch xl:max-w-[280px] 2xl:max-w-[320px]",
         className
       )}
     >
@@ -24,8 +24,8 @@ export function FloatingSlipFollow({ children, className }: FloatingSlipFollowPr
         className={cn(
           "draft-slip-follow w-full max-w-full",
           "lg:sticky lg:top-2 lg:z-25",
-          "lg:max-h-[calc(100dvh-4.5rem-6rem-env(safe-area-inset-bottom,0px))]",
-          "2xl:top-3 2xl:max-h-[calc(100dvh-5.5rem-1.5rem-env(safe-area-inset-bottom,0px))]",
+          "lg:max-h-[calc(100dvh-var(--app-header-h)-var(--app-main-py)-6rem-env(safe-area-inset-bottom,0px))]",
+          "2xl:top-2 2xl:max-h-[calc(100dvh-var(--app-header-h)-2*var(--app-main-py)-2rem-env(safe-area-inset-bottom,0px))]",
           "lg:overflow-y-auto lg:shadow-[0_14px_40px_rgba(15,23,42,0.12)]"
         )}
       >

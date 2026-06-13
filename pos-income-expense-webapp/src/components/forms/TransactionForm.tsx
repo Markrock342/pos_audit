@@ -12,8 +12,12 @@ import {
 } from "@/lib/validations/transaction";
 import { type CartLine } from "@/components/forms/TransactionCartPanel";
 import { DraftBillPreview } from "@/components/forms/DraftBillPreview";
-import { FloatingSlipFollow } from "@/components/forms/FloatingSlipFollow";
-import { TransactionLineBuilder } from "@/components/forms/TransactionLineBuilder";
+import { TransactionCartList } from "@/components/forms/TransactionCartList";
+import {
+  TransactionAmountPanel,
+  TransactionCategoryPanel,
+  useTransactionLineDraft,
+} from "@/components/forms/TransactionLineBuilder";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Toast } from "@/components/ui/Toast";
@@ -41,6 +45,7 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const router = useRouter();
   const savingRef = useRef(false);
+  const saveModeRef = useRef<"redirect" | "new">("redirect");
   const filteredCategories = categories.filter((c) => c.type === type);
 
   const [cartLines, setCartLines] = useState<CartLine[]>([]);
@@ -53,6 +58,7 @@ export function TransactionForm({
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { isSubmitting },
   } = useForm<Omit<TransactionFormValues, "lineItems">>({
     defaultValues: {
@@ -70,12 +76,26 @@ export function TransactionForm({
   const billNote = watch("note");
   const dismissToast = useCallback(() => setToast(null), []);
 
+  const lineDraft = useTransactionLineDraft(filteredCategories, setDraftLine);
+
   const handleAddLine = (item: LineItemFormValues) => {
     setCartLines((prev) => [...prev, { ...item, localId: newLocalId() }]);
   };
 
   const handleRemoveLine = (localId: string) => {
     setCartLines((prev) => prev.filter((l) => l.localId !== localId));
+  };
+
+  const clearEntry = () => {
+    setCartLines([]);
+    lineDraft.resetDraft();
+    reset({
+      type,
+      title: "",
+      note: "",
+      paymentMethod: "cash",
+      transactionDate: new Date().toISOString().slice(0, 10),
+    });
   };
 
   const handleFormSubmit = async (header: Omit<TransactionFormValues, "lineItems">) => {
@@ -114,7 +134,10 @@ export function TransactionForm({
       return;
     }
 
-    if (successRedirect) {
+    const mode = saveModeRef.current;
+    saveModeRef.current = "redirect";
+
+    if (mode === "redirect" && successRedirect) {
       router.replace(successRedirect);
       return;
     }
@@ -122,33 +145,35 @@ export function TransactionForm({
     savingRef.current = false;
     setIsSaving(false);
     setToast({ type: "success", message: "บันทึกข้อมูลสำเร็จ" });
-    setCartLines([]);
+    clearEntry();
   };
 
   const busy = isSubmitting || isSaving;
+  const accentBorder = type === "income" ? "border-t-income" : "border-t-expense";
 
   return (
-    <Card className={`pb-24 lg:pb-0 ${type === "income" ? "border-t-4 border-t-income" : "border-t-4 border-t-expense"}`}>
-      <CardHeader className="pb-2 2xl:pb-2">
-        <CardTitle className="flex items-center gap-2 text-xl font-black 2xl:gap-3 2xl:text-2xl">
+    <Card className={`pos-page pos-txn-page pb-24 lg:pb-0 border-t-4 ${accentBorder}`}>
+      <CardHeader className="pos-page-header shrink-0 border-b border-border-default/50 py-2">
+        <CardTitle className="flex items-center gap-2 text-lg font-black">
           {type === "income" ? (
-            <ArrowUpCircle size={24} className="text-income 2xl:h-7 2xl:w-7" />
+            <ArrowUpCircle size={22} className="text-income" />
           ) : (
-            <ArrowDownCircle size={24} className="text-expense 2xl:h-7 2xl:w-7" />
+            <ArrowDownCircle size={22} className="text-expense" />
           )}
           {type === "income" ? "บันทึกรายรับ" : "บันทึกรายจ่าย"}
         </CardTitle>
-        <p className="mt-1 text-sm text-text-muted">
-          แตะเลือกหมวด → ใส่ราคา → กดเพิ่มรายการ (ทำซ้ำได้หลายรายการ)
-        </p>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(handleFormSubmit)}>
+
+      <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden p-2 pt-2 lg:p-3">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <input type="hidden" {...register("type")} />
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)] lg:items-start lg:gap-5 xl:grid-cols-[minmax(240px,280px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)] 2xl:gap-6">
-            <FloatingSlipFollow>
+          <div className="pos-txn-terminal min-h-0 flex-1">
+            {/* LEFT ~22% — compact receipt preview */}
+            <aside className="pos-txn-slip-col min-h-0">
               <DraftBillPreview
+                compact
+                hideActions
                 type={type}
                 lines={cartLines}
                 draftLine={draftLine}
@@ -158,85 +183,141 @@ export function TransactionForm({
                 transactionDate={transactionDate}
                 note={billNote}
                 onRemove={handleRemoveLine}
-                isSaving={isSaving}
-                isSubmitting={isSubmitting}
-                onCancel={onCancel}
               />
-            </FloatingSlipFollow>
+            </aside>
 
-            <div className="flex min-w-0 flex-col gap-5">
-              <section className="rounded-xl border-2 border-border-default bg-surface-elevated p-3 2xl:rounded-2xl 2xl:p-4">
-                <TransactionLineBuilder
-                  categories={filteredCategories}
-                  type={type}
-                  onAdd={handleAddLine}
-                  onDraftChange={setDraftLine}
-                />
-              </section>
+            {/* CENTER ~48% — category + bill details */}
+            <section className="pos-txn-detail-col pos-scroll min-h-0 rounded-xl border-2 border-border-default bg-surface-elevated p-3">
+              <TransactionCategoryPanel
+                categories={filteredCategories}
+                categoryId={lineDraft.categoryId}
+                onSelect={(id) => {
+                  lineDraft.setCategoryId(id);
+                  lineDraft.setError(null);
+                }}
+              />
 
-              <section className="space-y-3 rounded-xl border-2 border-border-default bg-surface-elevated p-3 2xl:space-y-4 2xl:rounded-2xl 2xl:p-4">
-                <h3 className="text-base font-bold text-text-main">ข้อมูลบิล</h3>
+              <div className="pos-txn-bill mt-4 border-t border-border-default pt-4">
+                <h3 className="pos-panel-title mb-3 text-sm font-black uppercase tracking-wide text-text-secondary">
+                  2. ข้อมูลบิล
+                </h3>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label className="mb-1 block text-sm font-semibold text-text-secondary">
-                      ชื่อบิล (ไม่บังคับ)
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-text-secondary">
+                      ชื่อบิล / ผู้ขาย (ไม่บังคับ)
                     </label>
                     <input
                       {...register("title")}
-                      placeholder="เช่น ขายให้คุณสมชาย — ว่างไว้ได้"
-                      className="w-full rounded-xl border-2 border-border-default bg-surface-inset px-4 py-3 text-base min-h-[52px]"
+                      placeholder="ว่างไว้ได้"
+                      className="pos-bill-input min-h-14 w-full rounded-xl border-2 border-border-default bg-surface-inset px-3 text-base"
                     />
                   </div>
+
+                  <div className="pos-bill-meta-row grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-text-secondary">
+                        วันที่
+                      </label>
+                      <input
+                        type="date"
+                        {...register("transactionDate")}
+                        className="pos-bill-input min-h-14 w-full rounded-xl border-2 border-border-default bg-surface-inset px-3 text-base"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-text-secondary">
+                        หมายเหตุ
+                      </label>
+                      <input
+                        {...register("note")}
+                        placeholder="ถ้ามี"
+                        className="pos-bill-input min-h-14 w-full rounded-xl border-2 border-border-default bg-surface-inset px-3 text-base"
+                      />
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="mb-1 block text-sm font-semibold text-text-secondary">
-                      วันที่
+                    <label className="mb-1.5 block text-xs font-semibold text-text-secondary">
+                      ช่องทางชำระ
                     </label>
-                    <input
-                      type="date"
-                      {...register("transactionDate")}
-                      className="w-full rounded-xl border-2 border-border-default bg-surface-inset px-4 py-3 min-h-[52px] text-lg"
-                    />
+                    <div className="pos-bill-payment-btns grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {PAYMENT_METHODS.map((method) => (
+                        <button
+                          key={method.value}
+                          type="button"
+                          onClick={() => setValue("paymentMethod", method.value as PaymentMethod)}
+                          className={`pos-touch-btn min-h-14 rounded-xl border-2 px-2 text-sm font-bold transition-all active:scale-[0.98] ${
+                            selectedPaymentMethod === method.value
+                              ? "border-brand bg-brand text-text-inverse shadow-md"
+                              : "border-border-default bg-surface-inset text-text-secondary"
+                          }`}
+                        >
+                          {method.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-text-secondary">
-                    ช่องทางชำระ
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {PAYMENT_METHODS.map((method) => (
-                      <button
-                        key={method.value}
-                        type="button"
-                        onClick={() => setValue("paymentMethod", method.value as PaymentMethod)}
-                        className={`min-h-[48px] rounded-xl border-2 px-2 py-2 text-sm font-bold transition-all active:scale-[0.98] 2xl:min-h-[56px] 2xl:px-3 ${
-                          selectedPaymentMethod === method.value
-                            ? "border-text-main bg-text-main text-text-inverse shadow-md"
-                            : "border-border-default bg-surface-inset text-text-secondary"
-                        }`}
-                      >
-                        {method.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              <TransactionCartList lines={cartLines} onRemove={handleRemoveLine} />
+            </section>
 
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-text-secondary">
-                    หมายเหตุ (ไม่บังคับ)
-                  </label>
-                  <input
-                    {...register("note")}
-                    placeholder="ถ้ามี"
-                    className="w-full rounded-xl border-2 border-border-default bg-surface-inset px-4 py-3 min-h-[52px]"
-                  />
-                </div>
-              </section>
-            </div>
+            {/* RIGHT ~30% — amount + keypad + save */}
+            <section className="pos-txn-amount-col flex min-h-0 flex-col rounded-xl border-2 border-border-default bg-surface-elevated p-3">
+              <TransactionAmountPanel
+                type={type}
+                amountString={lineDraft.amountString}
+                quantity={lineDraft.quantity}
+                customTitle={lineDraft.customTitle}
+                showTitle={lineDraft.showTitle}
+                error={lineDraft.error}
+                onAmountChange={(v) => {
+                  lineDraft.setAmountString(v);
+                  lineDraft.setError(null);
+                }}
+                onQuantityChange={(fn) => lineDraft.setQuantity(fn)}
+                onCustomTitleChange={lineDraft.setCustomTitle}
+                onShowTitle={() => lineDraft.setShowTitle(true)}
+                onAdd={() => lineDraft.handleAdd(handleAddLine)}
+              />
+
+              <div className="pos-txn-actions mt-auto shrink-0 space-y-2 border-t border-border-default pt-3">
+                <Button
+                  type="submit"
+                  disabled={busy || cartLines.length === 0}
+                  variant={type === "income" ? "income" : "danger"}
+                  size="lg"
+                  className="w-full text-lg font-black"
+                  onClick={() => {
+                    saveModeRef.current = successRedirect ? "redirect" : "new";
+                  }}
+                >
+                  {busy ? "กำลังบันทึก..." : "บันทึก"}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={busy || cartLines.length === 0}
+                  variant="secondary"
+                  size="md"
+                  className="w-full font-bold"
+                  onClick={() => {
+                    saveModeRef.current = "new";
+                  }}
+                >
+                  บันทึก &amp; ใหม่
+                </Button>
+                {onCancel && (
+                  <Button type="button" variant="outline" size="md" className="w-full font-bold" onClick={onCancel}>
+                    ยกเลิก
+                  </Button>
+                )}
+              </div>
+            </section>
           </div>
 
-          <div className="tablet-sticky-action lg:hidden">
+          <div className="pos-kiosk-hide-mobile-save tablet-sticky-action lg:hidden">
             <Button
               type="submit"
               disabled={busy || cartLines.length === 0}

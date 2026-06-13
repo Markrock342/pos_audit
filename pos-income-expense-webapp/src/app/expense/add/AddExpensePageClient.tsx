@@ -16,16 +16,18 @@ export function AddExpensePageClient({ categories }: AddExpensePageClientProps) 
 
   return (
     <AppLayout title="เพิ่มรายจ่าย">
-      <TransactionForm
-        type="expense"
-        categories={categories}
-        onCancel={() => router.back()}
-        successRedirect="/expense"
-        onSubmit={async (data) => {
-          const transaction = await submitTransaction(data);
-          await printTransactionDocument(transaction, { categories });
-        }}
-      />
+      <div className="pos-page">
+        <TransactionForm
+          type="expense"
+          categories={categories}
+          onCancel={() => router.back()}
+          successRedirect="/expense"
+          onSubmit={async (data) => {
+            const transaction = await submitTransaction(data);
+            await printTransactionDocument(transaction, { categories });
+          }}
+        />
+      </div>
     </AppLayout>
   );
 }

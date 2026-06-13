@@ -31,49 +31,51 @@ export default async function DashboardPage() {
 
   return (
     <AppLayout title="ภาพรวม">
-      <div className="space-y-6">
-        <SummaryCards summary={summary} />
+      <div className="pos-page gap-3 2xl:gap-4">
+        <div className="pos-stat-compact shrink-0">
+          <SummaryCards summary={summary} />
+        </div>
 
-        <div className="grid grid-cols-2 gap-3 2xl:gap-4">
+        <div className="pos-dashboard-actions grid shrink-0 grid-cols-2 gap-3 2xl:gap-3">
           <Link href="/income/add" prefetch>
-            <Button variant="income" size="lg" className="min-h-[72px] w-full gap-2 text-lg font-black 2xl:min-h-[64px] 2xl:gap-3 2xl:text-xl">
-              <ArrowUpCircle size={26} className="2xl:w-7" />
+            <Button variant="income" size="lg" className="min-h-[72px] w-full gap-2 text-lg font-black 2xl:min-h-[56px] 2xl:gap-2 2xl:text-lg">
+              <ArrowUpCircle size={24} className="2xl:w-6" />
               เพิ่มรายรับ
             </Button>
           </Link>
           <Link href="/expense/add" prefetch>
-            <Button variant="danger" size="lg" className="min-h-[72px] w-full gap-2 text-lg font-black 2xl:min-h-[64px] 2xl:gap-3 2xl:text-xl">
-              <ArrowDownCircle size={26} className="2xl:w-7" />
+            <Button variant="danger" size="lg" className="min-h-[72px] w-full gap-2 text-lg font-black 2xl:min-h-[56px] 2xl:gap-2 2xl:text-lg">
+              <ArrowDownCircle size={24} className="2xl:w-6" />
               เพิ่มรายจ่าย
             </Button>
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 2xl:grid-cols-3">
-          <Card className="2xl:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-xl font-black flex items-center gap-2">
-                <TrendingUp size={22} className="text-brand" />
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 2xl:grid-cols-3 2xl:gap-4">
+          <Card className="flex min-h-0 flex-col 2xl:col-span-2">
+            <CardHeader className="shrink-0 pb-2 2xl:py-3">
+              <CardTitle className="flex items-center gap-2 text-lg font-black 2xl:text-xl">
+                <TrendingUp size={20} className="text-brand 2xl:h-5 2xl:w-5" />
                 สรุปรายรับ-รายจ่าย (6 วันล่าสุด)
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <IncomeExpenseChart data={chartData} />
+            <CardContent className="min-h-0 flex-1 pb-4">
+              <IncomeExpenseChart data={chartData} className="pos-chart-compact" />
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-xl font-black">รายการล่าสุด</CardTitle>
+          <Card className="flex min-h-0 flex-col">
+            <CardHeader className="flex shrink-0 flex-row items-center justify-between py-3">
+              <CardTitle className="text-lg font-black 2xl:text-xl">รายการล่าสุด</CardTitle>
               <Link href="/reports" prefetch>
                 <Button variant="ghost" className="font-bold text-brand">
                   ดูทั้งหมด
                 </Button>
               </Link>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pos-scroll min-h-0 flex-1 pb-4">
               {recentTransactions.length === 0 ? (
-                <p className="text-center text-text-muted py-8">ยังไม่มีรายการ — เริ่มบันทึกรายรับ/รายจ่ายได้เลย</p>
+                <p className="py-6 text-center text-text-muted">ยังไม่มีรายการ — เริ่มบันทึกรายรับ/รายจ่ายได้เลย</p>
               ) : (
                 <RecentTransactionList
                   transactions={recentTransactions}

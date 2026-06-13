@@ -2,6 +2,8 @@
 
 /* ─── Light Mode ─── */
 :root {
+  --app-header-h: 4rem;
+  --app-main-py: 0.75rem;
   --surface: #f8fafc;
   --surface-elevated: #ffffff;
   --surface-inset: #f1f5f9;
@@ -110,7 +112,16 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  height: 100%;
+  overflow: hidden;
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
+}
+
 body {
+  height: 100%;
+  overflow: hidden;
   background: var(--surface);
   color: var(--text-main);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif;
@@ -131,16 +142,283 @@ input, textarea {
   -webkit-user-select: auto;
 }
 
-/* Remove default input styling on mobile */
 input, textarea, button {
   -webkit-appearance: none;
   appearance: none;
 }
 
-/* Smooth scrolling for touch */
-html {
-  scroll-behavior: smooth;
-  overscroll-behavior: none;
+@media (min-width: 1536px) {
+  :root {
+    --app-header-h: 5rem;
+    --app-main-py: 1rem;
+  }
+}
+
+/* หน้าเต็มพื้นที่ main — ไม่ scroll ทั้งหน้า (เหมาะ POS 15.6" 1080p) */
+.pos-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.pos-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* split หมวดซ้าย / ราคาขวา — mobile / portrait */
+@media (min-width: 640px) {
+  .pos-line-split {
+    display: grid;
+    grid-template-columns: minmax(7.5rem, max-content) minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .pos-line-price-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    border-left: 2px solid var(--border-default);
+    padding-left: 0.75rem;
+  }
+
+  .pos-category-list {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pos-bill-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(7.5rem, 9rem) minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: end;
+  }
+
+  .pos-bill-row .pos-bill-title,
+  .pos-bill-row .pos-bill-payments {
+    grid-column: 1 / -1;
+  }
+
+  .pos-bill-payment-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .pos-bill-payment-btns button {
+    flex: 0 0 auto;
+    min-height: 2rem;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+  }
+}
+
+.pos-txn-workspace-grid {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ─── POS Terminal Layout: 22% slip | 48% details | 30% amount ─── */
+.pos-txn-terminal {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pos-txn-slip-col {
+  min-height: 12rem;
+}
+
+.pos-txn-detail-col,
+.pos-txn-amount-col {
+  min-height: 0;
+}
+
+.pos-panel-title {
+  letter-spacing: 0.04em;
+}
+
+.pos-touch-btn {
+  touch-action: manipulation;
+}
+
+@media (min-width: 900px) and (orientation: landscape) {
+  .pos-txn-terminal {
+    display: grid;
+    grid-template-columns: minmax(210px, 22fr) minmax(0, 48fr) minmax(290px, 30fr);
+    gap: 0.625rem;
+    overflow: hidden;
+  }
+
+  .pos-txn-slip-col {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pos-txn-detail-col {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .pos-txn-amount-col {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .pos-amount-panel {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .pos-numpad-stack {
+    min-height: 0;
+  }
+
+  .pos-txn-actions {
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  .pos-page-hint {
+    display: none;
+  }
+}
+
+/* iMIN SWAN 2 / POS landscape — Android มักได้ ~960px CSS แม้จอ 1920px */
+@media (orientation: landscape) and (min-width: 720px) and (max-height: 1200px) {
+  .pos-kiosk-sidebar {
+    display: flex !important;
+    flex-direction: column;
+    width: 13rem;
+  }
+
+  .pos-kiosk-sidebar nav {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .pos-kiosk-sidebar nav a {
+    min-height: 2.75rem;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.8125rem;
+  }
+
+  .pos-kiosk-bottom-nav {
+    display: none !important;
+  }
+
+  .main-tablet {
+    padding-bottom: 1rem !important;
+  }
+
+  .pos-kiosk-slip-sticky .draft-slip-follow {
+    position: sticky;
+    top: 0.5rem;
+    max-height: calc(100dvh - var(--app-header-h) - 2 * var(--app-main-py) - 1rem);
+    overflow-y: auto;
+    box-shadow: 0 14px 40px rgba(15, 23, 42, 0.12);
+  }
+
+  .pos-kiosk-slip-actions {
+    display: block !important;
+  }
+
+  .pos-kiosk-hide-mobile-save {
+    display: none !important;
+  }
+
+  .pos-txn-grid {
+    display: none !important;
+  }
+
+  .pos-txn-terminal {
+    grid-template-columns: minmax(190px, 20fr) minmax(0, 50fr) minmax(270px, 30fr) !important;
+  }
+
+  .pos-slip-subtitle {
+    display: none;
+  }
+
+  .pos-slip-preview {
+    min-height: 0 !important;
+  }
+
+  .pos-page-header {
+    padding-top: 0.375rem !important;
+    padding-bottom: 0.25rem !important;
+  }
+
+  .pos-line-categories {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .pos-line-split {
+    grid-template-columns: minmax(7.5rem, max-content) minmax(0, 1fr);
+  }
+
+  .pos-category-compact button {
+    min-height: 2.25rem !important;
+    height: 2.25rem !important;
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .pos-chart-compact {
+    height: 10.5rem !important;
+    min-height: 10.5rem !important;
+  }
+
+  .pos-stat-compact .pos-stat-body {
+    min-height: 4.5rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .pos-stat-compact .pos-stat-value {
+    margin-top: 0.25rem;
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .pos-stat-compact .pos-stat-title {
+    font-size: 0.875rem;
+  }
+
+  .pos-pin-compact button[type="button"] {
+    min-height: 3.25rem !important;
+    height: 3.25rem !important;
+  }
+
+  .pos-cash-grid {
+    gap: 0.75rem !important;
+  }
+
+  .pos-cash-form {
+    gap: 0.5rem !important;
+  }
+
+  .pos-dashboard-actions button {
+    min-height: 3.25rem !important;
+  }
 }
 
 /* ─── Shake Animation for PIN Error ─── */

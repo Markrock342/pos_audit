@@ -209,7 +209,7 @@ export default function CategoriesPage() {
 
   return (
     <AppLayout title="หมวดหมู่">
-      <div className="flex flex-col gap-4 2xl:h-[calc(100vh-8rem)] 2xl:max-h-[calc(100vh-8rem)] 2xl:overflow-hidden">
+      <div className="pos-page flex flex-col gap-4">
         {error && (
           <p className="shrink-0 rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">
             {error}

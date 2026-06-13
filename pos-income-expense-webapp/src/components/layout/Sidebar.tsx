@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_SECTIONS, APP_NAME } from "@/constants";
+import { AppLogo } from "@/components/ui/AppLogo";
 import { useOrganization } from "@/components/providers/OrganizationProvider";
 import { cn } from "@/lib/utils/cn";
 
@@ -11,12 +12,10 @@ export function Sidebar() {
   const { shopName } = useOrganization();
 
   return (
-    <aside className="hidden w-72 shrink-0 flex-col bg-surface-elevated shadow-[2px_0_12px_rgba(15,23,42,0.08)] 2xl:flex">
-      <div className="border-b border-border-default px-6 py-8">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand shadow-[0_2px_8px_rgba(255,107,53,0.4)]">
-            <span className="text-lg font-black text-text-inverse">บ</span>
-          </div>
+    <aside className="pos-kiosk-sidebar hidden w-72 shrink-0 flex-col bg-surface-elevated shadow-[2px_0_12px_rgba(15,23,42,0.08)] 2xl:flex">
+      <div className="border-b border-border-default px-4 py-4 2xl:px-5 2xl:py-5">
+        <div className="flex items-center gap-2.5">
+          <AppLogo size={40} className="shadow-[0_2px_8px_rgba(255,107,53,0.4)]" />
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-text-muted">
               {shopName}

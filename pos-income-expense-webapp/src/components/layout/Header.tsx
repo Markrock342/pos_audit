@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useOrganization } from "@/components/providers/OrganizationProvider";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, LogOut, Moon, Sun } from "lucide-react";
+import { ArrowLeft, CircleHelp, LogOut, Moon, Sun } from "lucide-react";
+import { HelpGuideDialog, useHelpGuide } from "@/components/guide/HelpGuideDialog";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -22,6 +23,7 @@ export function Header({ title, subtitle }: HeaderProps) {
   const [time, setTime] = useState("");
   const [date, setDate] = useState("");
   const isHome = pathname === "/dashboard";
+  const { open: helpOpen, setOpen: setHelpOpen } = useHelpGuide();
 
   useEffect(() => {
     const update = () => {
@@ -47,7 +49,7 @@ export function Header({ title, subtitle }: HeaderProps) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border-default bg-surface-elevated px-4 shadow-[0_1px_6px_rgba(15,23,42,0.06)] 2xl:h-20 2xl:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border-default bg-surface-elevated px-4 shadow-[0_1px_6px_rgba(15,23,42,0.06)] 2xl:h-20 2xl:px-6">
       <div className="flex min-w-0 items-center gap-2 2xl:gap-4">
         {!isHome && (
           <Button
@@ -73,6 +75,15 @@ export function Header({ title, subtitle }: HeaderProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-2 2xl:gap-4">
+        <Button
+          variant="ghost"
+          onClick={() => setHelpOpen(true)}
+          className="min-h-[48px] min-w-[48px] px-2 2xl:min-h-[56px]"
+          aria-label="คู่มือการใช้งาน"
+          title="คู่มือการใช้งาน"
+        >
+          <CircleHelp size={22} />
+        </Button>
         <div className="text-right">
           <span className="block text-xl font-bold tabular-nums text-text-main 2xl:text-2xl">
             {time}
@@ -101,6 +112,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           <span className="2xl:hidden">ออก</span>
         </Button>
       </div>
+      <HelpGuideDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </header>
   );
 }

@@ -19,10 +19,10 @@ const iconBgMap = {
 export function StatCard({ title, value, subtitle, trend, icon: Icon }: StatCardProps) {
   return (
     <Card className="border-l-4 border-l-brand">
-      <CardContent className="flex items-start justify-between min-h-[120px]">
-        <div className="flex-1 min-w-0">
-          <p className="text-base font-bold text-text-secondary">{title}</p>
-          <p className="mt-2 text-2xl font-black text-text-main tracking-tight 2xl:text-4xl">{value}</p>
+      <CardContent className="pos-stat-body flex min-h-[120px] items-start justify-between 2xl:min-h-[96px]">
+        <div className="min-w-0 flex-1">
+          <p className="pos-stat-title text-base font-bold text-text-secondary">{title}</p>
+          <p className="pos-stat-value mt-2 text-2xl font-black tracking-tight text-text-main 2xl:text-3xl">{value}</p>
           {subtitle && (
             <p
               className={cn(

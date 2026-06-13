@@ -40,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" className="h-full">
-      <body className="min-h-full select-none antialiased">
+      <body className="h-full select-none antialiased">
         <AuthProvider>
           <OrganizationProvider>
             <ThemeProvider>

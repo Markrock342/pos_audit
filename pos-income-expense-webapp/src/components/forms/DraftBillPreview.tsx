@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Maximize2, X } from "lucide-react";
 import type { Category, PaymentMethod, TransactionType } from "@/types";
 import { DefaultExpenseVoucherTemplate } from "@/receipt-templates/default-expense-voucher";
 import { DefaultReceiptTemplate } from "@/receipt-templates/default-receipt";
@@ -9,11 +9,11 @@ import { useOrganization } from "@/components/providers/OrganizationProvider";
 import { KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
 import { SHOP_NAME } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils/format";
 import { buildDraftTransaction } from "@/lib/utils/buildDraftTransaction";
 import type { LineItemFormValues } from "@/lib/validations/transaction";
 import type { CartLine } from "@/components/forms/TransactionCartPanel";
+
 interface DraftBillPreviewProps {
   type: TransactionType;
   lines: CartLine[];
@@ -28,6 +28,7 @@ interface DraftBillPreviewProps {
   isSubmitting?: boolean;
   onCancel?: () => void;
   hideActions?: boolean;
+  compact?: boolean;
 }
 
 function readSessionName(): string | undefined {
@@ -44,27 +45,85 @@ function readSessionName(): string | undefined {
 function EmptyDraftSlip({
   type,
   shopName,
+  compact,
 }: {
   type: TransactionType;
   shopName: string;
+  compact?: boolean;
 }) {
   return (
+<<<<<<< HEAD
     <div className="mx-auto w-full max-w-[80mm] bg-white p-4 font-sans text-[12px] leading-snug text-black">
+=======
+    <div
+      className={`mx-auto w-full bg-white font-sans leading-snug text-black ${
+        compact ? "max-w-full p-2 text-[10px]" : "max-w-[302px] p-4 text-[12px]"
+      }`}
+    >
+>>>>>>> f4039aa (feat(webapp): optimize POS terminal layout for iMin Swan 2 touch workflow)
       <div className="text-center">
-        <p className="text-[16px] font-bold">{shopName}</p>
-        <p className="mt-0.5 text-[11px] font-semibold">
+        <p className={`font-bold ${compact ? "text-[11px]" : "text-[16px]"}`}>{shopName}</p>
+        <p className={`mt-0.5 font-semibold ${compact ? "text-[9px]" : "text-[11px]"}`}>
           {type === "income" ? "ใบเสร็จรับเงิน / Receipt" : "ใบบันทึกรายจ่าย"}
         </p>
       </div>
-      <hr className="receipt-thermal-hr my-3 w-full" aria-hidden />
-      <p className="py-10 text-center text-[12px] leading-relaxed text-black/70">
+      <hr className="receipt-thermal-hr my-2 w-full" aria-hidden />
+      <p
+        className={`text-center leading-relaxed text-black/70 ${
+          compact ? "py-4 text-[10px]" : "py-10 text-[12px]"
+        }`}
+      >
         เลือกหมวด + ใส่ราคา
         <br />
         ใบเสร็จจะอัปเดตอัตโนมัติ
       </p>
       <hr className="receipt-thermal-hr w-full" aria-hidden />
-      <p className="pt-2 text-center text-[11px] text-black/70">— ตัวอย่าง —</p>
+      {!compact && (
+        <p className="pt-2 text-center text-[11px] text-black/70">— ตัวอย่าง —</p>
+      )}
     </div>
+  );
+}
+
+function ReceiptBody({
+  type,
+  draftTransaction,
+  shopName,
+  receiptFooter,
+  sessionName,
+  categoryNames,
+}: {
+  type: TransactionType;
+  draftTransaction: ReturnType<typeof buildDraftTransaction>;
+  shopName: string;
+  receiptFooter?: string;
+  sessionName?: string;
+  categoryNames: Record<string, string>;
+}) {
+  if (!draftTransaction) return null;
+
+  if (type === "income") {
+    return (
+      <DefaultReceiptTemplate
+        transaction={draftTransaction}
+        receipt={{ id: "draft", transactionId: "draft", receiptNumber: "ร่าง" }}
+        shopName={shopName}
+        footer={receiptFooter}
+        sellerName={sessionName}
+        fullWidth
+      />
+    );
+  }
+
+  return (
+    <DefaultExpenseVoucherTemplate
+      transaction={draftTransaction}
+      voucherNumber="ร่าง"
+      shopName={shopName}
+      recorderName={sessionName}
+      categoryNames={categoryNames}
+      fullWidth
+    />
   );
 }
 
@@ -77,12 +136,9 @@ export function DraftBillPreview({
   paymentMethod,
   transactionDate,
   note,
-  onRemove,
-  isSaving,
-  isSubmitting,
-  onCancel,
-  hideActions,
+  compact = false,
 }: DraftBillPreviewProps) {
+  const [expanded, setExpanded] = useState(false);
   const { organization } = useOrganization();
   const shopName = organization?.receiptConfig?.header ?? organization?.name ?? SHOP_NAME;
   const receiptFooter = organization?.receiptConfig?.footer;
@@ -107,118 +163,94 @@ export function DraftBillPreview({
     [type, lines, draftLine, billTitle, paymentMethod, transactionDate, note]
   );
 
-  const busy = isSaving || isSubmitting;
-  const titleLabel = type === "income" ? "ใบเสร็จ (ตัวอย่าง)" : "ใบบันทึกรายจ่าย (ตัวอย่าง)";
+  const titleLabel = type === "income" ? "ใบเสร็จ" : "ใบจ่าย";
+  const totalLabel = draftTransaction ? formatCurrency(draftTransaction.amount) : "—";
 
   return (
-    <div className="flex flex-col gap-2 2xl:gap-3">
-      <Card className="flex flex-col">
-        <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 border-b border-border-default/60 px-4 py-2 2xl:px-6 2xl:py-3">
+    <>
+      <Card className="pos-slip-card flex h-full min-h-0 flex-col overflow-hidden shadow-[0_4px_20px_rgba(15,23,42,0.12)]">
+        <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-1 border-b border-border-default/60 px-2.5 py-2">
           <div className="min-w-0">
-            <CardTitle className="text-sm 2xl:text-base">{titleLabel}</CardTitle>
-            <p className="mt-0.5 text-xs text-text-muted">
-              {draftTransaction
-                ? `${draftTransaction.title} · ${formatCurrency(draftTransaction.amount)}`
-                : "อัปเดตแบบ realtime ขณะพิมพ์"}
-            </p>
+            <CardTitle className="truncate text-xs font-black">{titleLabel}</CardTitle>
+            <p className="truncate text-[11px] font-bold tabular-nums text-brand">{totalLabel}</p>
           </div>
-          {draftTransaction && (
-            <span className="shrink-0 rounded-full bg-brand/15 px-3 py-1 text-xs font-bold text-brand">
-              ร่าง
-            </span>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {draftTransaction && (
+              <span className="rounded-md bg-brand/15 px-2 py-0.5 text-[10px] font-bold text-brand">
+                ร่าง
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              className="pos-touch-btn flex min-h-10 min-w-10 items-center justify-center rounded-lg text-text-muted active:bg-surface-hover"
+              aria-label="ขยายตัวอย่างใบเสร็จ"
+              title="ขยาย"
+            >
+              <Maximize2 size={16} />
+            </button>
+          </div>
         </CardHeader>
-        <CardContent className="min-h-0 overflow-hidden p-1.5 2xl:p-2">
-          <div className="flex min-h-[160px] flex-1 flex-col rounded-lg border border-border-default bg-[#f4f4f5] p-1.5 2xl:min-h-[200px] 2xl:rounded-xl 2xl:p-2">
-            <div className="flex w-full justify-center overflow-y-auto rounded-lg bg-white shadow-lg">
+        <CardContent className="min-h-0 flex-1 overflow-hidden p-1.5">
+          <div className="pos-slip-preview flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border-default bg-[#f4f4f5] p-1">
+            <div className="flex min-h-0 flex-1 justify-center overflow-y-auto rounded-md bg-white shadow-inner">
               {draftTransaction ? (
-                type === "income" ? (
-                  <DefaultReceiptTemplate
-                    transaction={draftTransaction}
-                    receipt={{
-                      id: "draft",
-                      transactionId: "draft",
-                      receiptNumber: "ร่าง",
-                    }}
-                    shopName={shopName}
-                    footer={receiptFooter}
-                    sellerName={sessionName}
-                    fullWidth
-                  />
-                ) : (
-                  <DefaultExpenseVoucherTemplate
-                    transaction={draftTransaction}
-                    voucherNumber="ร่าง"
-                    shopName={shopName}
-                    recorderName={sessionName}
-                    categoryNames={categoryNames}
-                    fullWidth
-                  />
-                )
+                <ReceiptBody
+                  type={type}
+                  draftTransaction={draftTransaction}
+                  shopName={shopName}
+                  receiptFooter={receiptFooter}
+                  sessionName={sessionName}
+                  categoryNames={categoryNames}
+                />
               ) : (
-                <EmptyDraftSlip type={type} shopName={shopName} />
+                <EmptyDraftSlip type={type} shopName={shopName} compact={compact} />
               )}
             </div>
           </div>
         </CardContent>
-
-        {!hideActions && (
-          <div className="hidden shrink-0 space-y-2 border-t border-border-default/60 p-3 lg:block 2xl:p-4">
-            <Button
-              type="submit"
-              disabled={busy || lines.length === 0}
-              size="md"
-              variant={type === "income" ? "income" : "danger"}
-              className="w-full text-base font-black shadow-lg 2xl:text-xl"
-            >
-              {busy ? "กำลังบันทึก..." : "บันทึก"}
-            </Button>
-            {onCancel && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-                size="md"
-                className="w-full text-base font-bold 2xl:text-lg"
-              >
-                ยกเลิก
-              </Button>
-            )}
-          </div>
-        )}
       </Card>
 
-      {lines.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-bold text-text-muted">รายการที่เพิ่มแล้ว</p>
-          <ul className="space-y-2">
-            {lines.map((line, index) => (
-              <li
-                key={line.localId}
-                className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-elevated px-3 py-2"
+      {expanded && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setExpanded(false)} aria-hidden />
+          <div
+            role="dialog"
+            aria-labelledby="slip-expand-title"
+            className="relative z-10 flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-2xl border-2 border-border-default bg-surface-elevated shadow-2xl"
+          >
+            <div className="flex shrink-0 items-center justify-between border-b border-border-default px-4 py-3">
+              <h2 id="slip-expand-title" className="text-base font-black">
+                {type === "income" ? "ใบเสร็จ (ตัวอย่าง)" : "ใบบันทึกรายจ่าย (ตัวอย่าง)"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setExpanded(false)}
+                className="rounded-xl p-2 text-text-muted hover:bg-surface-hover"
+                aria-label="ปิด"
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-inset text-xs font-black text-text-secondary">
-                  {index + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-text-main">{line.title}</p>
-                  <p className="text-xs text-text-muted">
-                    {line.quantity} × {formatCurrency(line.unitPrice)}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onRemove(line.localId)}
-                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-text-muted active:bg-expense-light active:text-expense"
-                  aria-label="ลบรายการ"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </li>
-            ))}
-          </ul>
+                <X size={22} />
+              </button>
+            </div>
+            <div className="overflow-y-auto bg-[#ececec] p-4">
+              <div className="mx-auto max-w-[302px] rounded-lg bg-white shadow-lg">
+                {draftTransaction ? (
+                  <ReceiptBody
+                    type={type}
+                    draftTransaction={draftTransaction}
+                    shopName={shopName}
+                    receiptFooter={receiptFooter}
+                    sessionName={sessionName}
+                    categoryNames={categoryNames}
+                  />
+                ) : (
+                  <EmptyDraftSlip type={type} shopName={shopName} />
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
