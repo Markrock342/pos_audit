@@ -8,6 +8,17 @@ import { OrganizationProvider } from "@/components/providers/OrganizationProvide
 export const metadata: Metadata = {
   title: "สมุดรายรับ-รายจ่าย | บัญชีร้าน",
   description: "ระบบบันทึกรายรับ-รายจ่ายสำหรับร้านค้า",
+  applicationName: "บัญชีร้าน",
+  appleWebApp: {
+    capable: true,
+    title: "บัญชีร้าน",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
@@ -16,6 +27,10 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FF6B35" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+  ],
 };
 
 export default function RootLayout({
