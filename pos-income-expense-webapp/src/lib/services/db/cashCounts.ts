@@ -7,6 +7,7 @@ import {
 } from "@/lib/utils/businessDate";
 import { getTransactions } from "./transactions";
 import { getTotalWithdrawnForDate } from "./cashWithdrawals";
+import { getDailyLedgerSummary, ledgerPatchFromSummary } from "./dailyLedger";
 import type { CashCount, CashCountStatus } from "@/types";
 
 const TABLE = "cash_counts";
@@ -95,10 +96,14 @@ export async function getCashCountByDate(
 async function resolveOpeningBalance(
   organizationId: string,
   countDate: string
-): Promise<number> {
+): Promise<{ cash: number; transfer: number }> {
   const yesterday = getBusinessYesterday(countDate);
   const prev = await getCashCountByDate(organizationId, yesterday);
-  return prev?.actualBalance ?? 0;
+  const ledger = await getDailyLedgerSummary(organizationId, countDate);
+  return {
+    cash: prev?.closingCash ?? prev?.actualBalance ?? ledger.cash.opening,
+    transfer: prev?.closingTransfer ?? ledger.transfer.opening,
+  };
 }
 
 async function closeCashCountRecord(
@@ -129,6 +134,12 @@ async function closeCashCountRecord(
   const status = determineStatus(variance);
   const now = new Date().toISOString();
 
+  const summary = await getDailyLedgerSummary(
+    existing.organizationId ?? "",
+    existing.countDate
+  );
+  const ledgerPatch = ledgerPatchFromSummary(summary);
+
   const patch: Record<string, unknown> = {
     expected_balance: expectedBalance,
     actual_balance: actualBalance,
@@ -139,6 +150,7 @@ async function closeCashCountRecord(
     auto_closed: autoClosed,
     closing_type: auto ? "auto" : "manual",
     updated_at: now,
+    ...ledgerPatch,
   };
 
   const { data: updated, error } = await getDb()
@@ -173,7 +185,10 @@ export async function ensureDailyCashCountCycle(organizationId: string): Promise
   let todayRecord = await getCashCountByDate(organizationId, businessToday);
 
   if (!todayRecord) {
-    const openingBalance = await resolveOpeningBalance(organizationId, businessToday);
+    const { cash: openingBalance, transfer: openingTransfer } = await resolveOpeningBalance(
+      organizationId,
+      businessToday
+    );
     const expectedBalance = await calculateExpectedBalance(
       organizationId,
       businessToday,
@@ -186,6 +201,7 @@ export async function ensureDailyCashCountCycle(organizationId: string): Promise
         organization_id: organizationId,
         count_date: businessToday,
         opening_balance: openingBalance,
+        opening_transfer: openingTransfer,
         expected_balance: expectedBalance,
         actual_balance: 0,
         variance: -expectedBalance,
@@ -205,28 +221,8 @@ export async function ensureDailyCashCountCycle(organizationId: string): Promise
   }
 
   if (todayRecord && !todayRecord.closedAt) {
-    const expectedBalance = await calculateExpectedBalance(
-      organizationId,
-      businessToday,
-      todayRecord.openingBalance
-    );
-    if (expectedBalance !== todayRecord.expectedBalance) {
-      const variance = todayRecord.actualBalance - expectedBalance;
-      const { data: refreshed, error } = await getDb()
-        .from(TABLE)
-        .update({
-          expected_balance: expectedBalance,
-          variance,
-          status: determineStatus(variance),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", todayRecord.id)
-        .select()
-        .single();
-      if (!error && refreshed) {
-        todayRecord = mapCashCount(refreshed as Record<string, unknown>);
-      }
-    }
+    await refreshOpenDailyCloseRecord(organizationId, todayRecord.countDate);
+    todayRecord = await getCashCountByDate(organizationId, businessToday);
   }
 
   return {
@@ -340,30 +336,33 @@ export async function updateCashCount(
   return mapCashCount(updated as Record<string, unknown>);
 }
 
-export async function refreshOpenCashCountExpected(
+export async function refreshOpenDailyCloseRecord(
   organizationId: string,
   countDate: string
 ): Promise<void> {
   const row = await getCashCountByDate(organizationId, countDate);
   if (!row || row.closedAt) return;
 
-  const expectedBalance = await calculateExpectedBalance(
-    organizationId,
-    countDate,
-    row.openingBalance
-  );
-  if (expectedBalance === row.expectedBalance) return;
+  const summary = await getDailyLedgerSummary(organizationId, countDate);
+  const variance = row.actualBalance - summary.cash.closing;
 
-  const variance = row.actualBalance - expectedBalance;
   await getDb()
     .from(TABLE)
     .update({
-      expected_balance: expectedBalance,
+      ...ledgerPatchFromSummary(summary),
       variance,
       status: determineStatus(variance),
       updated_at: new Date().toISOString(),
     })
     .eq("id", row.id);
+}
+
+/** @deprecated use refreshOpenDailyCloseRecord */
+export async function refreshOpenCashCountExpected(
+  organizationId: string,
+  countDate: string
+): Promise<void> {
+  await refreshOpenDailyCloseRecord(organizationId, countDate);
 }
 
 export async function isBusinessDateClosed(

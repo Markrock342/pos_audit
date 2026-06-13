@@ -201,6 +201,18 @@ export interface CashCount {
   hasManualCount?: boolean;
   updatedAt?: string;
   updatedBy?: string;
+  /** Phase 3 — snapshot สด + โอน + สรุปธุรกิจ */
+  openingTransfer?: number;
+  cashIncome?: number;
+  cashExpense?: number;
+  cashWithdrawn?: number;
+  closingCash?: number;
+  transferIncome?: number;
+  transferExpense?: number;
+  closingTransfer?: number;
+  totalIncome?: number;
+  totalExpense?: number;
+  netTotal?: number;
 }
 
 export interface DashboardSummary {

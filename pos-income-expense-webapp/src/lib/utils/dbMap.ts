@@ -177,6 +177,17 @@ export function mapCashCount(row: Record<string, unknown>): CashCount {
     hasManualCount: row.has_manual_count as boolean | undefined,
     updatedAt: row.updated_at as string | undefined,
     updatedBy: row.updated_by as string | undefined,
+    openingTransfer: row.opening_transfer != null ? Number(row.opening_transfer) : undefined,
+    cashIncome: row.cash_income != null ? Number(row.cash_income) : undefined,
+    cashExpense: row.cash_expense != null ? Number(row.cash_expense) : undefined,
+    cashWithdrawn: row.cash_withdrawn != null ? Number(row.cash_withdrawn) : undefined,
+    closingCash: row.closing_cash != null ? Number(row.closing_cash) : undefined,
+    transferIncome: row.transfer_income != null ? Number(row.transfer_income) : undefined,
+    transferExpense: row.transfer_expense != null ? Number(row.transfer_expense) : undefined,
+    closingTransfer: row.closing_transfer != null ? Number(row.closing_transfer) : undefined,
+    totalIncome: row.total_income != null ? Number(row.total_income) : undefined,
+    totalExpense: row.total_expense != null ? Number(row.total_expense) : undefined,
+    netTotal: row.net_total != null ? Number(row.net_total) : undefined,
   };
 }
 

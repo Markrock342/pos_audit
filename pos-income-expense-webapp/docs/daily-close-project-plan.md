@@ -23,7 +23,12 @@
 - [x] UI `DailyLedgerSummaryPanel` บนหน้า `/cash-count`
 - [x] ปรับ label หน้า `/balance`
 
-## Phase 3 — ปิด 00:00 snapshot + carry forward
+## Phase 3 — ปิด 00:00 snapshot + carry forward ✅
+
+- [x] SQL `supabase-daily-close-ledger.sql` — snapshot columns + fn_auto_close
+- [x] `refreshOpenDailyCloseRecord` — sync ledger fields real-time
+- [x] Carry forward `closing_cash` / `closing_transfer` → opening วันถัดไป
+- [ ] **รัน SQL ใน Supabase** (จำเป็นสำหรับ snapshot ใน DB)
 
 ## Phase 4 — UI ปิดยอด + ประวัติรายวัน
 

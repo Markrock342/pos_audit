@@ -8,11 +8,64 @@ import {
 import { getTotalWithdrawnForDate } from "./cashWithdrawals";
 import { getOrganization } from "./organizations";
 import { getTransactions } from "./transactions";
-import type { DailyLedgerSummary, PaymentMethod } from "@/types";
+import type { CashCount, DailyLedgerSummary, PaymentMethod } from "@/types";
 
 /** เงินโอน/บัญชีในสมุด — ทุกช่องทางที่ไม่ใช่เงินสด */
 export function isTransferLedgerPayment(method: PaymentMethod): boolean {
   return method !== "cash";
+}
+
+export function ledgerPatchFromSummary(summary: DailyLedgerSummary): Record<string, unknown> {
+  return {
+    opening_transfer: summary.transfer.opening,
+    cash_income: summary.cash.income,
+    cash_expense: summary.cash.expense,
+    cash_withdrawn: summary.cash.withdrawn,
+    closing_cash: summary.cash.closing,
+    transfer_income: summary.transfer.income,
+    transfer_expense: summary.transfer.expense,
+    closing_transfer: summary.transfer.closing,
+    total_income: summary.business.totalIncome,
+    total_expense: summary.business.totalExpense,
+    net_total: summary.business.netTotal,
+    expected_balance: summary.cash.closing,
+  };
+}
+
+function summaryFromCashCountSnapshot(
+  cashCount: CashCount,
+  countDate: string,
+  businessToday: string
+): DailyLedgerSummary | null {
+  if (!cashCount.closedAt) return null;
+  if (cashCount.cashIncome == null && cashCount.totalIncome == null) return null;
+
+  return {
+    countDate,
+    businessToday,
+    isLocked: isCashCountLocked(cashCount, businessToday),
+    closedAt: cashCount.closedAt,
+    closingType: cashCount.closingType,
+    autoClosed: cashCount.autoClosed,
+    cash: {
+      opening: cashCount.openingBalance,
+      income: cashCount.cashIncome ?? 0,
+      expense: cashCount.cashExpense ?? 0,
+      withdrawn: cashCount.cashWithdrawn ?? 0,
+      closing: cashCount.closingCash ?? cashCount.expectedBalance,
+    },
+    transfer: {
+      opening: cashCount.openingTransfer ?? 0,
+      income: cashCount.transferIncome ?? 0,
+      expense: cashCount.transferExpense ?? 0,
+      closing: cashCount.closingTransfer ?? 0,
+    },
+    business: {
+      totalIncome: cashCount.totalIncome ?? 0,
+      totalExpense: cashCount.totalExpense ?? 0,
+      netTotal: cashCount.netTotal ?? 0,
+    },
+  };
 }
 
 async function getCashOpeningForDate(
@@ -24,8 +77,10 @@ async function getCashOpeningForDate(
 
   const yesterday = getBusinessYesterday(countDate);
   const prev = await getCashCountByDate(organizationId, yesterday);
+  if (prev?.closedAt) {
+    return prev.closingCash ?? prev.actualBalance;
+  }
   if (prev) {
-    if (prev.closedAt) return prev.actualBalance;
     return calculateExpectedBalance(organizationId, yesterday, prev.openingBalance);
   }
 
@@ -42,6 +97,15 @@ async function getTransferOpeningForDate(
   organizationId: string,
   countDate: string
 ): Promise<number> {
+  const row = await getCashCountByDate(organizationId, countDate);
+  if (row) return row.openingTransfer ?? 0;
+
+  const yesterday = getBusinessYesterday(countDate);
+  const prev = await getCashCountByDate(organizationId, yesterday);
+  if (prev?.closedAt && prev.closingTransfer != null) {
+    return prev.closingTransfer;
+  }
+
   const org = await getOrganization(organizationId);
   const finance = org?.financeConfig;
   const month = finance?.openingBalanceMonth ?? countDate.slice(0, 7);
@@ -76,6 +140,11 @@ export async function getDailyLedgerSummary(
 ): Promise<DailyLedgerSummary> {
   const businessToday = getBusinessToday();
   const cashCount = await getCashCountByDate(organizationId, countDate);
+
+  if (cashCount) {
+    const snapshot = summaryFromCashCountSnapshot(cashCount, countDate, businessToday);
+    if (snapshot) return snapshot;
+  }
 
   const transactions = await getTransactions(organizationId, {
     status: "active",

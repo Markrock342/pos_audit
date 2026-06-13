@@ -246,6 +246,22 @@ async function main() {
   record("POST backdate (admin) → 201 or 403 if day closed", r.status === 201 || r.status === 403, r.status, getError(r.json)?.code);
 
   // --- Expected balance after cash tx ---
+  r = await req("GET", "/api/daily-close/today");
+  const ledgerBefore = getData<{
+    cash: { closing: number; income: number };
+    transfer: { closing: number; income: number };
+    business: { totalIncome: number };
+  }>(r.json);
+  record("GET /api/daily-close/today", r.status === 200, r.status);
+  if (ledgerBefore) {
+    record(
+      "daily-close has cash + transfer",
+      ledgerBefore.cash != null && ledgerBefore.transfer != null,
+      undefined,
+      `cash=${ledgerBefore.cash.closing} transfer=${ledgerBefore.transfer.closing}`
+    );
+  }
+
   r = await req("GET", "/api/cash-counts/today");
   const afterTx = r.json as { data?: { expectedBalance: number }; expectedBalance?: number };
   const expected = afterTx.data?.expectedBalance ?? afterTx.expectedBalance ?? 0;
@@ -325,6 +341,33 @@ async function main() {
 
   r = await req("GET", `/api/reports/export?start=${businessToday}&end=${businessToday}`);
   record("GET export CSV", r.status === 200, r.status);
+
+  // --- Cash withdrawal + daily-close by date ---
+  r = await req("GET", "/api/cash-withdrawals/today");
+  record("GET /api/cash-withdrawals/today", r.status === 200, r.status);
+
+  r = await req("POST", "/api/cash-withdrawals", {
+    amount: 10,
+    note: "integration test withdraw",
+  });
+  record(
+    "POST cash-withdrawal",
+    r.status === 201 || r.status === 503,
+    r.status,
+    getError(r.json)?.code ?? "ok"
+  );
+
+  r = await req("GET", `/api/daily-close/${businessToday}`);
+  const ledgerDay = getData<{ cash: { withdrawn: number } }>(r.json);
+  record("GET /api/daily-close/[date]", r.status === 200, r.status);
+  if (ledgerDay && r.status === 200) {
+    record(
+      "daily-close reflects withdrawal",
+      ledgerDay.cash.withdrawn >= 10,
+      undefined,
+      `withdrawn=${ledgerDay.cash.withdrawn}`
+    );
+  }
 
   // --- Transaction GET filters ---
   r = await req("GET", "/api/transactions?type=income&status=active");
