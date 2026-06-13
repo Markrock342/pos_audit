@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useLayoutEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
 
@@ -33,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [session, setSession] = useState<KioskSession | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     try {
       const stored = localStorage.getItem(AUTH_KEY);
       setIsLoggedIn(!!stored);

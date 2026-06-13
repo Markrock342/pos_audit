@@ -6,6 +6,8 @@ import {
 
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
+export const revalidate = 300;
+
 export async function GET() {
   const org = await getOrganization(DEFAULT_ORG_ID);
   if (!org) {

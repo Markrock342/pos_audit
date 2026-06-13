@@ -7,6 +7,8 @@ import {
 import type { Category } from "@/types";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
+export const revalidate = 300;
+
 const postSchema = z.object({
   name: z.string().min(1).max(50),
   type: z.enum(["income", "expense"]),

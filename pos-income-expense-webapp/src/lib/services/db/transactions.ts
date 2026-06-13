@@ -41,13 +41,18 @@ export async function getTransactions(
     status?: "active" | "void";
     startDate?: string;
     endDate?: string;
+  },
+  options?: {
+    includeLineItems?: boolean;
+    limit?: number;
   }
 ): Promise<Transaction[]> {
   let q = getDb()
     .from(TABLE)
     .select("*")
     .eq("organization_id", organizationId)
-    .order("transaction_date", { ascending: false });
+    .order("transaction_date", { ascending: false })
+    .order("created_at", { ascending: false });
 
   if (filters?.type) {
     q = q.eq("type", filters.type);
@@ -61,10 +66,18 @@ export async function getTransactions(
   if (filters?.endDate) {
     q = q.lte("transaction_date", filters.endDate);
   }
+  if (options?.limit) {
+    q = q.limit(options.limit);
+  }
 
   const { data, error } = await q;
   if (error || !data) return [];
   const transactions = (data as Record<string, unknown>[]).map(mapTransaction);
+
+  if (options?.includeLineItems === false) {
+    return transactions.map((t) => ({ ...t, lineItems: [] }));
+  }
+
   const lineMap = await getLineItemsByTransactionIds(transactions.map((t) => t.id));
   return attachLineItems(transactions, lineMap);
 }
