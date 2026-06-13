@@ -6,6 +6,7 @@ import {
   isPastBusinessDate,
 } from "@/lib/utils/businessDate";
 import { getTransactions } from "./transactions";
+import { getTotalWithdrawnForDate } from "./cashWithdrawals";
 import type { CashCount, CashCountStatus } from "@/types";
 
 const TABLE = "cash_counts";
@@ -33,7 +34,9 @@ export async function calculateExpectedBalance(
     .filter((t) => t.type === "expense" && t.paymentMethod === "cash")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  return openingBalance + income - expense;
+  const withdrawn = await getTotalWithdrawnForDate(organizationId, countDate);
+
+  return openingBalance + income - expense - withdrawn;
 }
 
 function determineStatus(variance: number): CashCountStatus {
@@ -335,6 +338,32 @@ export async function updateCashCount(
     .single();
   if (error) throw error;
   return mapCashCount(updated as Record<string, unknown>);
+}
+
+export async function refreshOpenCashCountExpected(
+  organizationId: string,
+  countDate: string
+): Promise<void> {
+  const row = await getCashCountByDate(organizationId, countDate);
+  if (!row || row.closedAt) return;
+
+  const expectedBalance = await calculateExpectedBalance(
+    organizationId,
+    countDate,
+    row.openingBalance
+  );
+  if (expectedBalance === row.expectedBalance) return;
+
+  const variance = row.actualBalance - expectedBalance;
+  await getDb()
+    .from(TABLE)
+    .update({
+      expected_balance: expectedBalance,
+      variance,
+      status: determineStatus(variance),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", row.id);
 }
 
 export async function isBusinessDateClosed(

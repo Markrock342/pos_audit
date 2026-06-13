@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CashCountHistory } from "@/components/cash-count/CashCountHistory";
+import { CashWithdrawModal } from "@/components/cash-count/CashWithdrawModal";
+import { CashWithdrawTodayPanel } from "@/components/cash-count/CashWithdrawTodayPanel";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { AmountDisplay, AmountNumpad } from "@/components/ui/AmountNumpad";
 import {
   fetchCashCountToday,
+  fetchCashWithdrawalsToday,
   saveCashCountApi,
   updateCashCountApi,
 } from "@/lib/api/client";
@@ -20,7 +23,7 @@ import {
   getCashCountStatusFromVariance,
 } from "@/lib/utils/cashCountVariance";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
-import type { CashCount } from "@/types";
+import type { CashCount, CashWithdrawal } from "@/types";
 import { Wallet, CheckCircle, AlertTriangle, Lock } from "lucide-react";
 
 type ActiveField = "opening" | "actual";
@@ -42,6 +45,27 @@ export default function CashCountPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
   const [actualTouched, setActualTouched] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawals, setWithdrawals] = useState<CashWithdrawal[]>([]);
+  const [withdrawTotal, setWithdrawTotal] = useState(0);
+  const [withdrawCount, setWithdrawCount] = useState(0);
+  const [withdrawLoading, setWithdrawLoading] = useState(true);
+
+  const loadWithdrawals = useCallback(async () => {
+    setWithdrawLoading(true);
+    try {
+      const today = await fetchCashWithdrawalsToday();
+      setWithdrawals(today.data);
+      setWithdrawTotal(today.totalWithdrawn);
+      setWithdrawCount(today.count);
+    } catch {
+      setWithdrawals([]);
+      setWithdrawTotal(0);
+      setWithdrawCount(0);
+    } finally {
+      setWithdrawLoading(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,11 +99,17 @@ export default function CashCountPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+    await loadWithdrawals();
+  }, [loadWithdrawals]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const handleWithdrawSaved = async () => {
+    setHistoryKey((k) => k + 1);
+    await load();
+  };
 
   const readOnly = isLocked && !isAdmin;
 
@@ -145,7 +175,7 @@ export default function CashCountPage() {
   const isPendingCount = !readOnly && !showVariance;
 
   return (
-    <AppLayout title="ปิดยอดเงินสด" subtitle="ตัดยอดอัตโนมัติเที่ยงคืน · วันเก่าแก้ไขไม่ได้">
+    <AppLayout title="ปิดยอดเงินสด" subtitle="ยอดสดใน POS · ถอนเงิน · ปิดอัตโนมัติ 00:00">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6">
         {message && (
           <p
@@ -193,9 +223,18 @@ export default function CashCountPage() {
                     <p className="text-sm text-text-muted">ยอดเงินคงเหลือ (ที่ระบบคำนวณ)</p>
                     <p className="text-3xl font-black text-brand">{formatCurrency(expectedBalance)}</p>
                     <p className="mt-1 text-xs text-text-muted">
-                      ยอดเงินทอน + รายรับเงินสด − รายจ่ายเงินสด
+                      ยอดเงินทอน + รายรับเงินสด − รายจ่ายเงินสด − ถอนออกวันนี้
                     </p>
                   </div>
+
+                  <CashWithdrawTodayPanel
+                    items={withdrawals}
+                    totalWithdrawn={withdrawTotal}
+                    count={withdrawCount}
+                    loading={withdrawLoading}
+                    readOnly={readOnly}
+                    onWithdrawClick={() => setWithdrawOpen(true)}
+                  />
 
                   <AmountDisplay
                     label="ยอดเงินทอน (เปิดวัน)"
@@ -279,6 +318,14 @@ export default function CashCountPage() {
 
         <CashCountHistory refreshKey={historyKey} />
       </div>
+
+      <CashWithdrawModal
+        open={withdrawOpen}
+        onClose={() => setWithdrawOpen(false)}
+        onSaved={handleWithdrawSaved}
+        recordedBy={session?.userId}
+        readOnly={readOnly}
+      />
     </AppLayout>
   );
 }

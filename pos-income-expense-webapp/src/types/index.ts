@@ -138,6 +138,24 @@ export interface Receipt {
 
 export type CashCountStatus = "balanced" | "short" | "overage";
 
+/** ถอนเงินสดออกจาก POS — ไม่ใช่รายจ่ายธุรกิจ */
+export interface CashWithdrawal {
+  id: string;
+  organizationId?: string;
+  withdrawalDate: string;
+  amount: number;
+  note: string;
+  recordedBy?: string;
+  createdAt?: string;
+}
+
+export interface CashWithdrawalsTodaySummary {
+  businessToday: string;
+  totalWithdrawn: number;
+  count: number;
+  data: CashWithdrawal[];
+}
+
 export interface CashCount {
   id: string;
   organizationId?: string;

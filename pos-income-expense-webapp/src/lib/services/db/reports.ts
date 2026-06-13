@@ -1,5 +1,6 @@
 import { getTransactions } from "./transactions";
 import { getOrganization } from "./organizations";
+import { calculateExpectedBalance } from "./cashCounts";
 import { getDb } from "@/lib/db/supabase";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getBusinessToday } from "@/lib/utils/businessDate";
@@ -178,7 +179,11 @@ export async function getDashboard(): Promise<DashboardData> {
     .single();
 
   const openingBalance = (cashCount?.opening_balance as number) ?? 0;
-  const expectedCashBalance = openingBalance + cashIncome - cashExpense;
+  const expectedCashBalance = await calculateExpectedBalance(
+    DEFAULT_ORG_ID,
+    today,
+    openingBalance
+  );
 
   return {
     todayIncome,

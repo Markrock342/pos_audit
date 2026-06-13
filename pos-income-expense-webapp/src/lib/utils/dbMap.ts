@@ -3,6 +3,7 @@ import type {
   AuditLogAction,
   AuditLogEntityType,
   CashCount,
+  CashWithdrawal,
   Category,
   Organization,
   Transaction,
@@ -142,6 +143,18 @@ export function toTransactionInsert(
     is_printed: false,
     created_by: data.createdBy || null,
     created_at: new Date().toISOString(),
+  };
+}
+
+export function mapCashWithdrawal(row: Record<string, unknown>): CashWithdrawal {
+  return {
+    id: String(row.id),
+    organizationId: row.organization_id as string | undefined,
+    withdrawalDate: String(row.withdrawal_date),
+    amount: Number(row.amount ?? 0),
+    note: String(row.note ?? ""),
+    recordedBy: row.recorded_by as string | undefined,
+    createdAt: row.created_at as string | undefined,
   };
 }
 

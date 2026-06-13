@@ -5,6 +5,8 @@ import type {
   AuditLogAction,
   BalanceSummary,
   CashCount,
+  CashWithdrawal,
+  CashWithdrawalsTodaySummary,
   Category,
   DashboardSummary,
   Organization,
@@ -291,6 +293,43 @@ export async function updateCashCountApi(
   const { data } = await parseJson<{ data: CashCount }>(
     await fetch(`/api/cash-counts/${id}`, {
       method: "PUT",
+      headers: jsonAuthHeaders(),
+      body: JSON.stringify(body),
+    })
+  );
+  return data;
+}
+
+export async function fetchCashWithdrawalsToday(): Promise<CashWithdrawalsTodaySummary> {
+  return parseJson(await fetch("/api/cash-withdrawals/today"));
+}
+
+export async function fetchCashWithdrawals(filters?: {
+  startDate?: string;
+  endDate?: string;
+  withdrawalDate?: string;
+}): Promise<{ data: CashWithdrawal[]; totalWithdrawn: number }> {
+  const params = new URLSearchParams();
+  if (filters?.startDate) params.set("startDate", filters.startDate);
+  if (filters?.endDate) params.set("endDate", filters.endDate);
+  if (filters?.withdrawalDate) params.set("withdrawalDate", filters.withdrawalDate);
+  const qs = params.toString() ? `?${params}` : "";
+  const { data, totalWithdrawn } = await parseJson<{
+    data: CashWithdrawal[];
+    totalWithdrawn: number;
+  }>(await fetch(`/api/cash-withdrawals${qs}`));
+  return { data, totalWithdrawn };
+}
+
+export async function createCashWithdrawalApi(body: {
+  amount: number;
+  note: string;
+  recordedBy?: string;
+  withdrawalDate?: string;
+}): Promise<CashWithdrawal> {
+  const { data } = await parseJson<{ data: CashWithdrawal }>(
+    await fetch("/api/cash-withdrawals", {
+      method: "POST",
       headers: jsonAuthHeaders(),
       body: JSON.stringify(body),
     })
