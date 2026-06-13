@@ -21,9 +21,21 @@ const postSchema = z.object({
   countedBy: z.string().optional(),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await ensureDailyCashCountCycle(DEFAULT_ORG_ID);
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get("date");
+    if (date) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return NextResponse.json(
+          { error: { code: "VALIDATION_ERROR", message: "รูปแบบวันที่ไม่ถูกต้อง" } },
+          { status: 400 }
+        );
+      }
+      const row = await getCashCountByDate(DEFAULT_ORG_ID, date);
+      return NextResponse.json({ data: row });
+    }
     const data = await getCashCounts(DEFAULT_ORG_ID);
     return NextResponse.json({ data, total: data.length });
   } catch (e) {

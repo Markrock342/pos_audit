@@ -369,6 +369,18 @@ async function main() {
     );
   }
 
+  r = await req("GET", `/api/cash-counts?date=${businessToday}`);
+  const countByDate = getData<{ countDate: string } | null>(r.json);
+  record(
+    "GET /api/cash-counts?date=",
+    r.status === 200 && (countByDate == null || countByDate.countDate === businessToday),
+    r.status,
+    countByDate ? `date=${countByDate.countDate}` : "no row"
+  );
+
+  r = await req("GET", "/api/cash-counts?date=bad-date");
+  record("GET cash-counts bad date → 400", r.status === 400, r.status, getError(r.json)?.code);
+
   // --- Transaction GET filters ---
   r = await req("GET", "/api/transactions?type=income&status=active");
   record("GET transactions filter income", r.status === 200, r.status);

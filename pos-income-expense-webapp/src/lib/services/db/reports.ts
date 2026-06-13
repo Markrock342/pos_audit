@@ -1,10 +1,11 @@
 import { getTransactions } from "./transactions";
 import { getOrganization } from "./organizations";
 import { calculateExpectedBalance } from "./cashCounts";
+import { getDailyCloseStatus } from "./dailyLedger";
 import { getDb } from "@/lib/db/supabase";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getBusinessToday } from "@/lib/utils/businessDate";
-import type { BalanceSummary } from "@/types";
+import type { BalanceSummary, DailyCloseStatus } from "@/types";
 
 export interface DashboardData {
   todayIncome: number;
@@ -14,6 +15,7 @@ export interface DashboardData {
   netProfit: number;
   expectedCashBalance: number;
   transactionCount: number;
+  dailyCloseStatus: DailyCloseStatus;
 }
 
 export interface CategoryReportItem {
@@ -185,6 +187,8 @@ export async function getDashboard(): Promise<DashboardData> {
     openingBalance
   );
 
+  const dailyCloseStatus = await getDailyCloseStatus(DEFAULT_ORG_ID);
+
   return {
     todayIncome,
     todayExpense,
@@ -193,6 +197,7 @@ export async function getDashboard(): Promise<DashboardData> {
     netProfit: monthIncome - monthExpense,
     expectedCashBalance,
     transactionCount: monthTransactions.length,
+    dailyCloseStatus,
   };
 }
 

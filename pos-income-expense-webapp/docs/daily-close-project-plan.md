@@ -30,6 +30,11 @@
 - [x] Carry forward `closing_cash` / `closing_transfer` → opening วันถัดไป
 - [ ] **รัน SQL ใน Supabase** (จำเป็นสำหรับ snapshot ใน DB)
 
-## Phase 4 — UI ปิดยอด + ประวัติรายวัน
+## Phase 4 — UI ปิดยอด + ประวัติรายวัน ✅
+
+- [x] หน้า `/cash-count/[date]` — สรุป 2 กระเป๋า + นับเงิน + ถอนรายวัน
+- [x] `CashCountHistory` คลิกไปรายละเอียดวัน
+- [x] `DailyCloseStatusCard` บน dashboard
+- [x] ย้ายฟอร์มนับเงินไป `<details>` (ไม่บังคับ)
 
 ## Phase 5 — ช่องทาง สด/โอน + polish

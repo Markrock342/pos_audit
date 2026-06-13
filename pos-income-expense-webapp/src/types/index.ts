@@ -225,6 +225,18 @@ export interface DashboardSummary {
   expectedCashBalance?: number;
 }
 
+/** สถานะปิดยอดวันนี้ — แสดงบน dashboard */
+export interface DailyCloseStatus {
+  countDate: string;
+  isLocked: boolean;
+  closedAt?: string;
+  autoClosed?: boolean;
+  hasManualCount: boolean;
+  cashClosing: number;
+  transferClosing: number;
+  netTotal: number;
+}
+
 export type AuditLogAction = "create" | "update" | "void";
 
 export type AuditLogEntityType = "transaction" | "category";

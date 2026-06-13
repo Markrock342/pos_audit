@@ -205,12 +205,37 @@ export default function CashCountPage() {
 
         <DailyLedgerSummaryPanel data={ledger} loading={ledgerLoading} />
 
-        <Card className="shrink-0 border-t-4 border-t-brand">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wallet size={22} className="text-brand" />
-              นับเงินสดประจำวัน
-            </CardTitle>
+        <CashWithdrawTodayPanel
+          items={withdrawals}
+          totalWithdrawn={withdrawTotal}
+          count={withdrawCount}
+          loading={withdrawLoading}
+          readOnly={readOnly}
+          onWithdrawClick={() => setWithdrawOpen(true)}
+        />
+
+        <details
+          className="group rounded-2xl border-2 border-border-default bg-surface-card"
+          open={actualTouched || !!existing?.hasManualCount}
+        >
+          <summary className="cursor-pointer list-none px-4 py-4 font-bold text-text-main marker:content-none [&::-webkit-details-marker]:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2">
+                <Wallet size={20} className="text-text-muted" />
+                นับเงินสดด้วยตนเอง (ไม่บังคับ)
+              </span>
+              <span className="text-xs font-normal text-text-muted group-open:hidden">
+                แตะเพื่อเปิด
+              </span>
+            </div>
+            <p className="mt-1 text-xs font-normal text-text-muted">
+              ระบบปิดอัตโนมัติ 00:00 ใช้ยอดคำนวณ — ใช้ส่วนนี้เมื่อต้องการเทียบเงินในลิ้นชัก
+            </p>
+          </summary>
+
+        <Card className="shrink-0 border-0 shadow-none">
+          <CardHeader className="pt-0">
+            <CardTitle className="sr-only">นับเงินสดประจำวัน</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -246,15 +271,6 @@ export default function CashCountPage() {
                       ยอดเงินทอน + รายรับเงินสด − รายจ่ายเงินสด − ถอนออกวันนี้
                     </p>
                   </div>
-
-                  <CashWithdrawTodayPanel
-                    items={withdrawals}
-                    totalWithdrawn={withdrawTotal}
-                    count={withdrawCount}
-                    loading={withdrawLoading}
-                    readOnly={readOnly}
-                    onWithdrawClick={() => setWithdrawOpen(true)}
-                  />
 
                   <AmountDisplay
                     label="ยอดเงินทอน (เปิดวัน)"
@@ -335,6 +351,7 @@ export default function CashCountPage() {
             )}
           </CardContent>
         </Card>
+        </details>
 
         <CashCountHistory refreshKey={historyKey} />
       </div>

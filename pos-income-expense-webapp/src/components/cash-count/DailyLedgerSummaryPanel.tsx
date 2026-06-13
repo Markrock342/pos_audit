@@ -32,9 +32,12 @@ function LedgerLine({
 interface DailyLedgerSummaryPanelProps {
   data: DailyLedgerSummary | null;
   loading?: boolean;
+  /** แทนคำว่า "วันนี้" ในหัวข้อสรุปธุรกิจ */
+  dateLabel?: string;
 }
 
-export function DailyLedgerSummaryPanel({ data, loading }: DailyLedgerSummaryPanelProps) {
+export function DailyLedgerSummaryPanel({ data, loading, dateLabel }: DailyLedgerSummaryPanelProps) {
+  const businessLabel = dateLabel ?? "วันนี้";
   if (loading) {
     return (
       <Card className="border-t-4 border-t-brand">
@@ -87,7 +90,7 @@ export function DailyLedgerSummaryPanel({ data, loading }: DailyLedgerSummaryPan
       <Card className="border-t-4 border-t-text-muted lg:col-span-2">
         <CardHeader className="pb-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle className="text-base">สรุปธุรกิจวันนี้</CardTitle>
+            <CardTitle className="text-base">สรุปธุรกิจ {businessLabel}</CardTitle>
             {data.isLocked && (
               <span className="inline-flex items-center gap-1 rounded-full bg-surface-inset px-2 py-0.5 text-xs text-text-muted">
                 <Lock size={12} />
@@ -114,7 +117,7 @@ export function DailyLedgerSummaryPanel({ data, loading }: DailyLedgerSummaryPan
               <p className="text-xl font-black text-expense">{formatCurrency(data.business.totalExpense)}</p>
             </div>
             <div className="rounded-xl bg-surface-inset p-4">
-              <p className="text-xs text-text-muted">สุทธิวันนี้</p>
+              <p className="text-xs text-text-muted">สุทธิ {businessLabel}</p>
               <p className={`text-xl font-black ${data.business.netTotal >= 0 ? "text-income" : "text-expense"}`}>
                 {data.business.netTotal >= 0 ? "+" : ""}
                 {formatCurrency(data.business.netTotal)}

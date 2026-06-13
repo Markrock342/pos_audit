@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { fetchCashCounts } from "@/lib/api/client";
 import {
   cashCountDisplayBadgeClass,
@@ -11,7 +12,7 @@ import { formatCurrency, formatDateShort } from "@/lib/utils/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import type { CashCount } from "@/types";
 import { cn } from "@/lib/utils/cn";
-import { History, CheckCircle, AlertTriangle, Lock, CircleDashed } from "lucide-react";
+import { History, CheckCircle, AlertTriangle, Lock, CircleDashed, ChevronRight } from "lucide-react";
 
 interface CashCountHistoryProps {
   refreshKey?: number;
@@ -45,9 +46,10 @@ export function CashCountHistory({ refreshKey = 0 }: CashCountHistoryProps) {
         ) : (
           <div className="space-y-2">
             {history.map((row) => (
-              <div
+              <Link
                 key={row.id}
-                className="tablet-touch-row flex items-center justify-between gap-4 rounded-2xl border-2 border-border-default px-4"
+                href={`/cash-count/${row.countDate}`}
+                className="tablet-touch-row flex items-center justify-between gap-4 rounded-2xl border-2 border-border-default px-4 transition-colors hover:border-brand hover:bg-brand/5 active:scale-[0.99]"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -91,8 +93,9 @@ export function CashCountHistory({ refreshKey = 0 }: CashCountHistoryProps) {
                     <AlertTriangle size={18} className="shrink-0" />
                   )}
                   {getCashCountDisplayLabel(row)}
+                  <ChevronRight size={16} className="shrink-0 opacity-60" />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

@@ -8,7 +8,7 @@ import {
 import { getTotalWithdrawnForDate } from "./cashWithdrawals";
 import { getOrganization } from "./organizations";
 import { getTransactions } from "./transactions";
-import type { CashCount, DailyLedgerSummary, PaymentMethod } from "@/types";
+import type { CashCount, DailyCloseStatus, DailyLedgerSummary, PaymentMethod } from "@/types";
 
 /** เงินโอน/บัญชีในสมุด — ทุกช่องทางที่ไม่ใช่เงินสด */
 export function isTransferLedgerPayment(method: PaymentMethod): boolean {
@@ -209,5 +209,22 @@ export async function getDailyLedgerSummary(
       totalExpense,
       netTotal: totalIncome - totalExpense,
     },
+  };
+}
+
+export async function getDailyCloseStatus(organizationId: string): Promise<DailyCloseStatus> {
+  const businessToday = getBusinessToday();
+  const summary = await getDailyLedgerSummary(organizationId, businessToday);
+  const cashCount = await getCashCountByDate(organizationId, businessToday);
+
+  return {
+    countDate: businessToday,
+    isLocked: summary.isLocked,
+    closedAt: summary.closedAt,
+    autoClosed: summary.autoClosed,
+    hasManualCount: !!cashCount?.hasManualCount,
+    cashClosing: summary.cash.closing,
+    transferClosing: summary.transfer.closing,
+    netTotal: summary.business.netTotal,
   };
 }

@@ -247,6 +247,13 @@ export async function fetchCashCounts(): Promise<CashCount[]> {
   return data;
 }
 
+export async function fetchCashCountByDate(date: string): Promise<CashCount | null> {
+  const { data } = await parseJson<{ data: CashCount | null }>(
+    await fetch(`/api/cash-counts?date=${encodeURIComponent(date)}`)
+  );
+  return data;
+}
+
 export async function fetchDashboard(): Promise<DashboardSummary & { expectedCashBalance: number }> {
   const { data } = await parseJson<{ data: DashboardSummary & { expectedCashBalance: number } }>(
     await fetch("/api/reports/dashboard")
