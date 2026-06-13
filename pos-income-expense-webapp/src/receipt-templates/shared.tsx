@@ -16,8 +16,20 @@ export {
   splitReceiptDateTime,
 } from "@/lib/utils/receiptRule";
 
-/** ความกว้างใบเสร็จ 80mm — ให้ preview ตรงกับ thermal print */
-export const RECEIPT_THERMAL_WIDTH = "302px";
+/** CSS สำหรับพิมพ์ผ่าน browser — กระดาษ 80mm */
+export const RECEIPT_BROWSER_PRINT_CSS = `
+@page { size: 80mm auto; margin: 0; }
+html, body { margin: 0; padding: 2mm; width: 80mm; max-width: 80mm; }
+body { font-family: system-ui, "Noto Sans Thai", sans-serif; font-size: 12px; color: #000; background: #fff; }
+*, *::before, *::after { box-sizing: border-box; color: #000; }
+hr, .receipt-thermal-hr { border: 0; border-top: 1px solid #000; margin: 6px 0; }
+.receipt-thermal-hr--total { border-top: 3px double #000; }
+table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+th, td { color: #000; padding: 0; }
+`;
+
+/** ความกว้างใบเสร็จ 80mm */
+export const RECEIPT_THERMAL_WIDTH = "80mm";
 
 export function ReceiptShell({
   children,
@@ -93,9 +105,9 @@ export function ReceiptItemTableHeader() {
   return (
     <table className="receipt-thermal-table w-full table-fixed border-collapse text-[11px] font-bold text-black">
       <colgroup>
-        <col className="w-[52%]" />
-        <col className="w-[16%]" />
-        <col className="w-[32%]" />
+        <col style={{ width: "54%" }} />
+        <col style={{ width: "12.5%" }} />
+        <col style={{ width: "33.5%" }} />
       </colgroup>
       <thead>
         <tr>
@@ -123,9 +135,9 @@ export function ReceiptItemTableRow({
     <div className="py-0.5 text-black">
       <table className="receipt-thermal-table w-full table-fixed border-collapse text-[12px]">
         <colgroup>
-          <col className="w-[52%]" />
-          <col className="w-[16%]" />
-          <col className="w-[32%]" />
+          <col style={{ width: "54%" }} />
+          <col style={{ width: "12.5%" }} />
+          <col style={{ width: "33.5%" }} />
         </colgroup>
         <tbody>
           <tr className="align-top">

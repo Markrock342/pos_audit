@@ -56,7 +56,8 @@ export function printExpenseVoucherOnImin(
 
   initThermalLayout(printer);
 
-  thermalCenterLines(printer, [shopName, "ใบบันทึกรายจ่าย / Expense"], true);
+  thermalCenterLines(printer, [shopName], true, true);
+  thermalCenterLines(printer, ["ใบบันทึกรายจ่าย / Expense"]);
   thermalBlankLine(printer);
   thermalRule(printer);
 

@@ -49,7 +49,7 @@ function EmptyDraftSlip({
   shopName: string;
 }) {
   return (
-    <div className="mx-auto w-full max-w-[302px] bg-white p-4 font-sans text-[12px] leading-snug text-black">
+    <div className="mx-auto w-full max-w-[80mm] bg-white p-4 font-sans text-[12px] leading-snug text-black">
       <div className="text-center">
         <p className="text-[16px] font-bold">{shopName}</p>
         <p className="mt-0.5 text-[11px] font-semibold">

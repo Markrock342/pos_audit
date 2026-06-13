@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { Receipt, Transaction } from "@/types";
 import { DefaultReceiptTemplate } from "@/receipt-templates/default-receipt";
+import { RECEIPT_BROWSER_PRINT_CSS } from "@/receipt-templates/shared";
 import { useOrganization } from "@/components/providers/OrganizationProvider";
 import { KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -50,11 +51,7 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
     win.document.write(`
       <!DOCTYPE html>
       <html><head><title>ใบเสร็จ</title>
-      <style>
-        body{margin:0;padding:8px;font-family:system-ui,"Noto Sans Thai",sans-serif;font-size:12px;color:#000;}
-        *{box-sizing:border-box;color:#000;}
-        hr{border:0;border-top:1px solid #000;}
-      </style>
+      <style>${RECEIPT_BROWSER_PRINT_CSS}</style>
       </head><body>${el.innerHTML}</body></html>
     `);
     win.document.close();

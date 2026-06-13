@@ -24,8 +24,14 @@ function concat(chunks: Uint8Array[]): Uint8Array {
   return out;
 }
 
+/** Init + Font A + TIS-620 code page สำหรับ 80mm */
 export function escInit(): Uint8Array {
-  return new Uint8Array([0x1b, 0x40]);
+  return concat([
+    new Uint8Array([0x1b, 0x40]), // ESC @ reset
+    new Uint8Array([0x1b, 0x4d, 0x00]), // ESC M 0 — Font A (48 ตัว/บรรทัด)
+    new Uint8Array([0x1b, 0x74, 0x1a]), // ESC t 26 — TIS-620 / CP874
+    new Uint8Array([0x1b, 0x32]), // ESC 2 — default line spacing
+  ]);
 }
 
 export function escAlign(mode: "left" | "center" | "right"): Uint8Array {

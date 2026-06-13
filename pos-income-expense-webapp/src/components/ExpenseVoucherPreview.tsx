@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { Category, Transaction } from "@/types";
 import { DefaultExpenseVoucherTemplate } from "@/receipt-templates/default-expense-voucher";
+import { RECEIPT_BROWSER_PRINT_CSS } from "@/receipt-templates/shared";
 import { useOrganization } from "@/components/providers/OrganizationProvider";
 import { KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -61,11 +62,7 @@ export function ExpenseVoucherPreview({
     win.document.write(`
       <!DOCTYPE html>
       <html><head><title>ใบบันทึกรายจ่าย</title>
-      <style>
-        body{margin:0;padding:8px;font-family:system-ui,"Noto Sans Thai",sans-serif;font-size:12px;color:#000;}
-        *{box-sizing:border-box;color:#000;}
-        hr{border:0;border-top:1px solid #000;}
-      </style>
+      <style>${RECEIPT_BROWSER_PRINT_CSS}</style>
       </head><body>${el.innerHTML}</body></html>
     `);
     win.document.close();

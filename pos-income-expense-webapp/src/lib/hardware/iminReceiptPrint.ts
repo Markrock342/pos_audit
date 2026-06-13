@@ -54,7 +54,8 @@ export function printReceiptOnImin(
 
   initThermalLayout(printer);
 
-  thermalCenterLines(printer, [shopName, "ใบเสร็จรับเงิน / Receipt"], true);
+  thermalCenterLines(printer, [shopName], true, true);
+  thermalCenterLines(printer, ["ใบเสร็จรับเงิน / Receipt"]);
   thermalBlankLine(printer);
   thermalRule(printer);
 
