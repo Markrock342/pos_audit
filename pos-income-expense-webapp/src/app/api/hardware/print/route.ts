@@ -87,7 +87,7 @@ export async function POST(request: Request) {
         {
           error: {
             code: "NOT_CONFIGURED",
-            message: "ยังไม่ได้ตั้งค่าเครื่องพิมพ์ — ไปที่ ตั้งค่า → อุปกรณ์ POS",
+            message: "ยังไม่ได้ตั้งค่าเครื่องพิมพ์ — ตรวจการเชื่อมต่อ LAN/USB",
           },
           fallback: "browser",
         },

@@ -76,7 +76,7 @@ export async function dispatchPrintJob(
 ): Promise<{ mode: "direct" | "bridge" }> {
   const target = resolvePrinterTarget(config);
   if (!target) {
-    throw new Error("ยังไม่ได้ตั้งค่า IP เครื่องพิมพ์ — ไปที่ ตั้งค่า → อุปกรณ์ POS");
+    throw new Error("ยังไม่ได้ตั้งค่า IP เครื่องพิมพ์ — ตรวจการเชื่อมต่อ LAN");
   }
 
   if (config.bridgeUrl?.trim()) {
