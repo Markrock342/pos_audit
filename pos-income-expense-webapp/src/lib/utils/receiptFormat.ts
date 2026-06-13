@@ -1,5 +1,5 @@
 import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
-import { PAYMENT_METHODS } from "@/constants";
+import { getPaymentMethodLabel } from "@/constants";
 import type { PaymentMethod, Transaction, TransactionLineItem } from "@/types";
 
 /** จำนวนเงินบนใบเสร็จ — ทศนิยม 2 ตำแหน่ง มีคั่นหลัก เช่น 1,000.00 */
@@ -83,7 +83,7 @@ export function resolveSellerName(createdBy: string, fallback = "ผู้ดู
 export const resolveRecorderName = resolveSellerName;
 
 export function resolvePaymentLabel(method: PaymentMethod): string {
-  return PAYMENT_METHODS.find((p) => p.value === method)?.label ?? method;
+  return getPaymentMethodLabel(method);
 }
 
 export function sumLineItems(lines: TransactionLineItem[]): number {

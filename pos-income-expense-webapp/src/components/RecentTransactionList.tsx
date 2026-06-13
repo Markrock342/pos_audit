@@ -1,5 +1,5 @@
 import type { Category, Transaction } from "@/types";
-import { PAYMENT_METHODS } from "@/constants";
+import { getPaymentMethodLabel } from "@/constants";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
 import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 
@@ -28,8 +28,7 @@ export function RecentTransactionList({
         const cat = categoryMap[t.categoryId];
         const isIncome = t.type === "income";
         const paymentLabel =
-          PAYMENT_METHODS.find((p) => p.value === t.paymentMethod)?.label ??
-          t.paymentMethod;
+          getPaymentMethodLabel(t.paymentMethod);
 
         return (
           <div

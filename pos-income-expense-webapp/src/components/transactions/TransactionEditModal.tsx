@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { PAYMENT_METHODS } from "@/constants";
+import { getEditablePaymentMethodOptions } from "@/constants";
 import { updateTransactionApi } from "@/lib/api/client";
 import { type CartLine } from "@/components/forms/TransactionCartPanel";
 import { DraftBillPreview } from "@/components/forms/DraftBillPreview";
@@ -159,7 +159,10 @@ export function TransactionEditModal({
             />
             <Select
               label="ช่องทางชำระ"
-              options={PAYMENT_METHODS.map((p) => ({ value: p.value, label: p.label }))}
+              options={getEditablePaymentMethodOptions(paymentMethod).map((p) => ({
+                value: p.value,
+                label: p.label,
+              }))}
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
             />

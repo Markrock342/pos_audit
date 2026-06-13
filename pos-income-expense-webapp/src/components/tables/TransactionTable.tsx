@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Category, Transaction } from "@/types";
-import { PAYMENT_METHODS } from "@/constants";
+import { getPaymentMethodLabel } from "@/constants";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
 import { DateTimeDisplay } from "@/components/ui/DateTimeDisplay";
 import { TransactionEditModal } from "@/components/transactions/TransactionEditModal";
@@ -110,7 +110,7 @@ export function TransactionTable({
       key: "paymentMethod",
       header: "ช่องทาง",
       render: (row: Transaction) =>
-        PAYMENT_METHODS.find((p) => p.value === row.paymentMethod)?.label ?? row.paymentMethod,
+        getPaymentMethodLabel(row.paymentMethod),
     },
     {
       key: "amount",
@@ -204,8 +204,7 @@ export function TransactionTable({
         {transactions.map((row) => {
           const { label, color } = categorySummary(row, categoryMap);
           const payment =
-            PAYMENT_METHODS.find((p) => p.value === row.paymentMethod)?.label ??
-            row.paymentMethod;
+            getPaymentMethodLabel(row.paymentMethod);
           const voided = row.status === "void";
           const selected = !!selectedTransactionId && row.id === selectedTransactionId;
           return (

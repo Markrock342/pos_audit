@@ -22,6 +22,26 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "other", label: "อื่นๆ" },
 ];
 
+/** ช่องทางที่ให้เลือกในฟอร์ม — สด + โอนเท่านั้น (DB enum ยังรองรับ legacy) */
+export const UI_PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
+  { value: "cash", label: "เงินสด" },
+  { value: "transfer", label: "โอนเงิน" },
+];
+
+export function getPaymentMethodLabel(method: PaymentMethod): string {
+  return PAYMENT_METHODS.find((p) => p.value === method)?.label ?? method;
+}
+
+/** ตัวเลือกแก้ไข — UI methods + legacy ถ้ารายการเดิมใช้ช่องทางเก่า */
+export function getEditablePaymentMethodOptions(current?: PaymentMethod) {
+  const options = [...UI_PAYMENT_METHODS];
+  if (current && !options.some((o) => o.value === current)) {
+    const legacy = PAYMENT_METHODS.find((p) => p.value === current);
+    if (legacy) options.push(legacy);
+  }
+  return options;
+}
+
 export type NavItem = {
   href: string;
   label: string;

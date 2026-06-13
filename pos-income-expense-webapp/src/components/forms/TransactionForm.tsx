@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import type { Category, TransactionType } from "@/types";
-import { PAYMENT_METHODS } from "@/constants";
+import { UI_PAYMENT_METHODS } from "@/constants";
 import {
   transactionSchema,
   type LineItemFormValues,
@@ -241,8 +241,11 @@ export function TransactionForm({
                     <label className="mb-1.5 block text-xs font-semibold text-text-secondary">
                       ช่องทางชำระ
                     </label>
-                    <div className="pos-bill-payment-btns grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {PAYMENT_METHODS.map((method) => (
+                    <p className="mb-2 text-xs text-text-muted">
+                      เงินสด = ใน POS · โอน = ตามรายการในสมุด (ไม่เชื่อมธนาคาร)
+                    </p>
+                    <div className="pos-bill-payment-btns grid grid-cols-2 gap-2">
+                      {UI_PAYMENT_METHODS.map((method) => (
                         <button
                           key={method.value}
                           type="button"

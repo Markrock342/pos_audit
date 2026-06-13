@@ -37,4 +37,8 @@
 - [x] `DailyCloseStatusCard` บน dashboard
 - [x] ย้ายฟอร์มนับเงินไป `<details>` (ไม่บังคับ)
 
-## Phase 5 — ช่องทาง สด/โอน + polish
+## Phase 5 — ช่องทาง สด/โอน + polish ✅
+
+- [x] `UI_PAYMENT_METHODS` — ฟอร์มเหลือ เงินสด / โอน
+- [x] อัปเดต `TransactionForm`, `TransactionEditModal`
+- [x] ปรับ label ยอดคงเหลือ / dashboard / helper แสดงชื่อช่องทาง
