@@ -52,15 +52,11 @@ function EmptyDraftSlip({
   compact?: boolean;
 }) {
   return (
-<<<<<<< HEAD
-    <div className="mx-auto w-full max-w-[80mm] bg-white p-4 font-sans text-[12px] leading-snug text-black">
-=======
     <div
       className={`mx-auto w-full bg-white font-sans leading-snug text-black ${
-        compact ? "max-w-full p-2 text-[10px]" : "max-w-[302px] p-4 text-[12px]"
+        compact ? "max-w-full p-2 text-[10px]" : "max-w-[80mm] p-4 text-[12px]"
       }`}
     >
->>>>>>> f4039aa (feat(webapp): optimize POS terminal layout for iMin Swan 2 touch workflow)
       <div className="text-center">
         <p className={`font-bold ${compact ? "text-[11px]" : "text-[16px]"}`}>{shopName}</p>
         <p className={`mt-0.5 font-semibold ${compact ? "text-[9px]" : "text-[11px]"}`}>
@@ -233,7 +229,7 @@ export function DraftBillPreview({
               </button>
             </div>
             <div className="overflow-y-auto bg-[#ececec] p-4">
-              <div className="mx-auto max-w-[302px] rounded-lg bg-white shadow-lg">
+              <div className="mx-auto max-w-[80mm] rounded-lg bg-white shadow-lg">
                 {draftTransaction ? (
                   <ReceiptBody
                     type={type}
