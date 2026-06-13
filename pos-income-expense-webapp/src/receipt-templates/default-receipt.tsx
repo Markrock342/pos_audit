@@ -56,7 +56,7 @@ export function DefaultReceiptTemplate({
     <ReceiptShell fullWidth={fullWidth}>
       <ReceiptHeader shopName={shopName} subtitle="ใบเสร็จรับเงิน / Receipt" />
 
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         <ReceiptMetaPair left={`เลขที่: ${receiptNo}`} right={`ชื่อบิล: ${billTitle}`} />
         <ReceiptMetaPair left={`วันที่: ${date}`} right={`เวลา: ${time}`} />
         <ReceiptMetaSingle text={`ผู้ขาย: ${seller}`} />
@@ -69,9 +69,9 @@ export function DefaultReceiptTemplate({
       <ReceiptItemTableHeader />
       <ReceiptDivider />
 
-      <div className="space-y-0.5">
+      <div>
         {lines.length === 0 && (
-          <p className="py-1 text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
+          <p className="py-2 text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
         )}
         {lines.map((line, index) => (
           <ReceiptItemTableRow
@@ -79,7 +79,6 @@ export function DefaultReceiptTemplate({
             title={line.title}
             qty={line.quantity}
             amount={formatReceiptAmount(line.lineAmount)}
-            subline={`@ ${formatReceiptAmount(line.unitPrice)} / หน่วย`}
           />
         ))}
       </div>
@@ -87,17 +86,17 @@ export function DefaultReceiptTemplate({
       <ReceiptDivider />
 
       <div className="space-y-0.5">
-        <ReceiptSummaryRow label="Sub-total" value={formatReceiptAmount(subtotal)} />
+        <ReceiptSummaryRow label="รวมย่อย" value={formatReceiptAmount(subtotal)} />
         <ReceiptSummaryRow label="ส่วนลด" value={formatReceiptAmount(discount)} />
       </div>
 
-      <ReceiptDivider />
+      <ReceiptDivider total />
 
       <div className="space-y-0.5">
         <ReceiptSummaryRow
-          label={`Total (${paymentLabel})`}
+          label={`ยอดชำระ (${paymentLabel})`}
           value={formatReceiptAmount(netTotal)}
-          bold
+          large
         />
         {isCash && (
           <>

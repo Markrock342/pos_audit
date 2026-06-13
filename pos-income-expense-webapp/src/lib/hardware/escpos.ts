@@ -3,10 +3,10 @@ import {
   formatReceiptItemRow,
   formatReceiptMetaPair,
   formatReceiptSubLine,
+  formatReceiptSummaryRow,
   receiptRuleLine,
+  receiptTotalRuleLine,
 } from "@/lib/utils/receiptRule";
-
-const WIDTH = 42;
 
 /** Encode Thai text for common 80mm ESC/POS printers (Windows-874 / TIS-620) */
 export function encodeReceiptText(text: string): Uint8Array {
@@ -53,6 +53,10 @@ export function escRule(): Uint8Array {
   return escTextLine(receiptRuleLine());
 }
 
+export function escTotalRule(): Uint8Array {
+  return escTextLine(receiptTotalRuleLine());
+}
+
 export function escMetaPair(left: string, right: string): Uint8Array {
   return escTextLine(formatReceiptMetaPair(left, right));
 }
@@ -67,9 +71,8 @@ export function escSubLine(text: string): Uint8Array {
 
 /** Left label + right value on one line (truncate if too long) */
 export function escRow(label: string, value: string, bold = false): Uint8Array {
-  const gap = Math.max(1, WIDTH - label.length - value.length);
-  const line = `${label}${" ".repeat(gap)}${value}`;
-  return concat([escBold(bold), escTextLine(line.slice(0, WIDTH)), escBold(false)]);
+  const line = formatReceiptSummaryRow(label, value);
+  return concat([escBold(bold), escTextLine(line), escBold(false)]);
 }
 
 export function escCenterLines(lines: string[], boldFirst = false): Uint8Array {

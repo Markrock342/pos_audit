@@ -22,6 +22,7 @@ import {
   escRow,
   escRule,
   escSubLine,
+  escTotalRule,
   escTextLine,
 } from "@/lib/hardware/escpos";
 
@@ -75,15 +76,14 @@ export function buildEscPosExpenseVoucher(ctx: ExpenseVoucherPrintContext): Uint
         escItemRow(line.title, String(line.quantity), formatReceiptAmount(line.lineAmount))
       );
       const categoryName = categoryNames[line.categoryId];
-      const sub = categoryName
-        ? `หมวด: ${categoryName} · @ ${formatReceiptAmount(line.unitPrice)}`
-        : `@ ${formatReceiptAmount(line.unitPrice)} / หน่วย`;
-      chunks.push(escSubLine(sub));
+      if (categoryName) {
+        chunks.push(escSubLine(`หมวด: ${categoryName}`));
+      }
     }
   }
 
-  chunks.push(escRule());
-  chunks.push(escRow(`Total (${paymentLabel})`, formatReceiptAmount(total), true));
+  chunks.push(escTotalRule());
+  chunks.push(escRow(`ยอดจ่าย (${paymentLabel})`, formatReceiptAmount(total), true));
   if (transaction.referenceNo?.trim()) {
     chunks.push(escRow("เลขที่อ้างอิง", transaction.referenceNo.trim()));
   }

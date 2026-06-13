@@ -5,6 +5,7 @@ import {
   formatReceiptMetaPair,
   formatReceiptSubLine,
   receiptRuleLine,
+  receiptTotalRuleLine,
 } from "@/lib/utils/receiptRule";
 
 export const THERMAL_COL_WIDTH = 576;
@@ -25,6 +26,10 @@ export function thermalBlankLine(printer: IminPrinterInstance): void {
 
 export function thermalRule(printer: IminPrinterInstance): void {
   printer.printText(receiptRuleLine());
+}
+
+export function thermalTotalRule(printer: IminPrinterInstance): void {
+  printer.printText(receiptTotalRuleLine());
 }
 
 export function thermalCenterLines(

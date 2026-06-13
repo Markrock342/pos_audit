@@ -22,6 +22,7 @@ import {
   thermalSubLine,
   thermalSummaryRow,
   thermalThreeColRow,
+  thermalTotalRule,
 } from "@/lib/hardware/iminThermalLayout";
 
 const DEFAULT_FOOTER = "เอกสารบันทึกภายใน — ไม่ใช่ใบกำกับภาษี";
@@ -80,15 +81,14 @@ export function printExpenseVoucherOnImin(
         formatReceiptAmount(line.lineAmount)
       );
       const categoryName = categoryNames[line.categoryId];
-      const sub = categoryName
-        ? `หมวด: ${categoryName} · @ ${formatReceiptAmount(line.unitPrice)}`
-        : `@ ${formatReceiptAmount(line.unitPrice)} / หน่วย`;
-      thermalSubLine(printer, sub);
+      if (categoryName) {
+        thermalSubLine(printer, `หมวด: ${categoryName}`);
+      }
     }
   }
 
-  thermalRule(printer);
-  thermalSummaryRow(printer, `Total (${paymentLabel})`, formatReceiptAmount(total), true);
+  thermalTotalRule(printer);
+  thermalSummaryRow(printer, `ยอดจ่าย (${paymentLabel})`, formatReceiptAmount(total), true);
   if (transaction.referenceNo?.trim()) {
     thermalSummaryRow(printer, "เลขที่อ้างอิง", transaction.referenceNo.trim());
   }

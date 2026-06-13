@@ -22,7 +22,7 @@ import {
   escMetaPair,
   escRow,
   escRule,
-  escSubLine,
+  escTotalRule,
   escTextLine,
 } from "@/lib/hardware/escpos";
 
@@ -81,16 +81,15 @@ export function buildEscPosReceipt(
       chunks.push(
         escItemRow(line.title, String(line.quantity), formatReceiptAmount(line.lineAmount))
       );
-      chunks.push(escSubLine(`@ ${formatReceiptAmount(line.unitPrice)} / หน่วย`));
     }
   }
 
   chunks.push(escRule());
-  chunks.push(escRow("Sub-total", formatReceiptAmount(subtotal)));
+  chunks.push(escRow("รวมย่อย", formatReceiptAmount(subtotal)));
   chunks.push(escRow("ส่วนลด", formatReceiptAmount(0)));
 
-  chunks.push(escRule());
-  chunks.push(escRow(`Total (${paymentLabel})`, formatReceiptAmount(netTotal), true));
+  chunks.push(escTotalRule());
+  chunks.push(escRow(`ยอดชำระ (${paymentLabel})`, formatReceiptAmount(netTotal), true));
   if (isCash) {
     chunks.push(escRow("รับเงิน", formatReceiptAmount(netTotal)));
     chunks.push(escRow("เงินทอน", formatReceiptAmount(0)));

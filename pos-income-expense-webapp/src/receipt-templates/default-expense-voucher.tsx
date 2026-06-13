@@ -57,7 +57,7 @@ export function DefaultExpenseVoucherTemplate({
     <ReceiptShell fullWidth={fullWidth}>
       <ReceiptHeader shopName={shopName} subtitle="ใบบันทึกรายจ่าย / Expense" />
 
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         <ReceiptMetaPair left={`เลขที่: ${docNo}`} right={`ชื่อบิล: ${billTitle}`} />
         <ReceiptMetaPair left={`วันที่: ${date}`} right={`เวลา: ${time}`} />
         <ReceiptMetaSingle text={`ผู้บันทึก: ${recorder}`} />
@@ -70,9 +70,9 @@ export function DefaultExpenseVoucherTemplate({
       <ReceiptItemTableHeader />
       <ReceiptDivider />
 
-      <div className="space-y-0.5">
+      <div>
         {lines.length === 0 && (
-          <p className="py-1 text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
+          <p className="py-2 text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
         )}
         {lines.map((line, index) => {
           const categoryName = categoryNames[line.categoryId];
@@ -82,23 +82,19 @@ export function DefaultExpenseVoucherTemplate({
               title={line.title}
               qty={line.quantity}
               amount={formatReceiptAmount(line.lineAmount)}
-              subline={
-                categoryName
-                  ? `หมวด: ${categoryName} · @ ${formatReceiptAmount(line.unitPrice)}`
-                  : `@ ${formatReceiptAmount(line.unitPrice)} / หน่วย`
-              }
+              hint={categoryName ? `หมวด: ${categoryName}` : undefined}
             />
           );
         })}
       </div>
 
-      <ReceiptDivider />
+      <ReceiptDivider total />
 
       <div className="space-y-0.5">
         <ReceiptSummaryRow
-          label={`Total (${paymentLabel})`}
+          label={`ยอดจ่าย (${paymentLabel})`}
           value={formatReceiptAmount(total)}
-          bold
+          large
         />
         {transaction.referenceNo?.trim() && (
           <ReceiptSummaryRow label="เลขที่อ้างอิง" value={transaction.referenceNo.trim()} />

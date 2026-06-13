@@ -22,6 +22,7 @@ import {
   thermalSubLine,
   thermalSummaryRow,
   thermalThreeColRow,
+  thermalTotalRule,
 } from "@/lib/hardware/iminThermalLayout";
 
 export interface IminReceiptContext {
@@ -78,16 +79,15 @@ export function printReceiptOnImin(
         String(line.quantity),
         formatReceiptAmount(line.lineAmount)
       );
-      thermalSubLine(printer, `@ ${formatReceiptAmount(line.unitPrice)} / หน่วย`);
     }
   }
 
   thermalRule(printer);
-  thermalSummaryRow(printer, "Sub-total", formatReceiptAmount(subtotal));
+  thermalSummaryRow(printer, "รวมย่อย", formatReceiptAmount(subtotal));
   thermalSummaryRow(printer, "ส่วนลด", formatReceiptAmount(0));
 
-  thermalRule(printer);
-  thermalSummaryRow(printer, `Total (${paymentLabel})`, formatReceiptAmount(netTotal), true);
+  thermalTotalRule(printer);
+  thermalSummaryRow(printer, `ยอดชำระ (${paymentLabel})`, formatReceiptAmount(netTotal), true);
   if (isCash) {
     thermalSummaryRow(printer, "รับเงิน", formatReceiptAmount(netTotal));
     thermalSummaryRow(printer, "เงินทอน", formatReceiptAmount(0));

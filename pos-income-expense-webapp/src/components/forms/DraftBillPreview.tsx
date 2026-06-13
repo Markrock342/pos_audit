@@ -56,23 +56,13 @@ function EmptyDraftSlip({
           {type === "income" ? "ใบเสร็จรับเงิน / Receipt" : "ใบบันทึกรายจ่าย"}
         </p>
       </div>
-      <div
-        className="my-3 overflow-hidden whitespace-nowrap text-[10px] text-gray-400"
-        aria-hidden
-      >
-        {"-".repeat(42)}
-      </div>
+      <hr className="my-3 w-full border-0 border-t border-dashed border-gray-400" aria-hidden />
       <p className="py-10 text-center text-[11px] leading-relaxed text-gray-500">
         เลือกหมวด + ใส่ราคา
         <br />
         ใบเสร็จจะอัปเดตอัตโนมัติ
       </p>
-      <div
-        className="overflow-hidden whitespace-nowrap text-[10px] text-gray-400"
-        aria-hidden
-      >
-        {".".repeat(42)}
-      </div>
+      <hr className="w-full border-0 border-t border-dotted border-gray-400" aria-hidden />
       <p className="pt-2 text-center text-[10px] text-gray-500">— ตัวอย่าง —</p>
     </div>
   );
