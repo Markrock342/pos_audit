@@ -52,8 +52,9 @@ export function AmountNumpad({ value, onChange, integerOnly, touch }: AmountNump
       "active:scale-95 text-text-main"
     );
     return (
-      // grid-rows-4 + min-h floor: landscape เติมเต็มความสูง, portrait ไม่ยุบเป็น 0
-      <div className="pos-numpad-grid grid h-full min-h-[12rem] w-full grid-cols-3 grid-rows-4 gap-2">
+      // auto-rows-fr + h-full: ยืดหดเต็มพื้นที่ที่เหลือเสมอ ไม่ล้นทับปุ่มอื่น
+      // (floor ต่ำ กันยุบตอน portrait แต่ไม่ดันให้ล้นบนจอเตี้ย landscape)
+      <div className="pos-numpad-grid grid h-full min-h-36 w-full auto-rows-fr grid-cols-3 gap-1.5">
         {keys.map((key) => (
           <button
             key={key}

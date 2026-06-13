@@ -267,7 +267,7 @@ input, textarea, button {
 @media (min-width: 900px) and (orientation: landscape) {
   .pos-txn-terminal {
     display: grid;
-    grid-template-columns: minmax(210px, 22fr) minmax(0, 48fr) minmax(290px, 30fr);
+    grid-template-columns: minmax(200px, 24fr) minmax(0, 40fr) minmax(320px, 36fr);
     gap: 0.625rem;
     overflow: hidden;
   }
@@ -356,7 +356,7 @@ input, textarea, button {
   }
 
   .pos-txn-terminal {
-    grid-template-columns: minmax(190px, 20fr) minmax(0, 50fr) minmax(270px, 30fr) !important;
+    grid-template-columns: minmax(190px, 22fr) minmax(0, 40fr) minmax(300px, 38fr) !important;
   }
 
   .pos-slip-subtitle {

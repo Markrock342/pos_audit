@@ -283,13 +283,13 @@ export function TransactionForm({
                 onAdd={() => lineDraft.handleAdd(handleAddLine)}
               />
 
-              <div className="pos-txn-actions mt-auto shrink-0 space-y-2 border-t border-border-default pt-3">
+              <div className="pos-txn-actions mt-auto shrink-0 space-y-1.5 border-t border-border-default pt-2">
                 <Button
                   type="submit"
                   disabled={busy || cartLines.length === 0}
                   variant={type === "income" ? "income" : "danger"}
-                  size="lg"
-                  className="w-full text-lg font-black"
+                  size="md"
+                  className="w-full text-base font-black"
                   onClick={() => {
                     saveModeRef.current = successRedirect ? "redirect" : "new";
                   }}

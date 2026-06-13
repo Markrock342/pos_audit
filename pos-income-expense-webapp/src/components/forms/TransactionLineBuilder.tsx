@@ -93,43 +93,39 @@ export function TransactionAmountPanel({
 
   return (
     <div className="pos-amount-panel flex min-h-0 flex-1 flex-col">
-      <h3 className="pos-panel-title mb-2 shrink-0 text-sm font-black uppercase tracking-wide text-text-secondary">
-        จำนวนเงิน <span className="text-error">*</span>
-      </h3>
-
-      <div className="pos-line-qty mb-3 shrink-0">
-        <p className="mb-1.5 text-xs font-semibold text-text-muted">จำนวน</p>
-        <div className="pos-qty-row flex items-stretch gap-2">
+      <div className="pos-line-qty mb-2 flex shrink-0 items-center gap-2">
+        <span className="text-xs font-bold text-text-muted">จำนวน</span>
+        <div className="pos-qty-row flex flex-1 items-stretch gap-2">
           <button
             type="button"
             onClick={() => onQuantityChange((q) => Math.max(1, q - 1))}
             disabled={quantity <= 1}
-            className="pos-touch-btn flex min-h-14 min-w-14 items-center justify-center rounded-xl border-2 border-border-default bg-surface-hover active:scale-95 disabled:opacity-40"
+            className="pos-touch-btn flex min-h-11 min-w-11 items-center justify-center rounded-xl border-2 border-border-default bg-surface-hover active:scale-95 disabled:opacity-40"
             aria-label="ลดจำนวน"
           >
-            <Minus size={20} strokeWidth={2.5} />
+            <Minus size={18} strokeWidth={2.5} />
           </button>
-          <div className="flex min-h-14 flex-1 items-center justify-center rounded-xl border-2 border-border-default bg-surface-elevated">
-            <span className="text-3xl font-black tabular-nums">{quantity}</span>
+          <div className="flex min-h-11 flex-1 items-center justify-center rounded-xl border-2 border-border-default bg-surface-elevated">
+            <span className="text-2xl font-black tabular-nums">{quantity}</span>
           </div>
           <button
             type="button"
             onClick={() => onQuantityChange((q) => q + 1)}
-            className="pos-touch-btn flex min-h-14 min-w-14 items-center justify-center rounded-xl border-2 border-border-default bg-surface-hover active:scale-95"
+            className="pos-touch-btn flex min-h-11 min-w-11 items-center justify-center rounded-xl border-2 border-border-default bg-surface-hover active:scale-95"
             aria-label="เพิ่มจำนวน"
           >
-            <Plus size={20} strokeWidth={2.5} />
+            <Plus size={18} strokeWidth={2.5} />
           </button>
         </div>
       </div>
 
       <div className="pos-numpad-stack flex min-h-0 flex-1 flex-col">
-        <AmountDisplay value={amountString} label="ราคา (บาท)" active large />
-        <div className="mt-2 min-h-0 flex-1">
+        <AmountDisplay value={amountString} label="ราคา (บาท)" active compact />
+        <div className="mt-1.5 min-h-0 flex-1">
           <AmountNumpad integerOnly touch value={amountString} onChange={onAmountChange} />
         </div>
         {quantity > 1 && unitPrice > 0 && (
-          <p className={`mt-2 shrink-0 text-center text-xs font-bold ${accent}`}>
+          <p className={`mt-1 shrink-0 text-center text-xs font-bold ${accent}`}>
             {quantity} × {formatCurrency(unitPrice)} = {formatCurrency(linePreview)}
           </p>
         )}
@@ -139,7 +135,7 @@ export function TransactionAmountPanel({
         <button
           type="button"
           onClick={onShowTitle}
-          className="mt-2 shrink-0 text-left text-xs font-semibold text-text-muted underline-offset-2 hover:underline"
+          className="mt-1.5 shrink-0 self-start text-xs font-semibold text-text-muted underline-offset-2 hover:underline"
         >
           + ตั้งชื่อรายการ
         </button>
@@ -148,18 +144,18 @@ export function TransactionAmountPanel({
           value={customTitle}
           onChange={(e) => onCustomTitleChange(e.target.value)}
           placeholder="ชื่อรายการ"
-          className="pos-bill-input mt-2 h-14 w-full shrink-0 rounded-xl border-2 border-border-default bg-surface-inset px-3 text-base"
+          className="pos-bill-input mt-1.5 h-11 w-full shrink-0 rounded-xl border-2 border-border-default bg-surface-inset px-3 text-base"
         />
       )}
 
-      <div className="pos-line-add-row mt-3 shrink-0 space-y-2">
+      <div className="pos-line-add-row mt-2 shrink-0 space-y-1.5">
         {error && <p className="text-xs font-bold text-error">{error}</p>}
         <button
           type="button"
           onClick={onAdd}
-          className={`pos-touch-btn flex min-h-14 w-full items-center justify-center gap-2 rounded-xl text-lg font-black shadow-lg active:scale-[0.99] ${addBtn}`}
+          className={`pos-touch-btn flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-black shadow-md active:scale-[0.99] ${addBtn}`}
         >
-          <Plus size={20} />
+          <Plus size={18} />
           เพิ่มรายการ
         </button>
       </div>
