@@ -10,6 +10,9 @@ import { loadCategories, loadChartTransactions, loadRecentTransactions } from "@
 import { buildChartData } from "@/lib/reports/summary";
 import { getDashboard } from "@/lib/services/db/reports";
 
+// โหลดยอด/รายการสดทุกครั้ง — ไม่ prerender ค้างตั้งแต่ตอน build
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const [chartTransactions, categories, dashboardData, recentTransactions] = await Promise.all([
     loadChartTransactions(6),
