@@ -28,6 +28,9 @@ export async function printTransactionDocument(
   const org = await fetchOrganization().catch(() => null);
   const shopName = org?.receiptConfig?.header ?? org?.name;
   const footer = org?.receiptConfig?.footer;
+  const address = org?.address;
+  const phone = org?.phone;
+  const taxId = org?.taxId;
   const displayName = readSessionDisplayName();
 
   if (transaction.type === "expense") {
@@ -50,6 +53,9 @@ export async function printTransactionDocument(
         recorderName: displayName,
         voucherNumber,
         categoryNames,
+        address,
+        phone,
+        taxId,
       }
     );
   }
@@ -66,6 +72,9 @@ export async function printTransactionDocument(
       shopName,
       footer,
       sellerName: displayName,
+      address,
+      phone,
+      taxId,
     }
   );
 }

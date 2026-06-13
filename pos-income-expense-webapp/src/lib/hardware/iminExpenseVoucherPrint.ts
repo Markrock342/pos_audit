@@ -22,6 +22,7 @@ import {
   thermalSubLine,
   thermalSummaryRow,
   thermalThreeColRow,
+  thermalTotalRow,
   thermalTotalRule,
 } from "@/lib/hardware/iminThermalLayout";
 
@@ -34,6 +35,9 @@ export interface IminExpenseVoucherContext {
   footer?: string;
   recorderName?: string;
   categoryNames?: Record<string, string>;
+  address?: string;
+  phone?: string;
+  taxId?: string;
   openDrawer?: boolean;
 }
 
@@ -54,12 +58,23 @@ export function printExpenseVoucherOnImin(
   const { date, time } = splitReceiptDateTime(transaction.createdAt);
   const billTitle = transaction.title?.trim() || "-";
 
+  const contactLines = [
+    ctx.address?.trim(),
+    [ctx.phone?.trim() ? `โทร. ${ctx.phone.trim()}` : null, ctx.taxId?.trim() ? `เลขภาษี ${ctx.taxId.trim()}` : null]
+      .filter(Boolean)
+      .join("  ") || null,
+  ].filter((l): l is string => Boolean(l));
+
   initThermalLayout(printer);
 
   thermalCenterLines(printer, [shopName], true, true);
-  thermalCenterLines(printer, ["ใบบันทึกรายจ่าย / Expense"]);
-  thermalBlankLine(printer);
+  if (contactLines.length > 0) {
+    thermalCenterLines(printer, contactLines);
+  }
   thermalRule(printer);
+  thermalCenterLines(printer, ["ใบบันทึกรายจ่าย"], true);
+  thermalCenterLines(printer, ["EXPENSE"]);
+  thermalBlankLine(printer);
 
   thermalMetaPair(printer, `เลขที่: ${docNo}`, `ชื่อบิล: ${billTitle}`);
   thermalMetaPair(printer, `วันที่: ${date}`, `เวลา: ${time}`);
@@ -90,7 +105,9 @@ export function printExpenseVoucherOnImin(
   }
 
   thermalTotalRule(printer);
-  thermalSummaryRow(printer, `ยอดจ่าย (${paymentLabel})`, formatReceiptAmount(total), true);
+  thermalTotalRow(printer, "ยอดจ่ายสุทธิ", formatReceiptAmount(total));
+  thermalTotalRule(printer);
+  thermalSummaryRow(printer, "ชำระโดย", paymentLabel, true);
   if (transaction.referenceNo?.trim()) {
     thermalSummaryRow(printer, "เลขที่อ้างอิง", transaction.referenceNo.trim());
   }
@@ -99,7 +116,7 @@ export function printExpenseVoucherOnImin(
   }
 
   thermalRule(printer);
-  thermalCenterLines(printer, [footer]);
+  thermalCenterLines(printer, [footer], true);
   const isCash = transaction.paymentMethod === "cash";
   thermalFinish(printer, ctx.openDrawer && isCash);
 }

@@ -19,7 +19,7 @@ export {
 /**
  * CSS สำหรับพิมพ์ผ่าน browser — กระดาษ 80mm
  * หน้าต่างพิมพ์มีแค่ CSS นี้ (ไม่มี Tailwind) จึง style ผ่าน semantic class `.rcpt-*`
- * ที่ component ใส่ไว้คู่กับ Tailwind เพื่อให้ preview กับงานพิมพ์เหมือนกัน
+ * ดีไซน์ = ใบเสร็จ thermal จริง (ขาว-ดำ ตัวหนา/เส้นคั่น) ให้พรีวิวตรงกับงานพิมพ์
  */
 export const RECEIPT_BROWSER_PRINT_CSS = `
 @page { size: 80mm auto; margin: 0; }
@@ -37,22 +37,17 @@ body {
 }
 .rcpt { width: 80mm; max-width: 80mm; padding: 3mm 3.5mm 4mm; }
 .rcpt-center { text-align: center; }
-.rcpt-shop { font-size: 19px; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; }
-.rcpt-contact { font-size: 10.5px; font-weight: 500; line-height: 1.35; }
-/* ข้อความบนแถบพื้นดำต้องเป็นสีขาว — ทับ rule * { color:#000 } ด้านบน */
-.rcpt-title, .rcpt-title *, .rcpt-total, .rcpt-total * { color: #fff !important; }
-.rcpt-title {
-  margin: 7px 0 0; padding: 3px 0; background: #000; color: #fff;
-  text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.22em;
-}
-.rcpt-title-sub { margin-top: 2px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.32em; }
+.rcpt-shop { font-size: 19px; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; margin: 0; }
+.rcpt-contact { font-size: 10.5px; font-weight: 500; line-height: 1.35; margin: 0; }
+.rcpt-title { margin: 6px 0 0; text-align: center; font-size: 13px; font-weight: 800; letter-spacing: 0.16em; }
+.rcpt-title-sub { margin-top: 1px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.32em; display: block; }
 .rcpt-meta { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; line-height: 1.5; }
 .rcpt-meta > span:first-child { min-width: 0; }
 .rcpt-meta > span:last-child { flex-shrink: 0; max-width: 52%; text-align: right; font-variant-numeric: tabular-nums; }
-.rcpt-meta-single { font-size: 11px; line-height: 1.5; }
+.rcpt-meta-single { font-size: 11px; line-height: 1.5; margin: 0; }
 .rcpt-hr { border: 0; border-top: 1px solid #000; margin: 6px 0; }
 .rcpt-hr--dashed { border-top: 1px dashed #000; }
-.rcpt-hr--total { border-top: 2px solid #000; margin: 7px 0; }
+.rcpt-hr--total { border-top: 2px solid #000; margin: 5px 0; }
 .rcpt-tbl { width: 100%; table-layout: fixed; border-collapse: collapse; }
 .rcpt-tbl th, .rcpt-tbl td { padding: 0; color: #000; }
 .rcpt-th { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -60,19 +55,16 @@ body {
 .rcpt-row td { font-size: 12px; font-weight: 600; vertical-align: top; line-height: 1.35; }
 .rcpt-row .c-qty { text-align: center; font-variant-numeric: tabular-nums; }
 .rcpt-row .c-amt { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.rcpt-row-hint { font-size: 10px; font-weight: 500; margin-top: 1px; }
+.rcpt-row-hint { font-size: 10px; font-weight: 500; margin: 1px 0 0; }
 .rcpt-sum { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px; line-height: 1.6; }
 .rcpt-sum > span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rcpt-sum--bold { font-weight: 800; }
-.rcpt-total {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  margin: 7px 0; padding: 5px 9px; background: #000; color: #fff; border-radius: 2px;
-}
-.rcpt-total .lbl { font-size: 12.5px; font-weight: 800; letter-spacing: 0.02em; }
-.rcpt-total .val { font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rcpt-total { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.rcpt-total .lbl { font-size: 14px; font-weight: 800; letter-spacing: 0.02em; }
+.rcpt-total .val { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rcpt-foot { text-align: center; }
-.rcpt-foot-main { font-size: 11.5px; font-weight: 800; line-height: 1.4; }
-.rcpt-foot-note { margin-top: 2px; font-size: 9px; font-weight: 500; letter-spacing: 0.02em; }
+.rcpt-foot-main { font-size: 11.5px; font-weight: 800; line-height: 1.4; margin: 0; }
+.rcpt-foot-note { margin: 2px 0 0; font-size: 9px; font-weight: 500; line-height: 1.4; }
 `;
 
 /** ความกว้างใบเสร็จ 80mm */
@@ -127,14 +119,15 @@ export function ReceiptHeader({
       {contactLine2 && (
         <p className="rcpt-contact text-[10.5px] font-medium leading-snug">{contactLine2}</p>
       )}
-      <div className="rcpt-title mt-2 bg-black py-[3px] text-center text-[12px] font-extrabold tracking-[0.22em] text-white">
+      <ReceiptDivider />
+      <p className="rcpt-title text-center text-[13px] font-extrabold tracking-[0.16em] text-black">
         {subtitle}
         {subtitleEn && (
-          <span className="rcpt-title-sub mt-0.5 block text-[9.5px] font-bold tracking-[0.32em]">
+          <span className="rcpt-title-sub mt-px block text-[9.5px] font-bold tracking-[0.32em]">
             {subtitleEn}
           </span>
         )}
-      </div>
+      </p>
     </div>
   );
 }
@@ -142,7 +135,7 @@ export function ReceiptHeader({
 /** เส้นคั่นเต็มความกว้าง */
 export function ReceiptDivider({ total, dashed }: { total?: boolean; dashed?: boolean }) {
   const cls = total
-    ? "rcpt-hr rcpt-hr--total my-[7px] border-t-2 border-black"
+    ? "rcpt-hr rcpt-hr--total my-[5px] border-t-2 border-black"
     : dashed
       ? "rcpt-hr rcpt-hr--dashed my-1.5 border-t border-dashed border-black"
       : "rcpt-hr my-1.5 border-t border-black";
@@ -252,12 +245,16 @@ export function ReceiptSummaryRow({
   );
 }
 
-/** แถบยอดสุทธิ — พื้นดำตัวอักษรขาว ดึงสายตาแบบใบเสร็จมืออาชีพ */
+/** ยอดสุทธิ — เส้นคั่นหนา + ตัวหนาใหญ่ (สไตล์เดียวกับใบพิมพ์ thermal จริง) */
 export function ReceiptTotalBand({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rcpt-total my-[7px] flex items-center justify-between gap-2.5 rounded-[2px] bg-black px-[9px] py-[5px] text-white">
-      <span className="lbl text-[12.5px] font-extrabold tracking-wide">{label}</span>
-      <span className="val whitespace-nowrap text-[19px] font-extrabold tabular-nums">{value}</span>
+    <div className="text-black">
+      <ReceiptDivider total />
+      <div className="rcpt-total flex items-baseline justify-between gap-2.5">
+        <span className="lbl text-[14px] font-extrabold tracking-wide">{label}</span>
+        <span className="val whitespace-nowrap text-[18px] font-extrabold tabular-nums">{value}</span>
+      </div>
+      <ReceiptDivider total />
     </div>
   );
 }

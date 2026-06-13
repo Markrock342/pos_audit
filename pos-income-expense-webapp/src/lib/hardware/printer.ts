@@ -124,6 +124,9 @@ async function printViaImin(
       footer: options?.footer,
       recorderName: options?.recorderName,
       categoryNames: options?.categoryNames,
+      address: options?.address,
+      phone: options?.phone,
+      taxId: options?.taxId,
       openDrawer,
     });
   } else {

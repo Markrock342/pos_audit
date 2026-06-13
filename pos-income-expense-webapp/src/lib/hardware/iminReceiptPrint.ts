@@ -68,10 +68,10 @@ export function printReceiptOnImin(
   if (contactLines.length > 0) {
     thermalCenterLines(printer, contactLines);
   }
-  thermalBlankLine(printer);
-  thermalCenterLines(printer, ["*** ใบเสร็จรับเงิน / RECEIPT ***"], true);
-  thermalBlankLine(printer);
   thermalRule(printer);
+  thermalCenterLines(printer, ["ใบเสร็จรับเงิน"], true);
+  thermalCenterLines(printer, ["RECEIPT"]);
+  thermalBlankLine(printer);
 
   thermalMetaPair(printer, `เลขที่: ${receiptNo}`, `ชื่อบิล: ${billTitle}`);
   thermalMetaPair(printer, `วันที่: ${date}`, `เวลา: ${time}`);
