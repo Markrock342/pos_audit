@@ -1,14 +1,20 @@
 import type { IminPrinterInstance } from "@/lib/hardware/iminPrinter.types";
-import { receiptRuleLine } from "@/lib/utils/receiptRule";
+import {
+  RECEIPT_ITEM_HEADER,
+  formatReceiptItemRow,
+  formatReceiptMetaPair,
+  formatReceiptSubLine,
+  receiptRuleLine,
+} from "@/lib/utils/receiptRule";
 
 export const THERMAL_COL_WIDTH = 576;
-export const THERMAL_TEXT_SIZE = 24;
+export const THERMAL_TEXT_SIZE = 22;
 
 export function initThermalLayout(printer: IminPrinterInstance): void {
   printer.setPageFormat(0);
   printer.setTextWidth(THERMAL_COL_WIDTH);
   printer.setTextSize(THERMAL_TEXT_SIZE);
-  printer.setTextLineSpacing(1.15);
+  printer.setTextLineSpacing(1.1);
   printer.setAlignment(0);
   printer.setTextStyle(0);
 }
@@ -17,7 +23,6 @@ export function thermalBlankLine(printer: IminPrinterInstance): void {
   printer.printAndLineFeed();
 }
 
-/** เส้นคั่นเต็มความกว้าง — ตรงกับ preview บนหน้าจอ */
 export function thermalRule(printer: IminPrinterInstance): void {
   printer.printText(receiptRuleLine());
 }
@@ -36,8 +41,11 @@ export function thermalCenterLines(
   printer.setAlignment(0);
 }
 
-/** Label left, value right — amounts should already be formatted */
-export function thermalRow(
+export function thermalMetaPair(printer: IminPrinterInstance, left: string, right: string): void {
+  printer.printText(formatReceiptMetaPair(left, right));
+}
+
+export function thermalSummaryRow(
   printer: IminPrinterInstance,
   label: string,
   value: string,
@@ -54,18 +62,23 @@ export function thermalRow(
   if (bold) printer.setTextStyle(0);
 }
 
-export function thermalItemLine(
+export function thermalItemTableHeader(printer: IminPrinterInstance): void {
+  printer.setTextStyle(1);
+  printer.printText(RECEIPT_ITEM_HEADER);
+  printer.setTextStyle(0);
+}
+
+export function thermalThreeColRow(
   printer: IminPrinterInstance,
-  detail: string,
+  item: string,
+  qty: string,
   amount: string
 ): void {
-  printer.printColumnsText(
-    [detail, amount],
-    [24, 18],
-    [0, 2],
-    [THERMAL_TEXT_SIZE, THERMAL_TEXT_SIZE],
-    THERMAL_COL_WIDTH
-  );
+  printer.printText(formatReceiptItemRow(item, qty, amount));
+}
+
+export function thermalSubLine(printer: IminPrinterInstance, text: string): void {
+  printer.printText(formatReceiptSubLine(text));
 }
 
 export function thermalFinish(printer: IminPrinterInstance, openDrawer = false): void {

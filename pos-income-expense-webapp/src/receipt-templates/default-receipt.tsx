@@ -2,7 +2,6 @@ import type { Receipt, Transaction } from "@/types";
 import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
-  formatReceiptDateTime,
   hasDistinctTransactionDate,
   resolvePaymentLabel,
   resolveReceiptLines,
@@ -10,16 +9,18 @@ import {
   resolveSellerName,
   sumLineItems,
 } from "@/lib/utils/receiptFormat";
+import { splitReceiptDateTime } from "@/lib/utils/receiptRule";
 import { SHOP_NAME } from "@/constants";
 import {
-  ReceiptAmountRow,
   ReceiptDivider,
   ReceiptFooter,
   ReceiptHeader,
-  ReceiptLineItem,
-  ReceiptMetaRow,
+  ReceiptItemTableHeader,
+  ReceiptItemTableRow,
+  ReceiptMetaPair,
+  ReceiptMetaSingle,
   ReceiptShell,
-  ReceiptTotalsBlock,
+  ReceiptSummaryRow,
 } from "@/receipt-templates/shared";
 
 interface DefaultReceiptProps {
@@ -47,57 +48,67 @@ export function DefaultReceiptTemplate({
   const isCash = transaction.paymentMethod === "cash";
   const receiptNo = resolveReceiptNumber(transaction, receipt.receiptNumber);
   const seller = sellerName ?? resolveSellerName(transaction.createdBy);
-  const printedAt = formatReceiptDateTime(transaction.createdAt);
+  const { date, time } = splitReceiptDateTime(transaction.createdAt);
   const showTxDate = hasDistinctTransactionDate(transaction);
-  const billTitle = transaction.title?.trim();
+  const billTitle = transaction.title?.trim() || "—";
 
   return (
     <ReceiptShell fullWidth={fullWidth}>
       <ReceiptHeader shopName={shopName} subtitle="ใบเสร็จรับเงิน / Receipt" />
 
-      <div className="mt-3 space-y-1">
-        <ReceiptMetaRow label="เลขที่" value={receiptNo} />
-        <ReceiptMetaRow label="วันที่" value={printedAt} />
-        <ReceiptMetaRow label="ผู้ขาย" value={seller} />
-        {billTitle && <ReceiptMetaRow label="ชื่อบิล" value={billTitle} />}
+      <div className="space-y-1">
+        <ReceiptMetaPair left={`เลขที่: ${receiptNo}`} right={`ชื่อบิล: ${billTitle}`} />
+        <ReceiptMetaPair left={`วันที่: ${date}`} right={`เวลา: ${time}`} />
+        <ReceiptMetaSingle text={`ผู้ขาย: ${seller}`} />
         {showTxDate && (
-          <ReceiptMetaRow label="วันที่รายการ" value={formatDateShort(transaction.transactionDate)} />
+          <ReceiptMetaSingle text={`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`} />
         )}
       </div>
 
       <ReceiptDivider />
+      <ReceiptItemTableHeader />
+      <ReceiptDivider />
 
-      <div className="space-y-2">
+      <div className="space-y-0.5">
         {lines.length === 0 && (
-          <p className="text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
+          <p className="py-1 text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
         )}
         {lines.map((line, index) => (
-          <ReceiptLineItem
+          <ReceiptItemTableRow
             key={line.id ?? index}
             title={line.title}
-            detail={`${line.quantity} x ${formatReceiptAmount(line.unitPrice)}`}
+            qty={line.quantity}
             amount={formatReceiptAmount(line.lineAmount)}
+            subline={`@ ${formatReceiptAmount(line.unitPrice)} / หน่วย`}
           />
         ))}
       </div>
 
       <ReceiptDivider />
 
-      <ReceiptTotalsBlock>
-        <ReceiptAmountRow label="รวม" value={formatReceiptAmount(subtotal)} />
-        <ReceiptAmountRow label="ส่วนลด" value={formatReceiptAmount(discount)} />
-        <ReceiptAmountRow label="สุทธิ" value={formatReceiptAmount(netTotal)} bold />
-        <ReceiptAmountRow label="ชำระโดย" value={paymentLabel} />
+      <div className="space-y-0.5">
+        <ReceiptSummaryRow label="Sub-total" value={formatReceiptAmount(subtotal)} />
+        <ReceiptSummaryRow label="ส่วนลด" value={formatReceiptAmount(discount)} />
+      </div>
+
+      <ReceiptDivider />
+
+      <div className="space-y-0.5">
+        <ReceiptSummaryRow
+          label={`Total (${paymentLabel})`}
+          value={formatReceiptAmount(netTotal)}
+          bold
+        />
         {isCash && (
           <>
-            <ReceiptAmountRow label="รับเงิน" value={formatReceiptAmount(netTotal)} />
-            <ReceiptAmountRow label="เงินทอน" value={formatReceiptAmount(0)} />
+            <ReceiptSummaryRow label="รับเงิน" value={formatReceiptAmount(netTotal)} />
+            <ReceiptSummaryRow label="เงินทอน" value={formatReceiptAmount(0)} />
           </>
         )}
         {transaction.note?.trim() && (
-          <ReceiptMetaRow label="หมายเหตุ" value={transaction.note.trim()} />
+          <ReceiptSummaryRow label="หมายเหตุ" value={transaction.note.trim()} />
         )}
-      </ReceiptTotalsBlock>
+      </div>
 
       <ReceiptFooter text={footer} />
     </ReceiptShell>

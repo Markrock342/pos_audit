@@ -3,22 +3,25 @@ import { SHOP_NAME } from "@/constants";
 import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
-  formatReceiptDateTime,
   hasDistinctTransactionDate,
   resolveExpenseVoucherNumber,
   resolvePaymentLabel,
   resolveReceiptLines,
   sumLineItems,
 } from "@/lib/utils/receiptFormat";
+import { splitReceiptDateTime } from "@/lib/utils/receiptRule";
 import type { IminPrinterInstance } from "@/lib/hardware/iminPrinter.types";
 import {
   initThermalLayout,
   thermalBlankLine,
   thermalCenterLines,
   thermalFinish,
-  thermalItemLine,
-  thermalRow,
+  thermalItemTableHeader,
+  thermalMetaPair,
   thermalRule,
+  thermalSubLine,
+  thermalSummaryRow,
+  thermalThreeColRow,
 } from "@/lib/hardware/iminThermalLayout";
 
 const DEFAULT_FOOTER = "เอกสารบันทึกภายใน — ไม่ใช่ใบกำกับภาษี";
@@ -46,57 +49,53 @@ export function printExpenseVoucherOnImin(
   const total = transaction.amount ?? sumLineItems(lines);
   const paymentLabel = resolvePaymentLabel(transaction.paymentMethod);
   const docNo = resolveExpenseVoucherNumber(transaction, ctx.voucherNumber);
-  const recordedAt = formatReceiptDateTime(transaction.createdAt);
-  const billTitle = transaction.title?.trim();
+  const { date, time } = splitReceiptDateTime(transaction.createdAt);
+  const billTitle = transaction.title?.trim() || "-";
 
   initThermalLayout(printer);
 
-  thermalCenterLines(printer, [shopName, "ใบบันทึกรายจ่าย"], true);
+  thermalCenterLines(printer, [shopName, "ใบบันทึกรายจ่าย / Expense"], true);
   thermalBlankLine(printer);
   thermalRule(printer);
 
-  thermalRow(printer, "เลขที่", docNo);
-  thermalRow(printer, "วันที่บันทึก", recordedAt);
-  thermalRow(printer, "ผู้บันทึก", recorder);
-  if (billTitle) thermalRow(printer, "ชื่อบิล", billTitle);
+  thermalMetaPair(printer, `เลขที่: ${docNo}`, `ชื่อบิล: ${billTitle}`);
+  thermalMetaPair(printer, `วันที่: ${date}`, `เวลา: ${time}`);
+  printer.printText(`ผู้บันทึก: ${recorder}`);
   if (hasDistinctTransactionDate(transaction)) {
-    thermalRow(printer, "วันที่รายการ", formatDateShort(transaction.transactionDate));
+    printer.printText(`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`);
   }
 
-  thermalBlankLine(printer);
+  thermalRule(printer);
+  thermalItemTableHeader(printer);
   thermalRule(printer);
 
   if (lines.length === 0) {
     printer.printText("ยังไม่มีรายการ");
   } else {
     for (const line of lines) {
-      printer.printText(line.title);
-      const categoryName = categoryNames[line.categoryId];
-      if (categoryName) {
-        printer.printText(`หมวด: ${categoryName}`);
-      }
-      thermalItemLine(
+      thermalThreeColRow(
         printer,
-        `${line.quantity} x ${formatReceiptAmount(line.unitPrice)}`,
+        line.title,
+        String(line.quantity),
         formatReceiptAmount(line.lineAmount)
       );
-      thermalBlankLine(printer);
+      const categoryName = categoryNames[line.categoryId];
+      const sub = categoryName
+        ? `หมวด: ${categoryName} · @ ${formatReceiptAmount(line.unitPrice)}`
+        : `@ ${formatReceiptAmount(line.unitPrice)} / หน่วย`;
+      thermalSubLine(printer, sub);
     }
   }
 
   thermalRule(printer);
-  thermalBlankLine(printer);
-
-  thermalRow(printer, "รวมจ่าย", formatReceiptAmount(total), true);
-  thermalRow(printer, "ชำระโดย", paymentLabel);
+  thermalSummaryRow(printer, `Total (${paymentLabel})`, formatReceiptAmount(total), true);
   if (transaction.referenceNo?.trim()) {
-    thermalRow(printer, "เลขที่อ้างอิง", transaction.referenceNo.trim());
+    thermalSummaryRow(printer, "เลขที่อ้างอิง", transaction.referenceNo.trim());
   }
   if (transaction.note?.trim()) {
-    thermalRow(printer, "หมายเหตุ", transaction.note.trim());
+    thermalSummaryRow(printer, "หมายเหตุ", transaction.note.trim());
   }
 
-  thermalBlankLine(printer);
   thermalRule(printer);
   thermalCenterLines(printer, [footer]);
   thermalFinish(printer, false);

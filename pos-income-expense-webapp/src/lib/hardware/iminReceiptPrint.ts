@@ -3,22 +3,25 @@ import { SHOP_NAME } from "@/constants";
 import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
-  formatReceiptDateTime,
   hasDistinctTransactionDate,
   resolvePaymentLabel,
   resolveReceiptLines,
   resolveReceiptNumber,
   sumLineItems,
 } from "@/lib/utils/receiptFormat";
+import { splitReceiptDateTime } from "@/lib/utils/receiptRule";
 import type { IminPrinterInstance } from "@/lib/hardware/iminPrinter.types";
 import {
   initThermalLayout,
   thermalBlankLine,
   thermalCenterLines,
   thermalFinish,
-  thermalItemLine,
-  thermalRow,
+  thermalItemTableHeader,
+  thermalMetaPair,
   thermalRule,
+  thermalSubLine,
+  thermalSummaryRow,
+  thermalThreeColRow,
 } from "@/lib/hardware/iminThermalLayout";
 
 export interface IminReceiptContext {
@@ -45,8 +48,8 @@ export function printReceiptOnImin(
   const paymentLabel = resolvePaymentLabel(transaction.paymentMethod);
   const isCash = transaction.paymentMethod === "cash";
   const receiptNo = resolveReceiptNumber(transaction, receipt.receiptNumber);
-  const printedAt = formatReceiptDateTime(transaction.createdAt);
-  const billTitle = transaction.title?.trim();
+  const { date, time } = splitReceiptDateTime(transaction.createdAt);
+  const billTitle = transaction.title?.trim() || "-";
 
   initThermalLayout(printer);
 
@@ -54,47 +57,45 @@ export function printReceiptOnImin(
   thermalBlankLine(printer);
   thermalRule(printer);
 
-  thermalRow(printer, "เลขที่", receiptNo);
-  thermalRow(printer, "วันที่", printedAt);
-  thermalRow(printer, "ผู้ขาย", seller);
-  if (billTitle) thermalRow(printer, "ชื่อบิล", billTitle);
+  thermalMetaPair(printer, `เลขที่: ${receiptNo}`, `ชื่อบิล: ${billTitle}`);
+  thermalMetaPair(printer, `วันที่: ${date}`, `เวลา: ${time}`);
+  printer.printText(`ผู้ขาย: ${seller}`);
   if (hasDistinctTransactionDate(transaction)) {
-    thermalRow(printer, "วันที่รายการ", formatDateShort(transaction.transactionDate));
+    printer.printText(`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`);
   }
 
-  thermalBlankLine(printer);
+  thermalRule(printer);
+  thermalItemTableHeader(printer);
   thermalRule(printer);
 
   if (lines.length === 0) {
     printer.printText("ยังไม่มีรายการ");
   } else {
     for (const line of lines) {
-      printer.printText(line.title);
-      thermalItemLine(
+      thermalThreeColRow(
         printer,
-        `${line.quantity} x ${formatReceiptAmount(line.unitPrice)}`,
+        line.title,
+        String(line.quantity),
         formatReceiptAmount(line.lineAmount)
       );
-      thermalBlankLine(printer);
+      thermalSubLine(printer, `@ ${formatReceiptAmount(line.unitPrice)} / หน่วย`);
     }
   }
 
   thermalRule(printer);
-  thermalBlankLine(printer);
+  thermalSummaryRow(printer, "Sub-total", formatReceiptAmount(subtotal));
+  thermalSummaryRow(printer, "ส่วนลด", formatReceiptAmount(0));
 
-  thermalRow(printer, "รวม", formatReceiptAmount(subtotal));
-  thermalRow(printer, "ส่วนลด", formatReceiptAmount(0));
-  thermalRow(printer, "สุทธิ", formatReceiptAmount(netTotal), true);
-  thermalRow(printer, "ชำระโดย", paymentLabel);
+  thermalRule(printer);
+  thermalSummaryRow(printer, `Total (${paymentLabel})`, formatReceiptAmount(netTotal), true);
   if (isCash) {
-    thermalRow(printer, "รับเงิน", formatReceiptAmount(netTotal));
-    thermalRow(printer, "เงินทอน", formatReceiptAmount(0));
+    thermalSummaryRow(printer, "รับเงิน", formatReceiptAmount(netTotal));
+    thermalSummaryRow(printer, "เงินทอน", formatReceiptAmount(0));
   }
   if (transaction.note?.trim()) {
-    thermalRow(printer, "หมายเหตุ", transaction.note.trim());
+    thermalSummaryRow(printer, "หมายเหตุ", transaction.note.trim());
   }
 
-  thermalBlankLine(printer);
   thermalRule(printer);
   thermalCenterLines(printer, [footer]);
   thermalFinish(printer, ctx.openDrawer && isCash);

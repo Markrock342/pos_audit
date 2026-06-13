@@ -2,7 +2,6 @@ import type { Transaction } from "@/types";
 import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
-  formatReceiptDateTime,
   hasDistinctTransactionDate,
   resolveExpenseVoucherNumber,
   resolvePaymentLabel,
@@ -10,16 +9,18 @@ import {
   resolveRecorderName,
   sumLineItems,
 } from "@/lib/utils/receiptFormat";
+import { splitReceiptDateTime } from "@/lib/utils/receiptRule";
 import { SHOP_NAME } from "@/constants";
 import {
-  ReceiptAmountRow,
   ReceiptDivider,
   ReceiptFooter,
   ReceiptHeader,
-  ReceiptLineItem,
-  ReceiptMetaRow,
+  ReceiptItemTableHeader,
+  ReceiptItemTableRow,
+  ReceiptMetaPair,
+  ReceiptMetaSingle,
   ReceiptShell,
-  ReceiptTotalsBlock,
+  ReceiptSummaryRow,
 } from "@/receipt-templates/shared";
 
 const DEFAULT_FOOTER = "เอกสารบันทึกภายใน — ไม่ใช่ใบกำกับภาษี";
@@ -48,40 +49,44 @@ export function DefaultExpenseVoucherTemplate({
   const paymentLabel = resolvePaymentLabel(transaction.paymentMethod);
   const docNo = resolveExpenseVoucherNumber(transaction, voucherNumber);
   const recorder = recorderName ?? resolveRecorderName(transaction.createdBy);
-  const recordedAt = formatReceiptDateTime(transaction.createdAt);
+  const { date, time } = splitReceiptDateTime(transaction.createdAt);
   const showTxDate = hasDistinctTransactionDate(transaction);
+  const billTitle = transaction.title?.trim() || "—";
 
   return (
     <ReceiptShell fullWidth={fullWidth}>
-      <ReceiptHeader shopName={shopName} subtitle="ใบบันทึกรายจ่าย" />
+      <ReceiptHeader shopName={shopName} subtitle="ใบบันทึกรายจ่าย / Expense" />
 
-      <div className="mt-3 space-y-1">
-        <ReceiptMetaRow label="เลขที่" value={docNo} />
-        <ReceiptMetaRow label="วันที่บันทึก" value={recordedAt} />
-        <ReceiptMetaRow label="ผู้บันทึก" value={recorder} />
-        {transaction.title?.trim() && (
-          <ReceiptMetaRow label="ชื่อบิล" value={transaction.title.trim()} />
-        )}
+      <div className="space-y-1">
+        <ReceiptMetaPair left={`เลขที่: ${docNo}`} right={`ชื่อบิล: ${billTitle}`} />
+        <ReceiptMetaPair left={`วันที่: ${date}`} right={`เวลา: ${time}`} />
+        <ReceiptMetaSingle text={`ผู้บันทึก: ${recorder}`} />
         {showTxDate && (
-          <ReceiptMetaRow label="วันที่รายการ" value={formatDateShort(transaction.transactionDate)} />
+          <ReceiptMetaSingle text={`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`} />
         )}
       </div>
 
       <ReceiptDivider />
+      <ReceiptItemTableHeader />
+      <ReceiptDivider />
 
-      <div className="space-y-2">
+      <div className="space-y-0.5">
         {lines.length === 0 && (
-          <p className="text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
+          <p className="py-1 text-center text-[10px] text-gray-500">ยังไม่มีรายการ</p>
         )}
         {lines.map((line, index) => {
           const categoryName = categoryNames[line.categoryId];
           return (
-            <ReceiptLineItem
+            <ReceiptItemTableRow
               key={line.id ?? index}
               title={line.title}
-              meta={categoryName ? `หมวด: ${categoryName}` : undefined}
-              detail={`${line.quantity} x ${formatReceiptAmount(line.unitPrice)}`}
+              qty={line.quantity}
               amount={formatReceiptAmount(line.lineAmount)}
+              subline={
+                categoryName
+                  ? `หมวด: ${categoryName} · @ ${formatReceiptAmount(line.unitPrice)}`
+                  : `@ ${formatReceiptAmount(line.unitPrice)} / หน่วย`
+              }
             />
           );
         })}
@@ -89,16 +94,19 @@ export function DefaultExpenseVoucherTemplate({
 
       <ReceiptDivider />
 
-      <ReceiptTotalsBlock>
-        <ReceiptAmountRow label="รวมจ่าย" value={formatReceiptAmount(total)} bold />
-        <ReceiptAmountRow label="ชำระโดย" value={paymentLabel} />
+      <div className="space-y-0.5">
+        <ReceiptSummaryRow
+          label={`Total (${paymentLabel})`}
+          value={formatReceiptAmount(total)}
+          bold
+        />
         {transaction.referenceNo?.trim() && (
-          <ReceiptMetaRow label="เลขที่อ้างอิง" value={transaction.referenceNo.trim()} />
+          <ReceiptSummaryRow label="เลขที่อ้างอิง" value={transaction.referenceNo.trim()} />
         )}
         {transaction.note?.trim() && (
-          <ReceiptMetaRow label="หมายเหตุ" value={transaction.note.trim()} />
+          <ReceiptSummaryRow label="หมายเหตุ" value={transaction.note.trim()} />
         )}
-      </ReceiptTotalsBlock>
+      </div>
 
       <ReceiptFooter text={footer} />
     </ReceiptShell>

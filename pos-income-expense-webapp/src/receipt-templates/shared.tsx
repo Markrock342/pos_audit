@@ -1,7 +1,15 @@
 import type { ReactNode } from "react";
 import { receiptRuleLine } from "@/lib/utils/receiptRule";
 
-export { RECEIPT_RULE_WIDTH, RECEIPT_RULE_CHAR, receiptRuleLine } from "@/lib/utils/receiptRule";
+export {
+  RECEIPT_RULE_WIDTH,
+  RECEIPT_RULE_CHAR,
+  RECEIPT_ITEM_COL,
+  receiptRuleLine,
+  formatReceiptMetaPair,
+  formatReceiptItemRow,
+  splitReceiptDateTime,
+} from "@/lib/utils/receiptRule";
 
 export function ReceiptShell({
   children,
@@ -12,7 +20,7 @@ export function ReceiptShell({
 }) {
   return (
     <div
-      className={`mx-auto bg-white px-4 py-5 font-mono text-[11px] leading-relaxed text-black ${
+      className={`mx-auto bg-white px-3 py-4 font-mono text-[11px] leading-snug text-black ${
         fullWidth ? "w-full" : "w-[300px]"
       }`}
     >
@@ -30,18 +38,17 @@ export function ReceiptHeader({
 }) {
   return (
     <div className="text-center">
-      <p className="text-[13px] font-bold leading-tight">{shopName}</p>
-      <p className="mt-1 text-[10px] tracking-wide text-gray-600">{subtitle}</p>
+      <p className="text-[14px] font-bold leading-tight tracking-tight">{shopName}</p>
+      <p className="mt-0.5 text-[10px] text-gray-700">{subtitle}</p>
       <ReceiptDivider />
     </div>
   );
 }
 
-/** เส้นคั่นเต็มความกว้าง — ตรงกับที่พิมพ์ออกจากเครื่อง thermal */
 export function ReceiptDivider() {
   return (
     <div
-      className="my-2.5 overflow-hidden whitespace-nowrap text-[10px] leading-none tracking-tight text-black"
+      className="my-2 overflow-hidden whitespace-nowrap text-[10px] leading-none text-black"
       aria-hidden
     >
       {receiptRuleLine()}
@@ -49,28 +56,54 @@ export function ReceiptDivider() {
   );
 }
 
-export function ReceiptMetaRow({
-  label,
-  value,
-  bold,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-}) {
+/** แถวข้อมูล 2 คอลัมน์ (เลขที่/วันที่ ซ้าย — ชื่อบิล/เวลา ขวา) */
+export function ReceiptMetaPair({ left, right }: { left: string; right: string }) {
   return (
-    <div
-      className={`grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px] ${
-        bold ? "font-bold" : ""
-      }`}
-    >
-      <span className="shrink-0 text-gray-700">{label}</span>
-      <span className="min-w-0 text-right tabular-nums break-words">{value}</span>
+    <div className="flex items-start justify-between gap-2 text-[11px] leading-snug">
+      <span className="min-w-0 flex-1 break-words">{left}</span>
+      <span className="shrink-0 max-w-[48%] text-right break-words tabular-nums">{right}</span>
     </div>
   );
 }
 
-export function ReceiptAmountRow({
+export function ReceiptMetaSingle({ text }: { text: string }) {
+  return <p className="text-[11px] leading-snug">{text}</p>;
+}
+
+export function ReceiptItemTableHeader() {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_2rem_5.25rem] items-baseline gap-x-1 text-[10px] font-bold">
+      <span>รายการ</span>
+      <span className="text-center">จ.N</span>
+      <span className="text-right">รวม</span>
+    </div>
+  );
+}
+
+export function ReceiptItemTableRow({
+  title,
+  qty,
+  amount,
+  subline,
+}: {
+  title: string;
+  qty: string | number;
+  amount: string;
+  subline?: string;
+}) {
+  return (
+    <div className="py-0.5">
+      <div className="grid grid-cols-[minmax(0,1fr)_2rem_5.25rem] items-start gap-x-1 text-[11px]">
+        <span className="leading-snug">{title}</span>
+        <span className="text-center tabular-nums">{qty}</span>
+        <span className="text-right tabular-nums">{amount}</span>
+      </div>
+      {subline && <p className="mt-0.5 pl-2 text-[10px] text-gray-600">{subline}</p>}
+    </div>
+  );
+}
+
+export function ReceiptSummaryRow({
   label,
   value,
   bold,
@@ -81,35 +114,12 @@ export function ReceiptAmountRow({
 }) {
   return (
     <div
-      className={`flex items-baseline justify-between gap-3 text-[11px] ${
+      className={`flex items-baseline justify-between gap-2 text-[11px] ${
         bold ? "text-[12px] font-bold" : ""
       }`}
     >
-      <span className="shrink-0">{label}</span>
-      <span className="tabular-nums">{value}</span>
-    </div>
-  );
-}
-
-export function ReceiptLineItem({
-  title,
-  detail,
-  amount,
-  meta,
-}: {
-  title: string;
-  detail: string;
-  amount: string;
-  meta?: string;
-}) {
-  return (
-    <div className="space-y-0.5 pb-1">
-      <p className="text-[11px] font-medium leading-snug">{title}</p>
-      {meta && <p className="text-[10px] text-gray-600">{meta}</p>}
-      <div className="flex items-baseline justify-between gap-2 text-[11px] tabular-nums">
-        <span className="text-gray-700">{detail}</span>
-        <span className="font-medium">{amount}</span>
-      </div>
+      <span className="min-w-0">{label}</span>
+      <span className="shrink-0 tabular-nums">{value}</span>
     </div>
   );
 }
@@ -118,11 +128,7 @@ export function ReceiptFooter({ text }: { text: string }) {
   return (
     <div>
       <ReceiptDivider />
-      <p className="pt-0.5 text-center text-[10px] leading-snug text-gray-600">{text}</p>
+      <p className="pt-1 text-center text-[10px] leading-snug text-gray-700">{text}</p>
     </div>
   );
-}
-
-export function ReceiptTotalsBlock({ children }: { children: ReactNode }) {
-  return <div className="space-y-1 rounded-sm bg-gray-50 px-2 py-2">{children}</div>;
 }

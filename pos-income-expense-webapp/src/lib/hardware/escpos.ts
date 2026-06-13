@@ -1,5 +1,10 @@
 import iconv from "iconv-lite";
-import { receiptRuleLine } from "@/lib/utils/receiptRule";
+import {
+  formatReceiptItemRow,
+  formatReceiptMetaPair,
+  formatReceiptSubLine,
+  receiptRuleLine,
+} from "@/lib/utils/receiptRule";
 
 const WIDTH = 42;
 
@@ -46,6 +51,18 @@ export function escTextLine(text: string): Uint8Array {
 
 export function escRule(): Uint8Array {
   return escTextLine(receiptRuleLine());
+}
+
+export function escMetaPair(left: string, right: string): Uint8Array {
+  return escTextLine(formatReceiptMetaPair(left, right));
+}
+
+export function escItemRow(item: string, qty: string, amount: string): Uint8Array {
+  return escTextLine(formatReceiptItemRow(item, qty, amount));
+}
+
+export function escSubLine(text: string): Uint8Array {
+  return escTextLine(formatReceiptSubLine(text));
 }
 
 /** Left label + right value on one line (truncate if too long) */

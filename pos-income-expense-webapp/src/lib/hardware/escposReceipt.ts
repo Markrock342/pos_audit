@@ -2,23 +2,27 @@ import type { Receipt, Transaction } from "@/types";
 import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
-  formatReceiptDateTime,
   hasDistinctTransactionDate,
   resolvePaymentLabel,
   resolveReceiptLines,
   resolveReceiptNumber,
   sumLineItems,
 } from "@/lib/utils/receiptFormat";
+import { RECEIPT_ITEM_HEADER, splitReceiptDateTime } from "@/lib/utils/receiptRule";
 import { SHOP_NAME } from "@/constants";
 import { buildDrawerKickCommand, type DrawerKickPin } from "@/lib/hardware/cashDrawer";
 import {
+  escBold,
   escCenterLines,
   escConcat,
   escCut,
   escFeed,
   escInit,
+  escItemRow,
+  escMetaPair,
   escRow,
   escRule,
+  escSubLine,
   escTextLine,
 } from "@/lib/hardware/escpos";
 
@@ -50,8 +54,8 @@ export function buildEscPosReceipt(
   const paymentLabel = resolvePaymentLabel(transaction.paymentMethod);
   const isCash = transaction.paymentMethod === "cash";
   const receiptNo = resolveReceiptNumber(transaction, receipt.receiptNumber);
-  const printedAt = formatReceiptDateTime(transaction.createdAt);
-  const billTitle = transaction.title?.trim();
+  const { date, time } = splitReceiptDateTime(transaction.createdAt);
+  const billTitle = transaction.title?.trim() || "-";
 
   const chunks: Uint8Array[] = [escInit()];
 
@@ -59,38 +63,34 @@ export function buildEscPosReceipt(
   chunks.push(escFeed(1));
   chunks.push(escRule());
 
-  chunks.push(escRow("เลขที่", receiptNo));
-  chunks.push(escRow("วันที่", printedAt));
-  chunks.push(escRow("ผู้ขาย", seller));
-  if (billTitle) chunks.push(escRow("ชื่อบิล", billTitle));
+  chunks.push(escMetaPair(`เลขที่: ${receiptNo}`, `ชื่อบิล: ${billTitle}`));
+  chunks.push(escMetaPair(`วันที่: ${date}`, `เวลา: ${time}`));
+  chunks.push(escTextLine(`ผู้ขาย: ${seller}`));
   if (hasDistinctTransactionDate(transaction)) {
-    chunks.push(escRow("วันที่รายการ", formatDateShort(transaction.transactionDate)));
+    chunks.push(escTextLine(`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`));
   }
 
-  chunks.push(escFeed(1));
+  chunks.push(escRule());
+  chunks.push(escConcat([escBold(true), escTextLine(RECEIPT_ITEM_HEADER), escBold(false)]));
   chunks.push(escRule());
 
   if (lines.length === 0) {
     chunks.push(escTextLine("ยังไม่มีรายการ"));
   } else {
     for (const line of lines) {
-      chunks.push(escTextLine(line.title));
       chunks.push(
-        escRow(
-          `${line.quantity} x ${formatReceiptAmount(line.unitPrice)}`,
-          formatReceiptAmount(line.lineAmount)
-        )
+        escItemRow(line.title, String(line.quantity), formatReceiptAmount(line.lineAmount))
       );
-      chunks.push(escFeed(1));
+      chunks.push(escSubLine(`@ ${formatReceiptAmount(line.unitPrice)} / หน่วย`));
     }
   }
 
   chunks.push(escRule());
-  chunks.push(escFeed(1));
-  chunks.push(escRow("รวม", formatReceiptAmount(subtotal)));
+  chunks.push(escRow("Sub-total", formatReceiptAmount(subtotal)));
   chunks.push(escRow("ส่วนลด", formatReceiptAmount(0)));
-  chunks.push(escRow("สุทธิ", formatReceiptAmount(netTotal), true));
-  chunks.push(escRow("ชำระโดย", paymentLabel));
+
+  chunks.push(escRule());
+  chunks.push(escRow(`Total (${paymentLabel})`, formatReceiptAmount(netTotal), true));
   if (isCash) {
     chunks.push(escRow("รับเงิน", formatReceiptAmount(netTotal)));
     chunks.push(escRow("เงินทอน", formatReceiptAmount(0)));
@@ -99,7 +99,6 @@ export function buildEscPosReceipt(
     chunks.push(escRow("หมายเหตุ", transaction.note.trim()));
   }
 
-  chunks.push(escFeed(1));
   chunks.push(escRule());
   chunks.push(escCenterLines([footer]));
   chunks.push(escFeed(3));
