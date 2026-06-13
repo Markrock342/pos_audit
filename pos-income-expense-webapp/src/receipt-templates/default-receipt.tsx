@@ -65,7 +65,7 @@ export function DefaultReceiptTemplate({
         )}
       </div>
 
-      <ReceiptDivider char="." />
+      <ReceiptDivider />
 
       <div className="space-y-2">
         {lines.length === 0 && (
@@ -81,7 +81,7 @@ export function DefaultReceiptTemplate({
         ))}
       </div>
 
-      <ReceiptDivider char="." />
+      <ReceiptDivider />
 
       <ReceiptTotalsBlock>
         <ReceiptAmountRow label="รวม" value={formatReceiptAmount(subtotal)} />

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
+import { receiptRuleLine } from "@/lib/utils/receiptRule";
 
-export const RECEIPT_LINE_CHARS = 42;
+export { RECEIPT_RULE_WIDTH, RECEIPT_RULE_CHAR, receiptRuleLine } from "@/lib/utils/receiptRule";
 
 export function ReceiptShell({
   children,
@@ -28,20 +29,22 @@ export function ReceiptHeader({
   subtitle: string;
 }) {
   return (
-    <div className="border-b border-dashed border-gray-400 pb-3 text-center">
+    <div className="text-center">
       <p className="text-[13px] font-bold leading-tight">{shopName}</p>
       <p className="mt-1 text-[10px] tracking-wide text-gray-600">{subtitle}</p>
+      <ReceiptDivider />
     </div>
   );
 }
 
-export function ReceiptDivider({ char = "─" }: { char?: string }) {
+/** เส้นคั่นเต็มความกว้าง — ตรงกับที่พิมพ์ออกจากเครื่อง thermal */
+export function ReceiptDivider() {
   return (
     <div
-      className="my-2.5 overflow-hidden whitespace-nowrap text-[10px] leading-none text-gray-400"
+      className="my-2.5 overflow-hidden whitespace-nowrap text-[10px] leading-none tracking-tight text-black"
       aria-hidden
     >
-      {char.repeat(RECEIPT_LINE_CHARS)}
+      {receiptRuleLine()}
     </div>
   );
 }
@@ -100,7 +103,7 @@ export function ReceiptLineItem({
   meta?: string;
 }) {
   return (
-    <div className="space-y-0.5 border-b border-dotted border-gray-200 pb-2 last:border-0 last:pb-0">
+    <div className="space-y-0.5 pb-1">
       <p className="text-[11px] font-medium leading-snug">{title}</p>
       {meta && <p className="text-[10px] text-gray-600">{meta}</p>}
       <div className="flex items-baseline justify-between gap-2 text-[11px] tabular-nums">
@@ -113,9 +116,10 @@ export function ReceiptLineItem({
 
 export function ReceiptFooter({ text }: { text: string }) {
   return (
-    <p className="border-t border-dashed border-gray-400 pt-3 text-center text-[10px] leading-snug text-gray-600">
-      {text}
-    </p>
+    <div>
+      <ReceiptDivider />
+      <p className="pt-0.5 text-center text-[10px] leading-snug text-gray-600">{text}</p>
+    </div>
   );
 }
 

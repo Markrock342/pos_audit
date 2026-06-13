@@ -50,7 +50,7 @@ export function buildEscPosExpenseVoucher(ctx: ExpenseVoucherPrintContext): Uint
 
   chunks.push(escCenterLines([shopName, "ใบบันทึกรายจ่าย"], true));
   chunks.push(escFeed(1));
-  chunks.push(escRule("-"));
+  chunks.push(escRule());
 
   chunks.push(escRow("เลขที่", docNo));
   chunks.push(escRow("วันที่บันทึก", recordedAt));
@@ -61,7 +61,7 @@ export function buildEscPosExpenseVoucher(ctx: ExpenseVoucherPrintContext): Uint
   }
 
   chunks.push(escFeed(1));
-  chunks.push(escRule("."));
+  chunks.push(escRule());
 
   if (lines.length === 0) {
     chunks.push(escTextLine("ยังไม่มีรายการ"));
@@ -80,7 +80,7 @@ export function buildEscPosExpenseVoucher(ctx: ExpenseVoucherPrintContext): Uint
     }
   }
 
-  chunks.push(escRule("."));
+  chunks.push(escRule());
   chunks.push(escFeed(1));
   chunks.push(escRow("รวมจ่าย", formatReceiptAmount(total), true));
   chunks.push(escRow("ชำระโดย", paymentLabel));
@@ -92,7 +92,7 @@ export function buildEscPosExpenseVoucher(ctx: ExpenseVoucherPrintContext): Uint
   }
 
   chunks.push(escFeed(1));
-  chunks.push(escRule("-"));
+  chunks.push(escRule());
   chunks.push(escCenterLines([footer]));
   chunks.push(escFeed(3));
   chunks.push(escCut());

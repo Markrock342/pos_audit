@@ -67,7 +67,7 @@ export function DefaultExpenseVoucherTemplate({
         )}
       </div>
 
-      <ReceiptDivider char="." />
+      <ReceiptDivider />
 
       <div className="space-y-2">
         {lines.length === 0 && (
@@ -87,7 +87,7 @@ export function DefaultExpenseVoucherTemplate({
         })}
       </div>
 
-      <ReceiptDivider char="." />
+      <ReceiptDivider />
 
       <ReceiptTotalsBlock>
         <ReceiptAmountRow label="รวมจ่าย" value={formatReceiptAmount(total)} bold />

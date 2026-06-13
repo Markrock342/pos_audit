@@ -64,7 +64,7 @@ export function printExpenseVoucherOnImin(
   }
 
   thermalBlankLine(printer);
-  thermalRule(printer, ".");
+  thermalRule(printer);
 
   if (lines.length === 0) {
     printer.printText("ยังไม่มีรายการ");
@@ -84,7 +84,7 @@ export function printExpenseVoucherOnImin(
     }
   }
 
-  thermalRule(printer, ".");
+  thermalRule(printer);
   thermalBlankLine(printer);
 
   thermalRow(printer, "รวมจ่าย", formatReceiptAmount(total), true);

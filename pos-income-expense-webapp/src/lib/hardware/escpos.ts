@@ -1,4 +1,5 @@
 import iconv from "iconv-lite";
+import { receiptRuleLine } from "@/lib/utils/receiptRule";
 
 const WIDTH = 42;
 
@@ -43,8 +44,8 @@ export function escTextLine(text: string): Uint8Array {
   return concat([encodeReceiptText(text), new Uint8Array([0x0a])]);
 }
 
-export function escRule(char = "-"): Uint8Array {
-  return escTextLine(char.repeat(WIDTH));
+export function escRule(): Uint8Array {
+  return escTextLine(receiptRuleLine());
 }
 
 /** Left label + right value on one line (truncate if too long) */

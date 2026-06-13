@@ -57,7 +57,7 @@ export function buildEscPosReceipt(
 
   chunks.push(escCenterLines([shopName, "ใบเสร็จรับเงิน / Receipt"], true));
   chunks.push(escFeed(1));
-  chunks.push(escRule("-"));
+  chunks.push(escRule());
 
   chunks.push(escRow("เลขที่", receiptNo));
   chunks.push(escRow("วันที่", printedAt));
@@ -68,7 +68,7 @@ export function buildEscPosReceipt(
   }
 
   chunks.push(escFeed(1));
-  chunks.push(escRule("."));
+  chunks.push(escRule());
 
   if (lines.length === 0) {
     chunks.push(escTextLine("ยังไม่มีรายการ"));
@@ -85,7 +85,7 @@ export function buildEscPosReceipt(
     }
   }
 
-  chunks.push(escRule("."));
+  chunks.push(escRule());
   chunks.push(escFeed(1));
   chunks.push(escRow("รวม", formatReceiptAmount(subtotal)));
   chunks.push(escRow("ส่วนลด", formatReceiptAmount(0)));
@@ -100,7 +100,7 @@ export function buildEscPosReceipt(
   }
 
   chunks.push(escFeed(1));
-  chunks.push(escRule("-"));
+  chunks.push(escRule());
   chunks.push(escCenterLines([footer]));
   chunks.push(escFeed(3));
 

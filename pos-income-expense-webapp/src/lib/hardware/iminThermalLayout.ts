@@ -1,8 +1,8 @@
 import type { IminPrinterInstance } from "@/lib/hardware/iminPrinter.types";
+import { receiptRuleLine } from "@/lib/utils/receiptRule";
 
 export const THERMAL_COL_WIDTH = 576;
 export const THERMAL_TEXT_SIZE = 24;
-export const THERMAL_LINE_CHARS = 42;
 
 export function initThermalLayout(printer: IminPrinterInstance): void {
   printer.setPageFormat(0);
@@ -17,8 +17,9 @@ export function thermalBlankLine(printer: IminPrinterInstance): void {
   printer.printAndLineFeed();
 }
 
-export function thermalRule(printer: IminPrinterInstance, char = "-"): void {
-  printer.printText(char.repeat(THERMAL_LINE_CHARS));
+/** เส้นคั่นเต็มความกว้าง — ตรงกับ preview บนหน้าจอ */
+export function thermalRule(printer: IminPrinterInstance): void {
+  printer.printText(receiptRuleLine());
 }
 
 export function thermalCenterLines(
