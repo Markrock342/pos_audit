@@ -296,23 +296,25 @@ export function TransactionForm({
                 >
                   {busy ? "กำลังบันทึก..." : "บันทึก"}
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={busy || cartLines.length === 0}
-                  variant="secondary"
-                  size="md"
-                  className="w-full font-bold"
-                  onClick={() => {
-                    saveModeRef.current = "new";
-                  }}
-                >
-                  บันทึก &amp; ใหม่
-                </Button>
-                {onCancel && (
-                  <Button type="button" variant="outline" size="md" className="w-full font-bold" onClick={onCancel}>
-                    ยกเลิก
+                <div className={`grid gap-2 ${onCancel ? "grid-cols-2" : "grid-cols-1"}`}>
+                  <Button
+                    type="submit"
+                    disabled={busy || cartLines.length === 0}
+                    variant="secondary"
+                    size="md"
+                    className="w-full font-bold"
+                    onClick={() => {
+                      saveModeRef.current = "new";
+                    }}
+                  >
+                    บันทึก &amp; ใหม่
                   </Button>
-                )}
+                  {onCancel && (
+                    <Button type="button" variant="outline" size="md" className="w-full font-bold" onClick={onCancel}>
+                      ยกเลิก
+                    </Button>
+                  )}
+                </div>
               </div>
             </section>
           </div>

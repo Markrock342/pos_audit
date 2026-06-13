@@ -15,7 +15,7 @@ export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
       <Sidebar />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Header title={title} subtitle={subtitle} />
-        <main className="main-tablet flex min-h-0 flex-1 flex-col overflow-hidden p-3 lg:p-4 2xl:p-4">
+        <main className="main-tablet flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain p-3 lg:p-4 2xl:p-4">
           {children}
         </main>
         <BottomNav />

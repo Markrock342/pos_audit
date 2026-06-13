@@ -146,7 +146,7 @@ export default function CashCountPage() {
 
   return (
     <AppLayout title="ปิดยอดเงินสด" subtitle="ตัดยอดอัตโนมัติเที่ยงคืน · วันเก่าแก้ไขไม่ได้">
-      <div className="pos-page mx-auto flex max-w-5xl flex-col gap-4 pb-24 2xl:gap-4 2xl:pb-0">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6">
         {message && (
           <p
             className={`shrink-0 rounded-xl px-4 py-3 text-sm font-bold ${
@@ -258,7 +258,7 @@ export default function CashCountPage() {
                     </>
                   )}
                   <Button
-                    className="hidden w-full 2xl:flex"
+                    className="w-full"
                     size="lg"
                     onClick={handleSave}
                     disabled={saving || readOnly}
@@ -277,27 +277,8 @@ export default function CashCountPage() {
           </CardContent>
         </Card>
 
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <CashCountHistory refreshKey={historyKey} />
-        </div>
+        <CashCountHistory refreshKey={historyKey} />
       </div>
-
-      {!readOnly && !loading && (
-        <div className="tablet-sticky-action 2xl:hidden">
-          <Button
-            className="flex-1"
-            size="lg"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving
-              ? "กำลังบันทึก..."
-              : existing?.hasManualCount
-                ? "อัปเดตปิดยอด"
-                : "บันทึกปิดยอด"}
-          </Button>
-        </div>
-      )}
     </AppLayout>
   );
 }

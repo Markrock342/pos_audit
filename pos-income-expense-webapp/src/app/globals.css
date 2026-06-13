@@ -112,6 +112,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* แท็บเล็ต POS 15.6" รายงาน CSS width ~1200-1280px (DPR>1) — ให้เข้า layout เดสก์ท็อปเต็ม
+   (sidebar + หลายคอลัมน์ + ปุ่ม inline) แทน layout มือถือที่มีปุ่มลอยบังจอ */
+@theme {
+  --breakpoint-2xl: 75rem;
+}
+
 html {
   height: 100%;
   overflow: hidden;
@@ -147,7 +153,7 @@ input, textarea, button {
   appearance: none;
 }
 
-@media (min-width: 1536px) {
+@media (min-width: 1200px) {
   :root {
     --app-header-h: 5rem;
     --app-main-py: 1rem;
@@ -161,7 +167,8 @@ input, textarea, button {
   flex-direction: column;
   min-height: 0;
   height: 100%;
-  overflow: hidden;
+  /* เนื้อหาปกติ scroll ภายใน inner container; ถ้าเกินจริง main จะ scroll แทน (กันถูกตัด) */
+  overflow: visible;
 }
 
 .pos-scroll {
@@ -190,7 +197,7 @@ input, textarea, button {
   }
 
   .pos-category-list {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
   .pos-bill-row {
@@ -448,14 +455,14 @@ input, textarea, button {
   padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
 }
 
-@media (min-width: 1536px) {
+@media (min-width: 1200px) {
   .main-tablet {
     padding-bottom: 1.5rem;
   }
 }
 
 /* ปุ่ม/ตัวเลือกใหญ่ขึ้นบน tablet */
-@media (max-width: 1535px) {
+@media (max-width: 1199px) {
   .tablet-touch-select {
     min-height: 48px;
     padding-top: 0.625rem;
@@ -494,7 +501,7 @@ input, textarea, button {
   transition: box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@media (max-width: 1535px) {
+@media (max-width: 1199px) {
   .tablet-sticky-action {
     position: fixed;
     left: 0;

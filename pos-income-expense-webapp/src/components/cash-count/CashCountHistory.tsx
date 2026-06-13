@@ -30,14 +30,14 @@ export function CashCountHistory({ refreshKey = 0 }: CashCountHistoryProps) {
   }, [refreshKey]);
 
   return (
-    <Card className="flex h-full min-h-[200px] flex-col overflow-hidden">
+    <Card className="flex flex-col">
       <CardHeader className="shrink-0">
         <CardTitle className="flex items-center gap-2">
           <History size={22} className="text-text-muted" />
           ประวัติปิดยอดย้อนหลัง
         </CardTitle>
       </CardHeader>
-      <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <CardContent>
         {loading ? (
           <p className="text-text-muted">กำลังโหลด...</p>
         ) : history.length === 0 ? (

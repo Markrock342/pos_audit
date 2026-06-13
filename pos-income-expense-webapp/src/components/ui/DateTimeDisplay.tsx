@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatDateTime, formatRelativeTime } from "@/lib/utils/format";
+import { cn } from "@/lib/utils/cn";
 
 interface DateTimeDisplayProps {
   iso: string;
@@ -23,11 +24,11 @@ export function DateTimeDisplay({
   }, []);
 
   return (
-    <div className={className}>
-      <p className="whitespace-nowrap font-medium">{formatDateTime(iso)}</p>
+    <span className={cn("block", className)}>
+      <span className="block whitespace-nowrap font-medium">{formatDateTime(iso)}</span>
       {showRelative && (
-        <p className="text-xs text-text-muted">{formatRelativeTime(iso, now)}</p>
+        <span className="block text-xs text-text-muted">{formatRelativeTime(iso, now)}</span>
       )}
-    </div>
+    </span>
   );
 }

@@ -37,11 +37,41 @@ export function AmountNumpad({ value, onChange, integerOnly, touch }: AmountNump
   };
 
   const keyClass = cn(
-    "pos-numpad-key rounded-xl font-bold shadow-md active:scale-95 text-text-main",
+    "pos-numpad-key flex items-center justify-center rounded-xl font-bold active:scale-95 text-text-main",
     touch
-      ? "min-h-14 text-2xl"
-      : "min-h-[44px] text-xl"
+      ? "min-h-12 text-2xl shadow-sm"
+      : "min-h-[44px] text-xl shadow-md"
   );
+
+  // touch: เติมเต็มพื้นที่แนวตั้ง (auto-rows-fr) ปุ่มใหญ่ตามนิ้ว ไม่ล้นทับปุ่มอื่น
+  // ใช้ชุดปุ่ม 4 แถวสะอาด (7-9 / 4-6 / 1-3 / C-0-⌫) สำหรับจำนวนเต็มบาท
+  if (touch && integerOnly) {
+    const keys = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0", "⌫"];
+    const fillKey = cn(
+      "pos-numpad-key flex items-center justify-center rounded-xl text-2xl font-bold shadow-sm",
+      "active:scale-95 text-text-main"
+    );
+    return (
+      // grid-rows-4 + min-h floor: landscape เติมเต็มความสูง, portrait ไม่ยุบเป็น 0
+      <div className="pos-numpad-grid grid h-full min-h-[12rem] w-full grid-cols-3 grid-rows-4 gap-2">
+        {keys.map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => handleKey(key)}
+            className={cn(
+              fillKey,
+              key === "C"
+                ? "bg-expense-light text-expense active:bg-expense/20"
+                : "bg-surface-hover active:bg-border-default"
+            )}
+          >
+            {key}
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div

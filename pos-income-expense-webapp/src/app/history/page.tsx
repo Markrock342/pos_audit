@@ -1,16 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { DateTimeDisplay } from "@/components/ui/DateTimeDisplay";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Button } from "@/components/ui/Button";
 import { fetchAuditLogs } from "@/lib/api/client";
 import { describeAuditChanges } from "@/lib/utils/auditChanges";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
+import { cn } from "@/lib/utils/cn";
 import type { AuditLog, AuditLogAction, TransactionType } from "@/types";
-import { ArrowDownCircle, ArrowUpCircle, History } from "lucide-react";
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  FilePlus2,
+  History,
+  PencilLine,
+  Ban,
+  User,
+} from "lucide-react";
 
 const ACTION_LABELS: Record<AuditLogAction, string> = {
   create: "บันทึกใหม่",
@@ -32,6 +39,28 @@ const PRESET_LABELS: Record<DatePreset, string> = {
   all: "ทั้งหมด",
 };
 
+/** สี/ไอคอนของแต่ละการกระทำ — ใช้โทนอ่อนเป็น accent ไม่ฉูดฉาด */
+const ACTION_STYLES: Record<
+  AuditLogAction,
+  { label: string; chip: string; icon: typeof FilePlus2 }
+> = {
+  create: {
+    label: ACTION_LABELS.create,
+    chip: "border-income/25 bg-income-light text-income",
+    icon: FilePlus2,
+  },
+  update: {
+    label: ACTION_LABELS.update,
+    chip: "border-brand/25 bg-brand-light text-brand",
+    icon: PencilLine,
+  },
+  void: {
+    label: ACTION_LABELS.void,
+    chip: "border-expense/25 bg-expense-light text-expense",
+    icon: Ban,
+  },
+};
+
 function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -47,10 +76,7 @@ function getDaysAgo(days: number) {
   return d.toISOString().slice(0, 10);
 }
 
-function getPresetRange(preset: DatePreset): {
-  startDate?: string;
-  endDate?: string;
-} {
+function getPresetRange(preset: DatePreset): { startDate?: string; endDate?: string } {
   switch (preset) {
     case "today": {
       const today = getToday();
@@ -69,67 +95,131 @@ function presetSummary(preset: DatePreset): string {
   const { startDate, endDate } = getPresetRange(preset);
   switch (preset) {
     case "today":
-      return "แสดงประวัติวันนี้";
+      return "ประวัติวันนี้";
     case "week":
-      return "แสดงประวัติ 7 วันล่าสุด";
+      return "ประวัติ 7 วันล่าสุด";
     case "month":
       return startDate && endDate
-        ? `แสดงประวัติ ${formatDateShort(startDate)} — ${formatDateShort(endDate)}`
-        : "แสดงประวัติเดือนนี้";
+        ? `${formatDateShort(startDate)} — ${formatDateShort(endDate)}`
+        : "ประวัติเดือนนี้";
     case "all":
-      return "แสดงประวัติทั้งหมด";
+      return "ประวัติทั้งหมด";
   }
 }
 
-function actionClass(action: AuditLogAction): string {
-  if (action === "void") return "font-medium text-error";
-  if (action === "create") return "font-medium text-income";
-  return "font-medium text-brand";
+function logAmount(log: AuditLog): { text: string; type: TransactionType } | null {
+  const amount = log.newValue?.amount ?? log.oldValue?.amount;
+  if (amount == null) return null;
+  const num = Number(amount);
+  if (Number.isNaN(num)) return null;
+  const type: TransactionType = log.transactionType ?? "income";
+  const prefix = type === "expense" ? "-" : "+";
+  return { text: `${prefix}${formatCurrency(num)}`, type };
 }
 
-function TransactionTypeBadge({ type }: { type?: TransactionType }) {
-  if (!type) return <span className="text-text-muted">—</span>;
-
+function TypeBadge({ type }: { type?: TransactionType }) {
+  if (!type) return null;
   const isIncome = type === "income";
   return (
     <span
-      className={
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold",
         isIncome
-          ? "inline-flex items-center gap-1.5 rounded-full border border-income/30 bg-income-light px-3 py-1 text-sm font-bold text-income"
-          : "inline-flex items-center gap-1.5 rounded-full border border-expense/30 bg-expense-light px-3 py-1 text-sm font-bold text-expense"
-      }
+          ? "border-income/25 bg-income-light text-income"
+          : "border-expense/25 bg-expense-light text-expense"
+      )}
     >
-      {isIncome ? <ArrowUpCircle size={16} strokeWidth={2.5} /> : <ArrowDownCircle size={16} strokeWidth={2.5} />}
+      {isIncome ? <ArrowUpCircle size={13} strokeWidth={2.5} /> : <ArrowDownCircle size={13} strokeWidth={2.5} />}
       {TYPE_LABELS[type]}
     </span>
   );
 }
 
-function amountClass(type?: TransactionType): string {
-  if (type === "income") return "font-semibold text-income";
-  if (type === "expense") return "font-semibold text-expense";
-  return "font-semibold";
-}
-
-function logAmount(log: AuditLog): string | null {
-  const amount = log.newValue?.amount ?? log.oldValue?.amount;
-  if (amount == null) return null;
-  const num = Number(amount);
-  if (Number.isNaN(num)) return null;
-  const prefix = log.transactionType === "expense" ? "-" : "+";
-  return `${prefix}${formatCurrency(num)}`;
-}
-
-function AuditChangeDetails({ log }: { log: AuditLog }) {
+/** ตัดบรรทัดที่ซ้ำกับส่วนหัวการ์ด (ชื่อ/ยอด/หัวข้อ) ออก เหลือรายละเอียดที่มีประโยชน์ */
+function detailLines(log: AuditLog): string[] {
   const lines = describeAuditChanges(log);
+  if (log.action === "create") {
+    return lines.filter(
+      (l) =>
+        l !== "บันทึกรายการใหม่" &&
+        !l.startsWith("ชื่อหัวใบ:") &&
+        !l.startsWith("ยอดรวม:")
+    );
+  }
+  return lines;
+}
+
+function HistoryCard({ log }: { log: AuditLog }) {
+  const amount = logAmount(log);
+  const action = ACTION_STYLES[log.action];
+  const ActionIcon = action.icon;
+  const changeLines = detailLines(log);
+
   return (
-    <ul className="max-w-xs space-y-1 text-xs text-text-secondary">
-      {lines.map((line, index) => (
-        <li key={`${index}-${line}`} className="leading-snug">
-          {line}
-        </li>
-      ))}
-    </ul>
+    <article className="rounded-2xl border border-border-default bg-surface-elevated p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_4px_16px_rgba(15,23,42,0.08)] sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
+              action.chip
+            )}
+          >
+            <ActionIcon size={20} strokeWidth={2} />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold",
+                  action.chip
+                )}
+              >
+                {action.label}
+              </span>
+              <TypeBadge type={log.transactionType} />
+            </div>
+            <p className="mt-1.5 truncate text-base font-bold text-text-main">
+              {log.entityTitle ?? "ไม่มีชื่อรายการ"}
+            </p>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-text-muted">
+              <DateTimeDisplay iso={log.createdAt} showRelative={false} className="inline!" />
+              {log.userName && (
+                <span className="inline-flex items-center gap-1">
+                  <User size={12} />
+                  {log.userName}
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+
+        {amount && (
+          <p
+            className={cn(
+              "shrink-0 text-lg font-black tabular-nums",
+              amount.type === "income" ? "text-income" : "text-expense"
+            )}
+          >
+            {amount.text}
+          </p>
+        )}
+      </div>
+
+      {changeLines.length > 0 && (
+        <ul className="mt-3 space-y-0.5 rounded-xl bg-surface-inset px-3.5 py-2.5 text-sm leading-relaxed text-text-secondary">
+          {changeLines.map((line, index) => (
+            <li key={`${index}-${line}`}>{line}</li>
+          ))}
+        </ul>
+      )}
+
+      {log.action !== "create" && log.reason && (
+        <p className="mt-2 text-sm text-text-secondary">
+          <span className="font-semibold text-text-main">เหตุผล:</span> {log.reason}
+        </p>
+      )}
+    </article>
   );
 }
 
@@ -169,176 +259,104 @@ export default function HistoryPage() {
     return () => clearInterval(id);
   }, [load]);
 
+  const selectClass =
+    "tablet-touch-select min-w-0 flex-1 rounded-xl border border-border-default bg-surface-elevated px-3 py-2 text-sm font-medium text-text-main transition-colors focus:border-brand focus:outline-none sm:flex-none";
+
+  const summary = useMemo(() => presetSummary(datePreset), [datePreset]);
+
   return (
-    <AppLayout title="ประวัติการทำรายการ">
-      <div className="pos-page flex flex-col gap-4">
+    <AppLayout title="ประวัติรายการ">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 pb-6">
         {error && (
-          <p className="shrink-0 rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">
+          <p className="rounded-xl border border-expense/20 bg-error-light px-4 py-3 text-sm font-bold text-error">
             {error}
           </p>
         )}
 
-        <Card className="flex min-h-[480px] flex-1 flex-col overflow-hidden 2xl:min-h-0">
-          <CardHeader className="flex shrink-0 flex-col gap-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <History size={22} />
-                ประวัติการเคลื่อนไหวทั้งหมด
-              </CardTitle>
-              <div className="flex flex-wrap gap-2">
-                <select
-                  className="tablet-touch-select rounded-xl border-2 border-border-default bg-surface-elevated px-3 py-2 text-sm"
-                  value={typeFilter}
-                  onChange={(e) =>
-                    setTypeFilter(e.target.value as "" | "income" | "expense")
-                  }
-                >
-                  <option value="">ทุกประเภทรายการ</option>
-                  <option value="income">รายรับ</option>
-                  <option value="expense">รายจ่าย</option>
-                </select>
-                <select
-                  className="tablet-touch-select rounded-xl border-2 border-border-default bg-surface-elevated px-3 py-2 text-sm"
-                  value={actionFilter}
-                  onChange={(e) =>
-                    setActionFilter(e.target.value as "" | AuditLogAction)
-                  }
-                >
-                  <option value="">ทุกการกระทำ</option>
-                  <option value="create">บันทึกใหม่</option>
-                  <option value="update">แก้ไข</option>
-                  <option value="void">ยกเลิก</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 border-t border-border-default pt-4">
-              <div className="flex flex-wrap gap-2">
-                {(Object.keys(PRESET_LABELS) as DatePreset[]).map((preset) => (
-                  <Button
-                    key={preset}
-                    type="button"
-                    size="sm"
-                    variant={datePreset === preset ? "primary" : "outline"}
-                    className="tablet-touch-chip !min-h-12 !h-12 px-4 text-sm"
-                    onClick={() => setDatePreset(preset)}
-                  >
-                    {PRESET_LABELS[preset]}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-sm text-text-muted">
-                {presetSummary(datePreset)}
+        {/* ── แถบกรอง ── */}
+        <div className="sticky top-0 z-10 -mx-1 rounded-2xl border border-border-default bg-surface-elevated/95 px-4 py-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] backdrop-blur sm:px-5">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-light text-brand">
+              <History size={18} />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-base font-black text-text-main">ประวัติการเคลื่อนไหว</h2>
+              <p className="text-xs text-text-muted">
+                {summary}
                 {!loading && ` · ${logs.length} รายการ`}
                 {loading && " · กำลังโหลด..."}
               </p>
             </div>
-          </CardHeader>
-          <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            {loading ? (
-              <p className="text-text-muted">กำลังโหลด...</p>
-            ) : logs.length === 0 ? (
-              <EmptyState
-                title="ไม่มีประวัติในช่วงที่เลือก"
-                message="ลองเปลี่ยนช่วงวันที่หรือตัวกรองอื่น"
-              />
-            ) : (
-              <>
-                <div className="space-y-3 2xl:hidden">
-                  {logs.map((log) => {
-                    const amount = logAmount(log);
-                    return (
-                      <div
-                        key={log.id}
-                        className="rounded-2xl border-2 border-border-default bg-surface-elevated p-4"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <TransactionTypeBadge type={log.transactionType} />
-                          <span className={`rounded-full px-3 py-1 text-sm font-bold ${actionClass(log.action)} bg-surface-inset`}>
-                            {ACTION_LABELS[log.action]}
-                          </span>
-                        </div>
-                        <p className="mt-2 font-bold text-text-main">
-                          {log.entityTitle ?? "—"}
-                        </p>
-                        <p className="mt-1 text-sm text-text-muted">
-                          <DateTimeDisplay iso={log.createdAt} />
-                          {log.userName ? ` · ${log.userName}` : ""}
-                        </p>
-                        <div className="mt-2">
-                          <AuditChangeDetails log={log} />
-                        </div>
-                        {amount && (
-                          <p className={`mt-2 text-lg font-black ${amountClass(log.transactionType)}`}>
-                            {amount}
-                          </p>
-                        )}
-                        {log.action !== "create" && log.reason && (
-                          <p className="mt-1 text-sm text-text-secondary">เหตุผล: {log.reason}</p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+          </div>
 
-                <div className="hidden overflow-x-auto 2xl:block">
-                  <table className="w-full min-w-[960px] text-left text-sm">
-                    <thead className="sticky top-0 z-10 border-b border-border-default bg-surface-elevated text-text-muted">
-                      <tr>
-                        <th className="px-3 py-2 font-medium">วันเวลา</th>
-                        <th className="px-3 py-2 font-medium">ผู้ทำ</th>
-                        <th className="px-3 py-2 font-medium">ประเภท</th>
-                        <th className="px-3 py-2 font-medium">การกระทำ</th>
-                        <th className="px-3 py-2 font-medium">รายการ</th>
-                        <th className="px-3 py-2 font-medium">รายละเอียดการเปลี่ยนแปลง</th>
-                        <th className="px-3 py-2 font-medium text-right">จำนวนเงิน</th>
-                        <th className="px-3 py-2 font-medium">เหตุผล</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {logs.map((log) => {
-                        const amount = logAmount(log);
-                        return (
-                          <tr
-                            key={log.id}
-                            className="border-b border-border-default/60 align-top hover:bg-surface-hover/50"
-                          >
-                            <td className="px-3 py-3">
-                              <DateTimeDisplay iso={log.createdAt} />
-                            </td>
-                            <td className="px-3 py-3 whitespace-nowrap font-medium">
-                              {log.userName ?? "—"}
-                            </td>
-                            <td className="px-3 py-3">
-                              <TransactionTypeBadge type={log.transactionType} />
-                            </td>
-                            <td className="px-3 py-3">
-                              <span className={actionClass(log.action)}>
-                                {ACTION_LABELS[log.action]}
-                              </span>
-                            </td>
-                            <td className="px-3 py-3 font-medium">
-                              {log.entityTitle ?? "-"}
-                            </td>
-                            <td className="px-3 py-3">
-                              <AuditChangeDetails log={log} />
-                            </td>
-                            <td className={`px-3 py-3 text-right whitespace-nowrap ${amountClass(log.transactionType)}`}>
-                              {amount ?? "-"}
-                            </td>
-                            <td className="px-3 py-3 text-text-secondary">
-                              {log.action === "create" ? "—" : log.reason}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(Object.keys(PRESET_LABELS) as DatePreset[]).map((preset) => {
+              const active = datePreset === preset;
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setDatePreset(preset)}
+                  className={cn(
+                    "tablet-touch-chip rounded-full px-4 py-1.5 text-sm font-bold transition-colors",
+                    active
+                      ? "bg-brand text-text-inverse shadow-[0_2px_8px_rgba(255,107,53,0.3)]"
+                      : "border border-border-default bg-surface text-text-secondary active:bg-surface-hover"
+                  )}
+                >
+                  {PRESET_LABELS[preset]}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-2.5 flex flex-col gap-2 sm:flex-row">
+            <select
+              className={selectClass}
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as "" | "income" | "expense")}
+            >
+              <option value="">ทุกประเภทรายการ</option>
+              <option value="income">รายรับ</option>
+              <option value="expense">รายจ่าย</option>
+            </select>
+            <select
+              className={selectClass}
+              value={actionFilter}
+              onChange={(e) => setActionFilter(e.target.value as "" | AuditLogAction)}
+            >
+              <option value="">ทุกการกระทำ</option>
+              <option value="create">บันทึกใหม่</option>
+              <option value="update">แก้ไข</option>
+              <option value="void">ยกเลิก</option>
+            </select>
+          </div>
+        </div>
+
+        {/* ── รายการ ── */}
+        {loading ? (
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-28 animate-pulse rounded-2xl border border-border-default bg-surface-elevated"
+              />
+            ))}
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border-default bg-surface-elevated py-4">
+            <EmptyState
+              title="ยังไม่มีประวัติรายการ"
+              message="เมื่อมีการบันทึก แก้ไข หรือยกเลิกรายการ จะแสดงที่นี่ — ลองเปลี่ยนช่วงวันที่หรือตัวกรอง"
+            />
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {logs.map((log) => (
+              <HistoryCard key={log.id} log={log} />
+            ))}
+          </div>
+        )}
       </div>
     </AppLayout>
   );

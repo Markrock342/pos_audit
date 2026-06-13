@@ -1,6 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DatabaseSettings } from "@/components/settings/DatabaseSettings";
 import { HardwareSettingsForm } from "@/components/settings/HardwareSettingsForm";
 import { ShopSettingsForm } from "@/components/settings/ShopSettingsForm";
 
@@ -23,15 +22,6 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             <HardwareSettingsForm />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>ฐานข้อมูล</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DatabaseSettings />
           </CardContent>
         </Card>
       </div>
