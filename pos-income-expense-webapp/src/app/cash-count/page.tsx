@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CashCountHistory } from "@/components/cash-count/CashCountHistory";
+import { DailyLedgerSummaryPanel } from "@/components/cash-count/DailyLedgerSummaryPanel";
 import { CashWithdrawModal } from "@/components/cash-count/CashWithdrawModal";
 import { CashWithdrawTodayPanel } from "@/components/cash-count/CashWithdrawTodayPanel";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -13,6 +14,7 @@ import { AmountDisplay, AmountNumpad } from "@/components/ui/AmountNumpad";
 import {
   fetchCashCountToday,
   fetchCashWithdrawalsToday,
+  fetchDailyCloseToday,
   saveCashCountApi,
   updateCashCountApi,
 } from "@/lib/api/client";
@@ -23,7 +25,7 @@ import {
   getCashCountStatusFromVariance,
 } from "@/lib/utils/cashCountVariance";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
-import type { CashCount, CashWithdrawal } from "@/types";
+import type { CashCount, CashWithdrawal, DailyLedgerSummary } from "@/types";
 import { Wallet, CheckCircle, AlertTriangle, Lock } from "lucide-react";
 
 type ActiveField = "opening" | "actual";
@@ -50,6 +52,19 @@ export default function CashCountPage() {
   const [withdrawTotal, setWithdrawTotal] = useState(0);
   const [withdrawCount, setWithdrawCount] = useState(0);
   const [withdrawLoading, setWithdrawLoading] = useState(true);
+  const [ledger, setLedger] = useState<DailyLedgerSummary | null>(null);
+  const [ledgerLoading, setLedgerLoading] = useState(true);
+
+  const loadLedger = useCallback(async () => {
+    setLedgerLoading(true);
+    try {
+      setLedger(await fetchDailyCloseToday());
+    } catch {
+      setLedger(null);
+    } finally {
+      setLedgerLoading(false);
+    }
+  }, []);
 
   const loadWithdrawals = useCallback(async () => {
     setWithdrawLoading(true);
@@ -100,7 +115,8 @@ export default function CashCountPage() {
       setLoading(false);
     }
     await loadWithdrawals();
-  }, [loadWithdrawals]);
+    await loadLedger();
+  }, [loadWithdrawals, loadLedger]);
 
   useEffect(() => {
     void load();
@@ -175,7 +191,7 @@ export default function CashCountPage() {
   const isPendingCount = !readOnly && !showVariance;
 
   return (
-    <AppLayout title="ปิดยอดเงินสด" subtitle="ยอดสดใน POS · ถอนเงิน · ปิดอัตโนมัติ 00:00">
+    <AppLayout title="สรุปปิดยอด" subtitle="เงินสดใน POS · โอนในสมุด · ปิดอัตโนมัติ 00:00">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6">
         {message && (
           <p
@@ -186,6 +202,8 @@ export default function CashCountPage() {
             {message}
           </p>
         )}
+
+        <DailyLedgerSummaryPanel data={ledger} loading={ledgerLoading} />
 
         <Card className="shrink-0 border-t-4 border-t-brand">
           <CardHeader>
@@ -220,8 +238,10 @@ export default function CashCountPage() {
                   </div>
 
                   <div className="rounded-xl bg-surface-inset p-4">
-                    <p className="text-sm text-text-muted">ยอดเงินคงเหลือ (ที่ระบบคำนวณ)</p>
-                    <p className="text-3xl font-black text-brand">{formatCurrency(expectedBalance)}</p>
+                    <p className="text-sm text-text-muted">เงินสดใน POS (คงเหลือ)</p>
+                    <p className="text-3xl font-black text-brand">
+                      {formatCurrency(ledger?.cash.closing ?? expectedBalance)}
+                    </p>
                     <p className="mt-1 text-xs text-text-muted">
                       ยอดเงินทอน + รายรับเงินสด − รายจ่ายเงินสด − ถอนออกวันนี้
                     </p>

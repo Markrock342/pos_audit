@@ -114,7 +114,7 @@ export function BalanceSummaryView() {
                     </p>
                   </div>
                   <div className="rounded-xl bg-surface-inset p-4">
-                    <p className="text-sm text-text-muted">เงินเก็บ/บัญชียกมา</p>
+                    <p className="text-sm text-text-muted">โอน (ยอดยกมา)</p>
                     <p className="text-2xl font-black text-text-main">
                       {formatCurrency(data.openingSavings)}
                     </p>
@@ -145,7 +145,7 @@ export function BalanceSummaryView() {
                 </p>
                 <div className="mt-3 space-y-1 text-sm text-text-secondary">
                   <p>เงินสด: {formatCurrency(data.cashIncome)}</p>
-                  <p>โอน/บัญชี: {formatCurrency(data.savingsIncome)}</p>
+                  <p>โอน (ตามรายการ): {formatCurrency(data.savingsIncome)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -163,7 +163,7 @@ export function BalanceSummaryView() {
                 </p>
                 <div className="mt-3 space-y-1 text-sm text-text-secondary">
                   <p>เงินสด: {formatCurrency(data.cashExpense)}</p>
-                  <p>โอน/บัญชี: {formatCurrency(data.savingsExpense)}</p>
+                  <p>โอน (ตามรายการ): {formatCurrency(data.savingsExpense)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -185,7 +185,7 @@ export function BalanceSummaryView() {
               <div className="tablet-touch-row flex items-center justify-between rounded-2xl border-2 border-border-default bg-surface-elevated px-5">
                 <span className="inline-flex items-center gap-2 text-base font-bold">
                   <PiggyBank size={22} className="text-brand" />
-                  เงินเก็บ / บัญชี
+                  โอน (ตามรายการ)
                 </span>
                 <span className="text-2xl font-black">{formatCurrency(data.savingsBalance)}</span>
               </div>

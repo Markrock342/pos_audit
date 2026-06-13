@@ -156,6 +156,33 @@ export interface CashWithdrawalsTodaySummary {
   data: CashWithdrawal[];
 }
 
+export interface DailyLedgerWallet {
+  opening: number;
+  income: number;
+  expense: number;
+  closing: number;
+}
+
+export interface DailyLedgerCashWallet extends DailyLedgerWallet {
+  withdrawn: number;
+}
+
+export interface DailyLedgerSummary {
+  countDate: string;
+  businessToday: string;
+  isLocked: boolean;
+  closedAt?: string;
+  closingType?: "manual" | "auto";
+  autoClosed?: boolean;
+  cash: DailyLedgerCashWallet;
+  transfer: DailyLedgerWallet;
+  business: {
+    totalIncome: number;
+    totalExpense: number;
+    netTotal: number;
+  };
+}
+
 export interface CashCount {
   id: string;
   organizationId?: string;

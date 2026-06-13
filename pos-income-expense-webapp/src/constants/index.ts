@@ -42,7 +42,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/dashboard", label: "ภาพรวม", hint: "ยอดวันนี้", icon: LayoutDashboard },
       { href: "/income", label: "รายรับ", hint: "บันทึกเงินเข้า", icon: DollarSign },
       { href: "/expense", label: "รายจ่าย", hint: "บันทึกเงินออก", icon: ArrowDownCircle },
-      { href: "/cash-count", label: "ปิดยอด", hint: "สรุปเงินสด + ถอน", icon: Wallet },
+      { href: "/cash-count", label: "สรุปปิดยอด", hint: "สด + โอน + ถอน", icon: Wallet },
     ],
   },
   {

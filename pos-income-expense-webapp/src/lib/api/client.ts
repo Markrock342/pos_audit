@@ -7,6 +7,7 @@ import type {
   CashCount,
   CashWithdrawal,
   CashWithdrawalsTodaySummary,
+  DailyLedgerSummary,
   Category,
   DashboardSummary,
   Organization,
@@ -296,6 +297,20 @@ export async function updateCashCountApi(
       headers: jsonAuthHeaders(),
       body: JSON.stringify(body),
     })
+  );
+  return data;
+}
+
+export async function fetchDailyCloseToday(): Promise<DailyLedgerSummary> {
+  const { data } = await parseJson<{ data: DailyLedgerSummary }>(
+    await fetch("/api/daily-close/today")
+  );
+  return data;
+}
+
+export async function fetchDailyCloseByDate(date: string): Promise<DailyLedgerSummary> {
+  const { data } = await parseJson<{ data: DailyLedgerSummary }>(
+    await fetch(`/api/daily-close/${date}`)
   );
   return data;
 }

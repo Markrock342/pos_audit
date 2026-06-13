@@ -16,7 +16,12 @@
 - [x] UI ถอน + ประวัติวันนี้ + ยอดรวม
 - [x] หน้า `/cash-count/withdrawals`
 
-## Phase 2 — สรุป 2 กระเป๋า Real-time
+## Phase 2 — สรุป 2 กระเป๋า Real-time ✅
+
+- [x] `getDailyLedgerSummary()` — สด + โอน + สรุปธุรกิจ
+- [x] API `/api/daily-close/today` + `/api/daily-close/[date]`
+- [x] UI `DailyLedgerSummaryPanel` บนหน้า `/cash-count`
+- [x] ปรับ label หน้า `/balance`
 
 ## Phase 3 — ปิด 00:00 snapshot + carry forward
 
