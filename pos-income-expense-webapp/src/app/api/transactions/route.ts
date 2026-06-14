@@ -14,6 +14,7 @@ import { getBusinessToday } from "@/lib/utils/businessDate";
 import { isAdminRequest } from "@/lib/api/requestRole";
 import { assertTransactionDateAllowed } from "@/lib/api/transactionDateLock";
 import { postTransactionSchema } from "@/lib/validations/transactionApi";
+import { ensureKioskUserById } from "@/lib/services/db/kioskUsers";
 
 const DEFAULT_USER_ID = KIOSK_ACCOUNTS.find((a) => a.type === "customer")!.userId;
 
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
 
     const body = parsed.data;
     const userId = body.createdBy ?? DEFAULT_USER_ID;
+    await ensureKioskUserById(userId);
     const txDate = body.transactionDate ?? getBusinessToday();
     const isAdmin = isAdminRequest(request);
 

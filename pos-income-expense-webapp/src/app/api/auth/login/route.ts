@@ -4,6 +4,7 @@ import {
   findKioskAccount,
   toKioskSession,
 } from "@/constants/kioskUsers";
+import { ensureKioskUser } from "@/lib/services/db/kioskUsers";
 
 const loginSchema = z.object({
   username: z.string().min(1),
@@ -32,6 +33,16 @@ export async function POST(request: Request) {
   }
 
   const session = toKioskSession(account);
+
+  try {
+    await ensureKioskUser(account);
+  } catch (err) {
+    console.error("[auth/login] ensureKioskUser failed:", err);
+    return NextResponse.json(
+      { error: { code: "INTERNAL_ERROR", message: "ไม่สามารถเตรียมบัญชีผู้ใช้ได้ — ติดต่อ admin" } },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({ data: session });
 }

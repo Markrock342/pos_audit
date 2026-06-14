@@ -158,6 +158,18 @@ export async function loginApi(username: string, pin: string): Promise<KioskSess
   return data;
 }
 
+/** sync user ใน DB + ดึง session ล่าสุด — เรียกหลัง verify PIN ฝั่ง client แล้ว */
+export async function syncKioskSessionApi(username: string): Promise<KioskSession> {
+  const { data } = await parseJson<{ data: KioskSession }>(
+    await fetch("/api/auth/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    })
+  );
+  return data;
+}
+
 export async function createTransactionApi(
   body: Record<string, unknown>
 ): Promise<Transaction> {

@@ -9,6 +9,7 @@ config({ path: ".env.local" });
 import { createClient, type PostgrestError } from "@supabase/supabase-js";
 import { ORG_IDS } from "../constants/organizations";
 import { KIOSK_ACCOUNTS } from "../constants/kioskUsers";
+import { syncAllKioskUsers } from "../lib/services/db/kioskUsers";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -20,7 +21,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const db = createClient(supabaseUrl, supabaseKey);
 
-const customerAccount = KIOSK_ACCOUNTS.find((a) => a.username === "peeraphat")!;
+const customerAccounts = KIOSK_ACCOUNTS.filter((a) => a.type === "customer");
 const devAccount = KIOSK_ACCOUNTS.find((a) => a.type === "dev")!;
 
 function assertOk(error: PostgrestError | null, label: string) {
@@ -84,29 +85,11 @@ async function seed() {
     console.log(`  ✓ organizations: สร้าง ${org.name}`);
   }
 
-  // Users — ชื่อผู้ใช้แยกกัน
-  const users = [
-    {
-      id: customerAccount.userId,
-      organization_id: ORG_IDS.customer,
-      name: customerAccount.displayName,
-      email: "customer@shop.local",
-      role: customerAccount.role,
-      is_active: true,
-    },
-    {
-      id: devAccount.userId,
-      organization_id: ORG_IDS.dev,
-      name: devAccount.displayName,
-      email: "dev@internal.local",
-      role: devAccount.role,
-      is_active: true,
-    },
-  ];
-
-  const { error: userErr } = await db.from("users").upsert(users);
-  assertOk(userErr, "users");
-  console.log(`  ✓ 2 users — ลูกค้า: "${customerAccount.username}" / dev: "${devAccount.username}"`);
+  // Users — sync ทุกบัญชี kiosk (FK created_by / recorded_by)
+  await syncAllKioskUsers();
+  console.log(
+    `  ✓ ${KIOSK_ACCOUNTS.length} kiosk users — ลูกค้า: ${customerAccounts.map((a) => a.username).join(", ")} / dev: ${devAccount.username}`
+  );
 
   // Categories — ตามสเปกลูกค้า (รายรับ 2 / รายจ่าย 4)
   const categories = [
@@ -125,8 +108,9 @@ async function seed() {
   // ไม่ seed รายการตัวอย่าง — ลูกค้าบันทึกเอง
   console.log("  ✓ transactions: ว่าง (ไม่มี mock)");
 
+  const primaryCustomer = customerAccounts.find((a) => a.username === "peeraphat") ?? customerAccounts[0]!;
   console.log("\nSeed complete!");
-  console.log(`  ลูกค้า login: ${customerAccount.username} / PIN ${customerAccount.pin}`);
+  console.log(`  ลูกค้า login: ${primaryCustomer.username} / PIN ${primaryCustomer.pin}`);
   console.log(`  Dev login:    ${devAccount.username} / PIN ${devAccount.pin}`);
 }
 

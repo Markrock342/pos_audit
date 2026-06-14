@@ -10,6 +10,7 @@ import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
 import { isAdminRequest } from "@/lib/api/requestRole";
 import { assertTransactionDatesAllowed } from "@/lib/api/transactionDateLock";
 import { putTransactionSchema } from "@/lib/validations/transactionApi";
+import { ensureKioskUserById } from "@/lib/services/db/kioskUsers";
 
 const DEFAULT_USER_ID = KIOSK_ACCOUNTS.find((a) => a.type === "customer")!.userId;
 
@@ -70,6 +71,7 @@ export async function PUT(
 
     const body = parsed.data;
     const userId = body.updatedBy ?? DEFAULT_USER_ID;
+    await ensureKioskUserById(userId);
     const isAdmin = isAdminRequest(request);
 
     const dateBlocked = await assertTransactionDatesAllowed(

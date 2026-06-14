@@ -10,7 +10,7 @@ import {
   toKioskSession,
 } from "@/constants/kioskUsers";
 import { findKioskAccountWithPin } from "@/lib/auth/kioskPinStorage";
-import { loginApi } from "@/lib/api/client";
+import { loginApi, syncKioskSessionApi } from "@/lib/api/client";
 
 const MAX_PIN = 4;
 const PIN_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "backspace"];
@@ -151,8 +151,11 @@ export function PinLogin() {
     try {
       const builtin = findKioskAccountWithPin(trimmedUser, pin);
       if (builtin) {
+        const session = await syncKioskSessionApi(builtin.username).catch(() =>
+          toKioskSession(builtin)
+        );
         localStorage.setItem(CURRENT_USER_KEY, trimmedUser);
-        localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(toKioskSession(builtin)));
+        localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(session));
         authenticated = true;
       } else {
         const session = await loginApi(trimmedUser, pin);
@@ -166,7 +169,10 @@ export function PinLogin() {
       if (match || builtin) {
         localStorage.setItem(CURRENT_USER_KEY, trimmedUser);
         if (builtin) {
-          localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(toKioskSession(builtin)));
+          const session = await syncKioskSessionApi(builtin.username).catch(() =>
+            toKioskSession(builtin)
+          );
+          localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(session));
         } else {
           localStorage.removeItem(KIOSK_SESSION_KEY);
         }

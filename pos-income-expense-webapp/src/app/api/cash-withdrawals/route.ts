@@ -13,6 +13,7 @@ import { isAdminRequest } from "@/lib/api/requestRole";
 import { getBusinessToday } from "@/lib/utils/businessDate";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
+import { ensureKioskUserById } from "@/lib/services/db/kioskUsers";
 
 const DEFAULT_USER_ID = KIOSK_ACCOUNTS.find((a) => a.type === "customer")!.userId;
 
@@ -85,12 +86,15 @@ export async function POST(request: Request) {
 
     await ensureDailyCashCountCycle(DEFAULT_ORG_ID);
 
+    const recordedBy = parsed.data.recordedBy ?? DEFAULT_USER_ID;
+    await ensureKioskUserById(recordedBy);
+
     const created = await createCashWithdrawal({
       organizationId: DEFAULT_ORG_ID,
       withdrawalDate,
       amount: parsed.data.amount,
       note: parsed.data.note,
-      recordedBy: parsed.data.recordedBy ?? DEFAULT_USER_ID,
+      recordedBy,
     });
 
     await refreshOpenCashCountExpected(DEFAULT_ORG_ID, withdrawalDate);

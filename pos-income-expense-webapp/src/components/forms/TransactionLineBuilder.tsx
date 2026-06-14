@@ -60,12 +60,10 @@ interface AmountPanelProps {
   amountString: string;
   quantity: number;
   customTitle: string;
-  showTitle: boolean;
   error: string | null;
   onAmountChange: (v: string) => void;
   onQuantityChange: (fn: (q: number) => number) => void;
   onCustomTitleChange: (v: string) => void;
-  onShowTitle: () => void;
   onAdd: () => void;
 }
 
@@ -74,12 +72,10 @@ export function TransactionAmountPanel({
   amountString,
   quantity,
   customTitle,
-  showTitle,
   error,
   onAmountChange,
   onQuantityChange,
   onCustomTitleChange,
-  onShowTitle,
   onAdd,
 }: AmountPanelProps) {
   const accent = type === "income" ? "text-income" : "text-expense";
@@ -131,22 +127,17 @@ export function TransactionAmountPanel({
         )}
       </div>
 
-      {!showTitle ? (
-        <button
-          type="button"
-          onClick={onShowTitle}
-          className="mt-1.5 shrink-0 self-start text-xs font-semibold text-text-muted underline-offset-2 hover:underline"
-        >
-          + ตั้งชื่อรายการ
-        </button>
-      ) : (
+      <div className="mt-1.5 shrink-0">
+        <label className="mb-1 block text-xs font-semibold text-text-secondary">
+          ชื่อรายการ <span className="font-normal text-text-muted">(ว่างได้ — ใช้ชื่อหมวด)</span>
+        </label>
         <input
           value={customTitle}
           onChange={(e) => onCustomTitleChange(e.target.value)}
-          placeholder="ชื่อรายการ"
-          className="pos-bill-input mt-1.5 h-11 w-full shrink-0 rounded-xl border-2 border-border-default bg-surface-inset px-3 text-base"
+          placeholder="เช่น น้ำดื่ม, ค่าขนส่ง"
+          className="pos-bill-input h-11 w-full rounded-xl border-2 border-border-default bg-surface-inset px-3 text-base"
         />
-      )}
+      </div>
 
       <div className="pos-line-add-row mt-2 shrink-0 space-y-1.5">
         {error && <p className="text-xs font-bold text-error">{error}</p>}
@@ -181,7 +172,6 @@ export function useTransactionLineDraft(
   const [amountString, setAmountString] = useState("0");
   const [quantity, setQuantity] = useState(1);
   const [customTitle, setCustomTitle] = useState("");
-  const [showTitle, setShowTitle] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const unitPrice = Math.round(parseInt(amountString, 10) || 0);
@@ -192,7 +182,6 @@ export function useTransactionLineDraft(
     setAmountString("0");
     setQuantity(1);
     setCustomTitle("");
-    setShowTitle(false);
     setError(null);
     onDraftChange?.(null);
   };
@@ -242,8 +231,6 @@ export function useTransactionLineDraft(
     setQuantity,
     customTitle,
     setCustomTitle,
-    showTitle,
-    setShowTitle,
     error,
     setError,
     handleAdd,
@@ -274,7 +261,6 @@ export function TransactionLineBuilder({
         amountString={draft.amountString}
         quantity={draft.quantity}
         customTitle={draft.customTitle}
-        showTitle={draft.showTitle}
         error={draft.error}
         onAmountChange={(v) => {
           draft.setAmountString(v);
@@ -282,7 +268,6 @@ export function TransactionLineBuilder({
         }}
         onQuantityChange={(fn) => draft.setQuantity(fn)}
         onCustomTitleChange={draft.setCustomTitle}
-        onShowTitle={() => draft.setShowTitle(true)}
         onAdd={() => draft.handleAdd(onAdd)}
       />
     </>

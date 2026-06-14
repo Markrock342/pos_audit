@@ -10,6 +10,7 @@ import {
 import { getBusinessToday } from "@/lib/utils/businessDate";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
+import { ensureKioskUserById } from "@/lib/services/db/kioskUsers";
 
 const DEFAULT_USER_ID = KIOSK_ACCOUNTS.find((a) => a.type === "customer")!.userId;
 
@@ -77,6 +78,8 @@ export async function POST(request: Request) {
   }
 
   const body = parsed.data;
+  const countedBy = body.countedBy ?? DEFAULT_USER_ID;
+  await ensureKioskUserById(countedBy);
 
   if (existing) {
     return NextResponse.json(
@@ -92,7 +95,7 @@ export async function POST(request: Request) {
 
   const newCashCount = await createCashCount({
     organizationId: DEFAULT_ORG_ID,
-    countedBy: body.countedBy ?? DEFAULT_USER_ID,
+    countedBy,
     countDate: body.countDate,
     openingBalance: body.openingBalance,
     actualBalance: body.actualBalance,

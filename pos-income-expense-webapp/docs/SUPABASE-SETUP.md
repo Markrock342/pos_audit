@@ -14,6 +14,7 @@
 | 8 | `supabase-cash-withdrawals.sql` | ถอนเงินจาก POS |
 | 9 | `supabase-daily-close-ledger.sql` | สรุป 2 กระเป๋า / daily close |
 | 10 | `supabase-admin-clear-daily-close.sql` | (optional) RPC ลบประวัติปิดยอด |
+| 11 | `supabase-add-kiosk-users.sql` | (legacy) อัปเดต user kiosk ด้วยมือ — ปกติ login sync อัตโนมัติ |
 
 หลังรัน SQL:
 

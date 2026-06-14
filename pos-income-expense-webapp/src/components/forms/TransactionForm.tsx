@@ -127,10 +127,14 @@ export function TransactionForm({
 
     try {
       await onSubmit?.(parsed.data);
-    } catch {
+    } catch (e) {
       savingRef.current = false;
       setIsSaving(false);
-      setToast({ type: "error", message: "บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง" });
+      const detail = e instanceof Error && e.message.trim() ? e.message.trim() : null;
+      setToast({
+        type: "error",
+        message: detail ?? "บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง",
+      });
       return;
     }
 
@@ -274,7 +278,6 @@ export function TransactionForm({
                 amountString={lineDraft.amountString}
                 quantity={lineDraft.quantity}
                 customTitle={lineDraft.customTitle}
-                showTitle={lineDraft.showTitle}
                 error={lineDraft.error}
                 onAmountChange={(v) => {
                   lineDraft.setAmountString(v);
@@ -282,7 +285,6 @@ export function TransactionForm({
                 }}
                 onQuantityChange={(fn) => lineDraft.setQuantity(fn)}
                 onCustomTitleChange={lineDraft.setCustomTitle}
-                onShowTitle={() => lineDraft.setShowTitle(true)}
                 onAdd={() => lineDraft.handleAdd(handleAddLine)}
               />
 

@@ -21,7 +21,7 @@ export const KIOSK_ACCOUNTS: KioskAccount[] = [
     type: "customer",
     username: "peeraphat",
     pin: "0000",
-    displayName: "พีระพัฒน์ (ร้าน)",
+    displayName: "พีรภัทร (ร้าน)",
     organizationId: ORG_IDS.customer,
     userId: "33333333-3333-3333-3333-333333333334",
     role: "admin",
@@ -86,4 +86,10 @@ export function toKioskSession(account: KioskAccount): KioskSession {
     userId: account.userId,
     role: account.role,
   };
+}
+
+/** อัปเดต session เก่าให้ตรง config ปัจจุบัน (ชื่อ/role หลัง deploy) */
+export function refreshKioskSession(session: KioskSession): KioskSession {
+  const account = KIOSK_ACCOUNTS.find((a) => a.username === session.username);
+  return account ? toKioskSession(account) : session;
 }

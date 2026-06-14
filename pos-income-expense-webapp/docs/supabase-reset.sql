@@ -184,10 +184,18 @@ INSERT INTO organizations (id, name, tax_id, address, phone, currency, receipt_c
 
 INSERT INTO users (id, organization_id, name, email, role, is_active) VALUES
 (
+  '33333333-3333-3333-3333-333333333334',
+  '11111111-1111-1111-1111-111111111111',
+  'พีรภัทร (ร้าน)',
+  'peeraphat@shop.local',
+  'admin',
+  TRUE
+),
+(
   '33333333-3333-3333-3333-333333333333',
   '11111111-1111-1111-1111-111111111111',
   'ลูกค้า (ร้าน)',
-  'customer@shop.local',
+  'lcs@shop.local',
   'admin',
   TRUE
 ),

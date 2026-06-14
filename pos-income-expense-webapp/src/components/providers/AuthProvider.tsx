@@ -9,7 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
+import { KIOSK_SESSION_KEY, refreshKioskSession, type KioskSession } from "@/constants/kioskUsers";
+import { syncKioskSessionApi } from "@/lib/api/client";
 
 interface AuthContextValue {
   isLoggedIn: boolean;
@@ -43,8 +44,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     try {
       const stored = localStorage.getItem(AUTH_KEY);
-      setIsLoggedIn(!!stored);
-      setSession(readSession());
+      const loggedIn = !!stored;
+      setIsLoggedIn(loggedIn);
+
+      if (loggedIn) {
+        const raw = readSession();
+        if (raw) {
+          const refreshed = refreshKioskSession(raw);
+          localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(refreshed));
+          setSession(refreshed);
+          void syncKioskSessionApi(refreshed.username)
+            .then((synced) => {
+              localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(synced));
+              setSession(synced);
+            })
+            .catch(() => {});
+        } else {
+          setSession(null);
+        }
+      } else {
+        setSession(null);
+      }
     } catch {
       setIsLoggedIn(false);
       setSession(null);
