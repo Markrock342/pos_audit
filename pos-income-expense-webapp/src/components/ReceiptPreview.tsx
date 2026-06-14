@@ -12,6 +12,7 @@ import { Printer } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { shouldOpenCashDrawer } from "@/lib/hardware/cashDrawerPolicy";
+import { isEditedTransaction } from "@/lib/utils/receiptFormat";
 import { printReceipt } from "@/lib/hardware/printer";
 
 interface ReceiptPreviewProps {
@@ -63,15 +64,18 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
   const handlePrint = async () => {
     setPrinting(true);
     setPrintMessage(null);
+    const isRevision = isEditedTransaction(transaction);
     try {
       const result = await printReceipt(transaction, receipt, {
-        openDrawer: shouldOpenCashDrawer(transaction),
+        openDrawer: !isRevision && shouldOpenCashDrawer(transaction),
         shopName,
         footer: receiptFooter,
         sellerName,
         address: organization?.address,
         phone: organization?.phone,
         taxId: organization?.taxId,
+        isRevision,
+        revisedAt: transaction.updatedAt,
       });
 
       if (result.success) {
@@ -92,12 +96,15 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
   };
 
   const lineCount = transaction.lineItems?.length ?? 1;
+  const isRevision = isEditedTransaction(transaction);
 
   return (
     <Card className={cn("flex flex-col", fill && "h-full min-h-[280px] xl:min-h-0")}>
       <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 border-b border-border-default/60 py-3">
         <div className="min-w-0">
-          <CardTitle className={cn(compact && "text-base")}>ใบเสร็จ</CardTitle>
+          <CardTitle className={cn(compact && "text-base")}>
+            {isRevision ? "ใบเสร็จ (ฉบับแก้ไข)" : "ใบเสร็จ"}
+          </CardTitle>
           <p className="mt-0.5 truncate text-xs text-text-muted">
             {transaction.title} · {lineCount} รายการ · {formatCurrency(transaction.amount)}
           </p>
@@ -144,6 +151,8 @@ export function ReceiptPreview({ transaction, receipt, fill, compact }: ReceiptP
               phone={organization?.phone}
               taxId={organization?.taxId}
               fullWidth={compact || fill}
+              isRevision={isRevision}
+              revisedAt={transaction.updatedAt}
             />
           </div>
         </div>

@@ -13,7 +13,9 @@ import { Input } from "@/components/ui/Input";
 import { SegmentTabs } from "@/components/ui/SegmentTabs";
 import { AmountDisplay, AmountNumpad } from "@/components/ui/AmountNumpad";
 import {
+  CASH_COUNT_PAGE_CACHE_KEY,
   fetchCashCountPageData,
+  invalidateCashCountPageCache,
   saveCashCountApi,
   updateCashCountApi,
   type CashCountPageData,
@@ -37,7 +39,7 @@ const CASH_COUNT_TABS = [
   { id: "history" as const, label: "ประวัติ" },
 ];
 
-const PAGE_CACHE_KEY = "pos-cash-count-page-v1";
+const PAGE_CACHE_KEY = CASH_COUNT_PAGE_CACHE_KEY;
 
 function readPageCache(): CashCountPageData | null {
   if (typeof window === "undefined") return null;
@@ -55,6 +57,22 @@ function writePageCache(data: CashCountPageData) {
   } catch {
     /* ignore quota */
   }
+}
+
+function clearPageCache() {
+  invalidateCashCountPageCache();
+}
+
+function applyWithdrawalToLedger(
+  ledger: DailyLedgerSummary,
+  amount: number
+): DailyLedgerSummary {
+  const withdrawn = ledger.cash.withdrawn + amount;
+  const closing = ledger.cash.opening + ledger.cash.income - ledger.cash.expense - withdrawn;
+  return {
+    ...ledger,
+    cash: { ...ledger.cash, withdrawn, closing },
+  };
 }
 
 export default function CashCountPage() {
@@ -115,8 +133,8 @@ export default function CashCountPage() {
     setHistory(page.history);
   }, []);
 
-  const load = useCallback(async () => {
-    const cached = readPageCache();
+  const load = useCallback(async (options?: { skipCache?: boolean }) => {
+    const cached = options?.skipCache ? null : readPageCache();
     if (cached) {
       applyPageData(cached);
       setLoading(false);
@@ -147,9 +165,39 @@ export default function CashCountPage() {
     void load();
   }, [load]);
 
-  const handleWithdrawSaved = async () => {
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      clearPageCache();
+      void load({ skipCache: true });
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [load]);
+
+  const handleWithdrawSaved = (created: CashWithdrawal) => {
+    setWithdrawals((prev) => [created, ...prev]);
+    setWithdrawTotal((prev) => prev + created.amount);
+    setWithdrawCount((prev) => prev + 1);
+    setLedger((prev) => (prev ? applyWithdrawalToLedger(prev, created.amount) : prev));
+    setExpectedBalance((prev) => prev - created.amount);
+    setExisting((prev) =>
+      prev
+        ? {
+            ...prev,
+            expectedBalance: prev.expectedBalance - created.amount,
+            cashWithdrawn: (prev.cashWithdrawn ?? 0) + created.amount,
+            closingCash: (prev.closingCash ?? prev.expectedBalance) - created.amount,
+          }
+        : prev
+    );
     setHistoryKey((k) => k + 1);
-    await load();
+    clearPageCache();
+    void load({ skipCache: true });
   };
 
   const readOnly = isLocked && !isAdmin;
@@ -200,7 +248,8 @@ export default function CashCountPage() {
       }
       setMessage("บันทึกปิดยอดเงินสดแล้ว");
       setHistoryKey((k) => k + 1);
-      await load();
+      clearPageCache();
+      await load({ skipCache: true });
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ");
     } finally {

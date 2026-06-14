@@ -2,7 +2,9 @@ import type { Transaction } from "@/types";
 import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
+  formatRevisionMetaLines,
   hasDistinctTransactionDate,
+  resolveDocumentTitle,
   resolveExpenseVoucherNumber,
   resolvePaymentLabel,
   resolveReceiptLines,
@@ -36,6 +38,9 @@ export interface ExpenseVoucherPrintContext {
   footer?: string;
   recorderName?: string;
   categoryNames?: Record<string, string>;
+  isRevision?: boolean;
+  revisedAt?: string;
+  editReason?: string;
 }
 
 export interface BuildEscPosExpenseVoucherOptions {
@@ -60,10 +65,15 @@ export function buildEscPosExpenseVoucher(
   const docNo = resolveExpenseVoucherNumber(transaction, ctx.voucherNumber);
   const { date, time } = splitReceiptDateTime(transaction.createdAt);
   const billTitle = transaction.title?.trim() || "-";
+  const isRevision = !!ctx.isRevision;
+  const { title, titleEn } = resolveDocumentTitle("expense", isRevision);
+  const revisionLines = isRevision
+    ? formatRevisionMetaLines(ctx.revisedAt ?? transaction.updatedAt, ctx.editReason)
+    : [];
 
   const chunks: Uint8Array[] = [escInit()];
 
-  chunks.push(escCenterLines([shopName, "ใบบันทึกรายจ่าย / Expense"], true));
+  chunks.push(escCenterLines([shopName, `${title} / ${titleEn}`], true));
   chunks.push(escFeed(1));
   chunks.push(escRule());
 
@@ -72,6 +82,9 @@ export function buildEscPosExpenseVoucher(
   chunks.push(escTextLine(`ผู้บันทึก: ${recorder}`));
   if (hasDistinctTransactionDate(transaction)) {
     chunks.push(escTextLine(`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`));
+  }
+  for (const line of revisionLines) {
+    chunks.push(escTextLine(line));
   }
 
   chunks.push(escRule());

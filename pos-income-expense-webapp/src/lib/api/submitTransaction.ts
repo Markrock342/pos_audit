@@ -1,4 +1,4 @@
-import { createTransactionApi } from "@/lib/api/client";
+import { createTransactionApi, invalidateCashCountPageCache } from "@/lib/api/client";
 import { KIOSK_ACCOUNTS, KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
 import {
   resolveBillTitle,
@@ -17,6 +17,7 @@ function getCreatedBy(): string {
 }
 
 export async function submitTransaction(data: TransactionFormValues) {
+  invalidateCashCountPageCache();
   return createTransactionApi({
     type: data.type,
     title: resolveBillTitle(data.type, data.title, data.lineItems),

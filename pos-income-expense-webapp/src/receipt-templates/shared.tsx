@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { formatReceiptDateTime } from "@/lib/utils/receiptFormat";
 import {
   receiptRuleLine,
   receiptTotalRuleLine,
@@ -165,6 +166,24 @@ export function ReceiptMetaPair({ left, right }: { left: string; right: string }
 
 export function ReceiptMetaSingle({ text }: { text: string }) {
   return <p className="rcpt-meta-single text-[11px] leading-normal text-black">{text}</p>;
+}
+
+export function ReceiptRevisionMeta({
+  revisedAt,
+  editReason,
+}: {
+  revisedAt?: string;
+  editReason?: string;
+}) {
+  if (!revisedAt && !editReason?.trim()) return null;
+  return (
+    <>
+      {revisedAt && (
+        <ReceiptMetaSingle text={`แก้ไขเมื่อ: ${formatReceiptDateTime(revisedAt)}`} />
+      )}
+      {editReason?.trim() && <ReceiptMetaSingle text={`เหตุผล: ${editReason.trim()}`} />}
+    </>
+  );
 }
 
 export function ReceiptItemTableHeader() {

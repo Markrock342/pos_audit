@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { loadCashCountPageData } from "@/lib/services/db/cashCountPage";
 
-export const revalidate = 10;
+export const dynamic = "force-dynamic";
 
 /** โหลดหน้าปิดยอดครั้งเดียว — อ่าน snapshot จาก DB + parallel queries */
 export async function GET() {

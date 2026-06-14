@@ -11,6 +11,7 @@ import { type CartLine } from "@/components/forms/TransactionCartPanel";
 import { DraftBillPreview } from "@/components/forms/DraftBillPreview";
 import { FloatingSlipFollow } from "@/components/forms/FloatingSlipFollow";
 import { TransactionLineBuilder } from "@/components/forms/TransactionLineBuilder";
+import { TransactionEditPrintPrompt } from "@/components/transactions/TransactionEditPrintPrompt";
 import {
   resolveBillTitle,
   transactionToFormValues,
@@ -53,8 +54,26 @@ export function TransactionEditModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draftLine, setDraftLine] = useState<LineItemFormValues | null>(null);
+  const [printPrompt, setPrintPrompt] = useState<{
+    transaction: Transaction;
+    editReason: string;
+  } | null>(null);
 
   if (!open) return null;
+
+  if (printPrompt) {
+    return (
+      <TransactionEditPrintPrompt
+        transaction={printPrompt.transaction}
+        editReason={printPrompt.editReason}
+        categories={categories}
+        onDone={() => {
+          setPrintPrompt(null);
+          onClose();
+        }}
+      />
+    );
+  }
 
   const handleAddLine = (item: LineItemFormValues) => {
     setCartLines((prev) => [...prev, { ...item, localId: newLocalId() }]);
@@ -83,7 +102,7 @@ export function TransactionEditModal({
     setSaving(true);
     setError(null);
     try {
-      await updateTransactionApi(transaction.id, {
+      const updated = await updateTransactionApi(transaction.id, {
         title: resolveBillTitle(transaction.type, billTitle, lineItems),
         transactionDate,
         paymentMethod,
@@ -98,7 +117,7 @@ export function TransactionEditModal({
         })),
       });
       onSaved();
-      onClose();
+      setPrintPrompt({ transaction: updated, editReason: editReason.trim() });
     } catch (e) {
       setError(e instanceof Error ? e.message : "แก้ไขไม่สำเร็จ");
     } finally {

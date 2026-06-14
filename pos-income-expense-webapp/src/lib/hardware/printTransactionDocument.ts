@@ -3,6 +3,7 @@ import { shouldOpenCashDrawer } from "@/lib/hardware/cashDrawerPolicy";
 import { printReceipt } from "@/lib/hardware/printer";
 import { KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
 import {
+  isEditedTransaction,
   resolveExpenseVoucherNumber,
   resolveReceiptNumber,
 } from "@/lib/utils/receiptFormat";
@@ -20,10 +21,18 @@ function readSessionDisplayName(): string | undefined {
   }
 }
 
-/** พิมพ์ใบเสร็จ/ใบบันทึกรายจ่ายทันทีหลังบันทึกรายการ */
+export interface PrintTransactionDocumentOptions {
+  categories?: Category[];
+  /** บังคับฉบับแก้ไข (เช่นหลังแก้ไขรายการ) */
+  isRevision?: boolean;
+  editReason?: string;
+  revisedAt?: string;
+}
+
+/** พิมพ์ใบเสร็จ/ใบบันทึกรายจ่าย */
 export async function printTransactionDocument(
   transaction: Transaction,
-  options?: { categories?: Category[] }
+  options?: PrintTransactionDocumentOptions
 ): Promise<PrintReceiptResult> {
   const org = await fetchOrganization().catch(() => null);
   const shopName = org?.receiptConfig?.header ?? org?.name;
@@ -33,7 +42,19 @@ export async function printTransactionDocument(
   const taxId = org?.taxId;
   const displayName = readSessionDisplayName();
 
-  const openDrawer = shouldOpenCashDrawer(transaction);
+  const isRevision = options?.isRevision ?? isEditedTransaction(transaction);
+  const openDrawer = isRevision ? false : shouldOpenCashDrawer(transaction);
+  const printOptions = {
+    openDrawer,
+    shopName,
+    footer,
+    address,
+    phone,
+    taxId,
+    isRevision,
+    revisedAt: options?.revisedAt ?? transaction.updatedAt,
+    editReason: options?.editReason,
+  };
 
   if (transaction.type === "expense") {
     const voucherNumber = resolveExpenseVoucherNumber(transaction);
@@ -49,15 +70,10 @@ export async function printTransactionDocument(
         receiptNumber: voucherNumber,
       },
       {
-        openDrawer,
-        shopName,
-        footer,
+        ...printOptions,
         recorderName: displayName,
         voucherNumber,
         categoryNames,
-        address,
-        phone,
-        taxId,
       }
     );
   }
@@ -70,13 +86,8 @@ export async function printTransactionDocument(
       receiptNumber: resolveReceiptNumber(transaction),
     },
     {
-      openDrawer,
-      shopName,
-      footer,
+      ...printOptions,
       sellerName: displayName,
-      address,
-      phone,
-      taxId,
     }
   );
 }

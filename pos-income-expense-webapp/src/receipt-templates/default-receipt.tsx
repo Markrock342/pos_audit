@@ -3,6 +3,8 @@ import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
   hasDistinctTransactionDate,
+  isEditedTransaction,
+  resolveDocumentTitle,
   resolvePaymentLabel,
   resolveReceiptLines,
   resolveReceiptNumber,
@@ -19,6 +21,7 @@ import {
   ReceiptItemTableRow,
   ReceiptMetaPair,
   ReceiptMetaSingle,
+  ReceiptRevisionMeta,
   ReceiptShell,
   ReceiptSummaryRow,
   ReceiptTotalBand,
@@ -34,6 +37,9 @@ interface DefaultReceiptProps {
   phone?: string;
   taxId?: string;
   fullWidth?: boolean;
+  isRevision?: boolean;
+  revisedAt?: string;
+  editReason?: string;
 }
 
 /** ราคาต่อหน่วยจาก lineAmount/qty (กันหารศูนย์) */
@@ -53,6 +59,9 @@ export function DefaultReceiptTemplate({
   phone,
   taxId,
   fullWidth,
+  isRevision: isRevisionProp,
+  revisedAt,
+  editReason,
 }: DefaultReceiptProps) {
   const lines = resolveReceiptLines(transaction);
   const subtotal = sumLineItems(lines);
@@ -66,13 +75,15 @@ export function DefaultReceiptTemplate({
   const showTxDate = hasDistinctTransactionDate(transaction);
   const billTitle = transaction.title?.trim() || "—";
   const itemCount = lines.reduce((n, l) => n + (Number(l.quantity) || 0), 0);
+  const isRevision = isRevisionProp ?? isEditedTransaction(transaction);
+  const { title, titleEn } = resolveDocumentTitle("income", isRevision);
 
   return (
     <ReceiptShell fullWidth={fullWidth}>
       <ReceiptHeader
         shopName={shopName}
-        subtitle="ใบเสร็จรับเงิน"
-        subtitleEn="RECEIPT"
+        subtitle={title}
+        subtitleEn={titleEn}
         address={address}
         phone={phone}
         taxId={taxId}
@@ -84,6 +95,12 @@ export function DefaultReceiptTemplate({
         <ReceiptMetaSingle text={`ผู้ขาย: ${seller}`} />
         {showTxDate && (
           <ReceiptMetaSingle text={`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`} />
+        )}
+        {isRevision && (
+          <ReceiptRevisionMeta
+            revisedAt={revisedAt ?? transaction.updatedAt}
+            editReason={editReason}
+          />
         )}
       </div>
 

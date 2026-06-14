@@ -3,6 +3,8 @@ import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
   hasDistinctTransactionDate,
+  isEditedTransaction,
+  resolveDocumentTitle,
   resolveExpenseVoucherNumber,
   resolvePaymentLabel,
   resolveReceiptLines,
@@ -19,6 +21,7 @@ import {
   ReceiptItemTableRow,
   ReceiptMetaPair,
   ReceiptMetaSingle,
+  ReceiptRevisionMeta,
   ReceiptShell,
   ReceiptSummaryRow,
   ReceiptTotalBand,
@@ -37,6 +40,9 @@ interface DefaultExpenseVoucherProps {
   phone?: string;
   taxId?: string;
   fullWidth?: boolean;
+  isRevision?: boolean;
+  revisedAt?: string;
+  editReason?: string;
 }
 
 export function DefaultExpenseVoucherTemplate({
@@ -50,6 +56,9 @@ export function DefaultExpenseVoucherTemplate({
   phone,
   taxId,
   fullWidth,
+  isRevision: isRevisionProp,
+  revisedAt,
+  editReason,
 }: DefaultExpenseVoucherProps) {
   const lines = resolveReceiptLines(transaction);
   const total = transaction.amount ?? sumLineItems(lines);
@@ -59,13 +68,15 @@ export function DefaultExpenseVoucherTemplate({
   const { date, time } = splitReceiptDateTime(transaction.createdAt);
   const showTxDate = hasDistinctTransactionDate(transaction);
   const billTitle = transaction.title?.trim() || "—";
+  const isRevision = isRevisionProp ?? isEditedTransaction(transaction);
+  const { title, titleEn } = resolveDocumentTitle("expense", isRevision);
 
   return (
     <ReceiptShell fullWidth={fullWidth}>
       <ReceiptHeader
         shopName={shopName}
-        subtitle="ใบบันทึกรายจ่าย"
-        subtitleEn="EXPENSE"
+        subtitle={title}
+        subtitleEn={titleEn}
         address={address}
         phone={phone}
         taxId={taxId}
@@ -77,6 +88,12 @@ export function DefaultExpenseVoucherTemplate({
         <ReceiptMetaSingle text={`ผู้บันทึก: ${recorder}`} />
         {showTxDate && (
           <ReceiptMetaSingle text={`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`} />
+        )}
+        {isRevision && (
+          <ReceiptRevisionMeta
+            revisedAt={revisedAt ?? transaction.updatedAt}
+            editReason={editReason}
+          />
         )}
       </div>
 

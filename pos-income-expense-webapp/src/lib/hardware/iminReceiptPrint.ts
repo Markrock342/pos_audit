@@ -3,7 +3,9 @@ import { SHOP_NAME } from "@/constants";
 import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
+  formatRevisionMetaLines,
   hasDistinctTransactionDate,
+  resolveDocumentTitle,
   resolvePaymentLabel,
   resolveReceiptLines,
   resolveReceiptNumber,
@@ -35,6 +37,9 @@ export interface IminReceiptContext {
   phone?: string;
   taxId?: string;
   openDrawer?: boolean;
+  isRevision?: boolean;
+  revisedAt?: string;
+  editReason?: string;
 }
 
 export function printReceiptOnImin(
@@ -54,6 +59,11 @@ export function printReceiptOnImin(
   const receiptNo = resolveReceiptNumber(transaction, receipt.receiptNumber);
   const { date, time } = splitReceiptDateTime(transaction.createdAt);
   const billTitle = transaction.title?.trim() || "-";
+  const isRevision = !!ctx.isRevision;
+  const { title, titleEn } = resolveDocumentTitle("income", isRevision);
+  const revisionLines = isRevision
+    ? formatRevisionMetaLines(ctx.revisedAt ?? transaction.updatedAt, ctx.editReason)
+    : [];
 
   const contactLines = [
     ctx.address?.trim(),
@@ -69,8 +79,8 @@ export function printReceiptOnImin(
     thermalCenterLines(printer, contactLines);
   }
   thermalRule(printer);
-  thermalCenterLines(printer, ["ใบเสร็จรับเงิน"], true);
-  thermalCenterLines(printer, ["RECEIPT"]);
+  thermalCenterLines(printer, [title], true);
+  thermalCenterLines(printer, [titleEn]);
   thermalBlankLine(printer);
 
   thermalMetaPair(printer, `เลขที่: ${receiptNo}`, `ชื่อบิล: ${billTitle}`);
@@ -78,6 +88,9 @@ export function printReceiptOnImin(
   printer.printText(`ผู้ขาย: ${seller}`);
   if (hasDistinctTransactionDate(transaction)) {
     printer.printText(`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`);
+  }
+  for (const line of revisionLines) {
+    printer.printText(line);
   }
 
   thermalRule(printer);

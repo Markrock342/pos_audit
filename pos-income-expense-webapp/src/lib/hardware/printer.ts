@@ -23,6 +23,10 @@ export interface PrintReceiptOptions {
   address?: string;
   phone?: string;
   taxId?: string;
+  /** ฉบับแก้ไข — ไม่เปิดลิ้นชัก + แสดง label บนใบ */
+  isRevision?: boolean;
+  revisedAt?: string;
+  editReason?: string;
 }
 
 export interface PrintReceiptResult {
@@ -51,10 +55,17 @@ function shouldTryImin(hw: HardwareConfig): boolean {
   return isLikelyIminDevice();
 }
 
-function successMessage(transaction: Transaction): string {
+function successMessage(transaction: Transaction, isRevision?: boolean): string {
+  const revised = isRevision ? "ฉบับแก้ไข" : "";
   return transaction.type === "expense"
-    ? "พิมพ์ใบบันทึกรายจ่ายแล้ว (เครื่องพิมพ์ iMin)"
-    : "พิมพ์ใบเสร็จแล้ว (เครื่องพิมพ์ iMin)";
+    ? `พิมพ์ใบบันทึกรายจ่าย${revised}แล้ว`
+    : `พิมพ์ใบเสร็จ${revised}แล้ว`;
+}
+
+function resolveOpenDrawer(transaction: Transaction, options?: PrintReceiptOptions): boolean {
+  if (options?.isRevision) return false;
+  if (options?.openDrawer !== undefined) return options.openDrawer;
+  return shouldOpenCashDrawer(transaction);
 }
 
 async function printViaServerApi(
@@ -69,7 +80,7 @@ async function printViaServerApi(
     body: JSON.stringify({
       transaction,
       receipt,
-      openDrawer: options?.openDrawer ?? shouldOpenCashDrawer(transaction),
+      openDrawer: resolveOpenDrawer(transaction, options),
       hardwareConfig: options?.hardwareConfig ?? hw,
       shopName: options?.shopName,
       footer: options?.footer,
@@ -77,6 +88,9 @@ async function printViaServerApi(
       recorderName: options?.recorderName,
       voucherNumber: options?.voucherNumber,
       categoryNames: options?.categoryNames,
+      isRevision: options?.isRevision,
+      revisedAt: options?.revisedAt,
+      editReason: options?.editReason,
     }),
   });
 
@@ -117,7 +131,7 @@ async function printViaImin(
   const printer = await getConnectedIminPrinter(hw);
 
   if (transaction.type === "expense") {
-    const openDrawer = options?.openDrawer ?? shouldOpenCashDrawer(transaction);
+    const openDrawer = resolveOpenDrawer(transaction, options);
     printExpenseVoucherOnImin(printer, {
       transaction,
       voucherNumber: options?.voucherNumber ?? receipt.receiptNumber,
@@ -129,6 +143,9 @@ async function printViaImin(
       phone: options?.phone,
       taxId: options?.taxId,
       openDrawer,
+      isRevision: options?.isRevision,
+      revisedAt: options?.revisedAt,
+      editReason: options?.editReason,
     });
   } else {
     printReceiptOnImin(printer, {
@@ -140,13 +157,16 @@ async function printViaImin(
       address: options?.address,
       phone: options?.phone,
       taxId: options?.taxId,
-      openDrawer: options?.openDrawer ?? shouldOpenCashDrawer(transaction),
+      openDrawer: resolveOpenDrawer(transaction, options),
+      isRevision: options?.isRevision,
+      revisedAt: options?.revisedAt,
+      editReason: options?.editReason,
     });
   }
 
   return {
     success: true,
-    message: successMessage(transaction),
+    message: successMessage(transaction, options?.isRevision),
     mode: "imin",
   };
 }
@@ -174,7 +194,7 @@ export async function printReceipt(
 
     if (shouldTryImin(hw)) {
       try {
-        const openDrawer = options?.openDrawer ?? shouldOpenCashDrawer(transaction);
+        const openDrawer = resolveOpenDrawer(transaction, options);
         const result = await printViaImin(transaction, receipt, options, hw);
         if (result.success) await kickDrawerForExpenseCash(transaction, openDrawer, hw);
         return result;
@@ -187,7 +207,7 @@ export async function printReceipt(
     }
 
     if (hw.printerType === "lan" || hw.printerType === "usb") {
-      const openDrawer = options?.openDrawer ?? shouldOpenCashDrawer(transaction);
+      const openDrawer = resolveOpenDrawer(transaction, options);
       const result = await printViaServerApi(transaction, receipt, options, hw);
       if (result.success) await kickDrawerForExpenseCash(transaction, openDrawer, hw);
       return result;

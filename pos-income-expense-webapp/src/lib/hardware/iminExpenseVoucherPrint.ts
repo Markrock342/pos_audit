@@ -3,7 +3,9 @@ import { SHOP_NAME } from "@/constants";
 import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
+  formatRevisionMetaLines,
   hasDistinctTransactionDate,
+  resolveDocumentTitle,
   resolveExpenseVoucherNumber,
   resolvePaymentLabel,
   resolveReceiptLines,
@@ -39,6 +41,9 @@ export interface IminExpenseVoucherContext {
   phone?: string;
   taxId?: string;
   openDrawer?: boolean;
+  isRevision?: boolean;
+  revisedAt?: string;
+  editReason?: string;
 }
 
 export function printExpenseVoucherOnImin(
@@ -57,6 +62,11 @@ export function printExpenseVoucherOnImin(
   const docNo = resolveExpenseVoucherNumber(transaction, ctx.voucherNumber);
   const { date, time } = splitReceiptDateTime(transaction.createdAt);
   const billTitle = transaction.title?.trim() || "-";
+  const isRevision = !!ctx.isRevision;
+  const { title, titleEn } = resolveDocumentTitle("expense", isRevision);
+  const revisionLines = isRevision
+    ? formatRevisionMetaLines(ctx.revisedAt ?? transaction.updatedAt, ctx.editReason)
+    : [];
 
   const contactLines = [
     ctx.address?.trim(),
@@ -72,8 +82,8 @@ export function printExpenseVoucherOnImin(
     thermalCenterLines(printer, contactLines);
   }
   thermalRule(printer);
-  thermalCenterLines(printer, ["ใบบันทึกรายจ่าย"], true);
-  thermalCenterLines(printer, ["EXPENSE"]);
+  thermalCenterLines(printer, [title], true);
+  thermalCenterLines(printer, [titleEn]);
   thermalBlankLine(printer);
 
   thermalMetaPair(printer, `เลขที่: ${docNo}`, `ชื่อบิล: ${billTitle}`);
@@ -81,6 +91,9 @@ export function printExpenseVoucherOnImin(
   printer.printText(`ผู้บันทึก: ${recorder}`);
   if (hasDistinctTransactionDate(transaction)) {
     printer.printText(`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`);
+  }
+  for (const line of revisionLines) {
+    printer.printText(line);
   }
 
   thermalRule(printer);

@@ -15,6 +15,17 @@ import type {
   Transaction,
 } from "@/types";
 
+export const CASH_COUNT_PAGE_CACHE_KEY = "pos-cash-count-page-v1";
+
+export function invalidateCashCountPageCache() {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(CASH_COUNT_PAGE_CACHE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export interface CategoryReportItem {
   categoryId: string;
   categoryName: string;
@@ -396,6 +407,7 @@ export async function createCashWithdrawalApi(body: {
       body: JSON.stringify(body),
     })
   );
+  invalidateCashCountPageCache();
   return data;
 }
 

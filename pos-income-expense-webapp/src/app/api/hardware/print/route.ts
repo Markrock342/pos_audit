@@ -36,6 +36,7 @@ const bodySchema = z.object({
     isPrinted: z.boolean().optional(),
     createdBy: z.string(),
     createdAt: z.string(),
+    updatedAt: z.string().optional(),
     lineItems: z
       .array(
         z.object({
@@ -63,6 +64,9 @@ const bodySchema = z.object({
   voucherNumber: z.string().optional(),
   categoryNames: z.record(z.string(), z.string()).optional(),
   openDrawer: z.boolean().optional(),
+  isRevision: z.boolean().optional(),
+  revisedAt: z.string().optional(),
+  editReason: z.string().optional(),
   hardwareConfig: hardwareConfigSchema,
 });
 
@@ -102,7 +106,9 @@ export async function POST(request: Request) {
     const shopName = parsed.data.shopName ?? org?.receiptConfig?.header ?? org?.name;
     const footer = parsed.data.footer ?? org?.receiptConfig?.footer;
 
-    const openDrawer = parsed.data.openDrawer ?? shouldOpenCashDrawer(tx);
+    const openDrawer = parsed.data.isRevision
+      ? false
+      : (parsed.data.openDrawer ?? shouldOpenCashDrawer(tx));
 
     const data =
       tx.type === "expense"
@@ -114,6 +120,9 @@ export async function POST(request: Request) {
               footer,
               recorderName: parsed.data.recorderName,
               categoryNames: parsed.data.categoryNames,
+              isRevision: parsed.data.isRevision,
+              revisedAt: parsed.data.revisedAt ?? tx.updatedAt,
+              editReason: parsed.data.editReason,
             },
             {
               openDrawer,
@@ -127,6 +136,9 @@ export async function POST(request: Request) {
               shopName,
               footer,
               sellerName: parsed.data.sellerName,
+              isRevision: parsed.data.isRevision,
+              revisedAt: parsed.data.revisedAt ?? tx.updatedAt,
+              editReason: parsed.data.editReason,
             },
             {
               openDrawer,

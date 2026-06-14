@@ -2,7 +2,9 @@ import type { Receipt, Transaction } from "@/types";
 import { formatDateShort } from "@/lib/utils/format";
 import {
   formatReceiptAmount,
+  formatRevisionMetaLines,
   hasDistinctTransactionDate,
+  resolveDocumentTitle,
   resolvePaymentLabel,
   resolveReceiptLines,
   resolveReceiptNumber,
@@ -32,6 +34,9 @@ export interface ReceiptPrintContext {
   shopName?: string;
   footer?: string;
   sellerName?: string;
+  isRevision?: boolean;
+  revisedAt?: string;
+  editReason?: string;
 }
 
 export interface BuildEscPosOptions {
@@ -56,10 +61,15 @@ export function buildEscPosReceipt(
   const receiptNo = resolveReceiptNumber(transaction, receipt.receiptNumber);
   const { date, time } = splitReceiptDateTime(transaction.createdAt);
   const billTitle = transaction.title?.trim() || "-";
+  const isRevision = !!ctx.isRevision;
+  const { title, titleEn } = resolveDocumentTitle("income", isRevision);
+  const revisionLines = isRevision
+    ? formatRevisionMetaLines(ctx.revisedAt ?? transaction.updatedAt, ctx.editReason)
+    : [];
 
   const chunks: Uint8Array[] = [escInit()];
 
-  chunks.push(escCenterLines([shopName, "ใบเสร็จรับเงิน / Receipt"], true));
+  chunks.push(escCenterLines([shopName, `${title} / ${titleEn}`], true));
   chunks.push(escFeed(1));
   chunks.push(escRule());
 
@@ -68,6 +78,9 @@ export function buildEscPosReceipt(
   chunks.push(escTextLine(`ผู้ขาย: ${seller}`));
   if (hasDistinctTransactionDate(transaction)) {
     chunks.push(escTextLine(`วันที่รายการ: ${formatDateShort(transaction.transactionDate)}`));
+  }
+  for (const line of revisionLines) {
+    chunks.push(escTextLine(line));
   }
 
   chunks.push(escRule());

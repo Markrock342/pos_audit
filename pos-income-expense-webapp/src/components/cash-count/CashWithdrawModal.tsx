@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/Input";
 import { AmountDisplay, AmountNumpad } from "@/components/ui/AmountNumpad";
 import { createCashWithdrawalApi } from "@/lib/api/client";
 import { formatCurrency } from "@/lib/utils/format";
+import type { CashWithdrawal } from "@/types";
 
 interface CashWithdrawModalProps {
   open: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (created: CashWithdrawal) => void;
   recordedBy?: string;
   readOnly?: boolean;
 }
@@ -53,14 +54,14 @@ export function CashWithdrawModal({
     setSaving(true);
     setError(null);
     try {
-      await createCashWithdrawalApi({
+      const created = await createCashWithdrawalApi({
         amount: value,
         note: note.trim(),
         recordedBy,
       });
       setAmount("0");
       setNote("");
-      onSaved();
+      onSaved(created);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "บันทึกถอนไม่สำเร็จ");

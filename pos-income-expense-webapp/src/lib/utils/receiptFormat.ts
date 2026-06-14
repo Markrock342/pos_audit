@@ -89,3 +89,36 @@ export function resolvePaymentLabel(method: PaymentMethod): string {
 export function sumLineItems(lines: TransactionLineItem[]): number {
   return lines.reduce((sum, line) => sum + line.lineAmount, 0);
 }
+
+/** รายการเคยแก้ไขหลังบันทึกครั้งแรก */
+export function isEditedTransaction(transaction: Transaction): boolean {
+  if (!transaction.updatedAt?.trim()) return false;
+  if (!transaction.createdAt?.trim()) return true;
+  return transaction.updatedAt !== transaction.createdAt;
+}
+
+export function resolveDocumentTitle(
+  type: Transaction["type"],
+  isRevision: boolean
+): { title: string; titleEn: string } {
+  if (type === "income") {
+    return isRevision
+      ? { title: "ใบเสร็จรับเงิน (ฉบับแก้ไข)", titleEn: "RECEIPT (REVISED)" }
+      : { title: "ใบเสร็จรับเงิน", titleEn: "RECEIPT" };
+  }
+  return isRevision
+    ? { title: "ใบบันทึกรายจ่าย (ฉบับแก้ไข)", titleEn: "EXPENSE (REVISED)" }
+    : { title: "ใบบันทึกรายจ่าย", titleEn: "EXPENSE" };
+}
+
+export function formatRevisionMetaLines(revisedAt?: string, editReason?: string): string[] {
+  const lines: string[] = [];
+  if (revisedAt?.trim()) {
+    lines.push(`แก้ไขเมื่อ: ${formatReceiptDateTime(revisedAt)}`);
+  }
+  const reason = editReason?.trim();
+  if (reason) {
+    lines.push(`เหตุผล: ${reason.length > 80 ? `${reason.slice(0, 77)}...` : reason}`);
+  }
+  return lines;
+}

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Printer } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
-import { resolveExpenseVoucherNumber } from "@/lib/utils/receiptFormat";
+import { resolveExpenseVoucherNumber, isEditedTransaction } from "@/lib/utils/receiptFormat";
 import { cn } from "@/lib/utils/cn";
 import { shouldOpenCashDrawer } from "@/lib/hardware/cashDrawerPolicy";
 import { printReceipt } from "@/lib/hardware/printer";
@@ -53,6 +53,7 @@ export function ExpenseVoucherPreview({
   );
 
   const lineCount = transaction.lineItems?.length ?? 1;
+  const isRevision = isEditedTransaction(transaction);
 
   const printViaBrowser = () => {
     const el = printRef.current;
@@ -83,11 +84,13 @@ export function ExpenseVoucherPreview({
           receiptNumber: voucherNumber,
         },
         {
-          openDrawer: shouldOpenCashDrawer(transaction),
+          openDrawer: !isRevision && shouldOpenCashDrawer(transaction),
           shopName,
           recorderName,
           voucherNumber,
           categoryNames,
+          isRevision,
+          revisedAt: transaction.updatedAt,
         }
       );
 
@@ -112,7 +115,9 @@ export function ExpenseVoucherPreview({
     <Card className={cn("flex flex-col", fill && "h-full min-h-[280px] xl:min-h-0")}>
       <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 border-b border-border-default/60 py-3">
         <div className="min-w-0">
-          <CardTitle className={cn(compact && "text-base")}>ใบบันทึกรายจ่าย</CardTitle>
+          <CardTitle className={cn(compact && "text-base")}>
+            {isRevision ? "ใบบันทึกรายจ่าย (ฉบับแก้ไข)" : "ใบบันทึกรายจ่าย"}
+          </CardTitle>
           <p className="mt-0.5 truncate text-xs text-text-muted">
             {transaction.title} · {lineCount} รายการ · {formatCurrency(transaction.amount)}
           </p>
@@ -156,6 +161,8 @@ export function ExpenseVoucherPreview({
               phone={organization?.phone}
               taxId={organization?.taxId}
               fullWidth={compact || fill}
+              isRevision={isRevision}
+              revisedAt={transaction.updatedAt}
             />
           </div>
         </div>
