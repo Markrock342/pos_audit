@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { AUDIT_CREATE_REASON } from "@/lib/services/db/auditLogs";
 import { safeCreateAuditLog } from "@/lib/services/db/safeAuditLog";
 import {
@@ -73,20 +73,22 @@ export async function POST(request: Request) {
       body.lineItems
     );
 
-    await safeCreateAuditLog({
-      organizationId: DEFAULT_ORG_ID,
-      userId,
-      entityType: "transaction",
-      entityId: newTransaction.id,
-      transactionType: newTransaction.type,
-      entityTitle: newTransaction.title,
-      action: "create",
-      reason: AUDIT_CREATE_REASON,
-      oldValue: null,
-      newValue: transactionAuditSnapshot(newTransaction),
-    });
+    after(async () => {
+      await safeCreateAuditLog({
+        organizationId: DEFAULT_ORG_ID,
+        userId,
+        entityType: "transaction",
+        entityId: newTransaction.id,
+        transactionType: newTransaction.type,
+        entityTitle: newTransaction.title,
+        action: "create",
+        reason: AUDIT_CREATE_REASON,
+        oldValue: null,
+        newValue: transactionAuditSnapshot(newTransaction),
+      });
 
-    await syncTodayLedgerAfterMutation(DEFAULT_ORG_ID, txDate);
+      await syncTodayLedgerAfterMutation(DEFAULT_ORG_ID, txDate, newTransaction, "apply");
+    });
 
     return NextResponse.json({ data: newTransaction }, { status: 201 });
   } catch (err) {

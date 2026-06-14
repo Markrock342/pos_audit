@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { safeCreateAuditLog } from "@/lib/services/db/safeAuditLog";
 import {
   getTransaction,
@@ -57,23 +57,27 @@ export async function POST(
     userId
   );
 
-  await safeCreateAuditLog({
-    organizationId: existing.organizationId ?? DEFAULT_ORG_ID,
-    userId,
-    entityType: "transaction",
-    entityId: id,
-    transactionType: existing.type,
-    entityTitle: existing.title,
-    action: "void",
-    reason: body.voidReason.trim(),
-    oldValue: oldSnapshot,
-    newValue: transactionAuditSnapshot(voided),
-  });
+  after(async () => {
+    await safeCreateAuditLog({
+      organizationId: existing.organizationId ?? DEFAULT_ORG_ID,
+      userId,
+      entityType: "transaction",
+      entityId: id,
+      transactionType: existing.type,
+      entityTitle: existing.title,
+      action: "void",
+      reason: body.voidReason.trim(),
+      oldValue: oldSnapshot,
+      newValue: transactionAuditSnapshot(voided),
+    });
 
-  await syncTodayLedgerAfterMutation(
-    existing.organizationId ?? DEFAULT_ORG_ID,
-    existing.transactionDate
-  );
+    await syncTodayLedgerAfterMutation(
+      existing.organizationId ?? DEFAULT_ORG_ID,
+      existing.transactionDate,
+      existing,
+      "revert"
+    );
+  });
 
   return NextResponse.json({ data: voided });
 }

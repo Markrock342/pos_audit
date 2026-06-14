@@ -147,6 +147,39 @@ async function getTransferOpeningForDate(
   return opening;
 }
 
+export type LedgerTransactionDelta = Pick<Transaction, "type" | "amount" | "paymentMethod">;
+
+/** อัปเดต snapshot จากรายการเดียว — เร็วกว่าคำนวณทั้งวันใหม่ */
+export function applyTransactionToLedgerSummary(
+  summary: DailyLedgerSummary,
+  transaction: LedgerTransactionDelta,
+  mode: "apply" | "revert"
+): DailyLedgerSummary {
+  const sign = mode === "apply" ? 1 : -1;
+  const amount = transaction.amount * sign;
+  const isCash = transaction.paymentMethod === "cash";
+
+  const cash = { ...summary.cash };
+  const transfer = { ...summary.transfer };
+  const business = { ...summary.business };
+
+  if (transaction.type === "income") {
+    business.totalIncome += amount;
+    if (isCash) cash.income += amount;
+    else transfer.income += amount;
+  } else {
+    business.totalExpense += amount;
+    if (isCash) cash.expense += amount;
+    else transfer.expense += amount;
+  }
+
+  business.netTotal = business.totalIncome - business.totalExpense;
+  cash.closing = cash.opening + cash.income - cash.expense - cash.withdrawn;
+  transfer.closing = transfer.opening + transfer.income - transfer.expense;
+
+  return { ...summary, cash, transfer, business };
+}
+
 export async function getDailyLedgerSummary(
   organizationId: string,
   countDate: string,

@@ -8,8 +8,10 @@ import {
 } from "@/lib/services/db/cashCounts";
 import { getWithdrawalSummaryForDate } from "@/lib/services/db/cashWithdrawals";
 import {
+  applyTransactionToLedgerSummary,
   getDailyLedgerSummary,
   summaryFromStoredLedgerFields,
+  type LedgerTransactionDelta,
 } from "@/lib/services/db/dailyLedger";
 import type { CashCount, CashWithdrawal, DailyLedgerSummary } from "@/types";
 
@@ -96,14 +98,33 @@ export async function loadCashCountPageData(organizationId: string): Promise<Cas
   };
 }
 
-/** หลังบันทึก/ยกเลิกรายการ — อัปเดต snapshot ให้หน้าปิดยอดโหลดเร็ว */
+/** หลังบันทึก/ยกเลิกรายการ — อัปเดต snapshot แบบ incremental (เร็ว) */
 export async function syncTodayLedgerAfterMutation(
   organizationId: string,
-  transactionDate: string
+  transactionDate: string,
+  transaction?: LedgerTransactionDelta,
+  mode: "apply" | "revert" = "apply"
 ): Promise<void> {
   if (transactionDate !== getBusinessToday()) return;
-  const row = await getCashCountByDate(organizationId, transactionDate);
-  if (!row || row.closedAt) return;
+
+  let row = await getCashCountByDate(organizationId, transactionDate);
+  if (row?.closedAt) return;
+
+  if (!row) {
+    await ensureDailyCashCountCycle(organizationId, { syncLedger: true });
+    row = await getCashCountByDate(organizationId, transactionDate);
+    if (!row || row.closedAt) return;
+  }
+
+  const businessToday = getBusinessToday();
+  let summary = summaryFromStoredLedgerFields(row, transactionDate, businessToday);
+
+  if (summary && transaction) {
+    summary = applyTransactionToLedgerSummary(summary, transaction, mode);
+    await refreshOpenDailyCloseRecord(organizationId, transactionDate, summary);
+    return;
+  }
+
   const ledger = await getDailyLedgerSummary(organizationId, transactionDate, {
     forceRecalc: true,
   });

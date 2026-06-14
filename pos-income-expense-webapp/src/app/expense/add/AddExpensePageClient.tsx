@@ -50,7 +50,7 @@ export function AddExpensePageClient({ categories }: AddExpensePageClientProps) 
           successRedirect="/expense"
           onSubmit={async (data) => {
             const transaction = await submitTransaction(data);
-            await printTransactionDocument(transaction, { categories: items });
+            void printTransactionDocument(transaction, { categories: items }).catch(() => {});
           }}
         />
       </div>

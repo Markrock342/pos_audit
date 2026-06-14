@@ -50,7 +50,7 @@ export function AddIncomePageClient({ categories }: AddIncomePageClientProps) {
           successRedirect="/income"
           onSubmit={async (data) => {
             const transaction = await submitTransaction(data);
-            await printTransactionDocument(transaction);
+            void printTransactionDocument(transaction).catch(() => {});
           }}
         />
       </div>
