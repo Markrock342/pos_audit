@@ -30,11 +30,22 @@ function assertOk(error: PostgrestError | null, label: string) {
   }
 }
 
+type SeedOrganizationRow = {
+  id: string;
+  name: string;
+  tax_id: string | null;
+  address: string | null;
+  phone: string | null;
+  currency: string;
+  receipt_config: Record<string, string>;
+  hardware_config: Record<string, unknown>;
+};
+
 async function seed() {
   console.log("Seeding Supabase...\n");
 
   // Organizations — ลูกค้า vs dev แยกกัน
-  const orgs = [
+  const orgs: SeedOrganizationRow[] = [
     {
       id: ORG_IDS.customer,
       name: "บัญชีร้าน (ลูกค้า)",
