@@ -129,7 +129,7 @@ export async function POST(request: Request) {
               sellerName: parsed.data.sellerName,
             },
             {
-              openDrawer: parsed.data.openDrawer,
+              openDrawer,
               drawerPin: hw.drawerPin ?? "pin2",
             }
           );

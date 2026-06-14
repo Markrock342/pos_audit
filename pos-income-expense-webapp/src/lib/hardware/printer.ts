@@ -1,4 +1,5 @@
 import { fetchOrganization } from "@/lib/api/client";
+import { openCashDrawer } from "@/lib/hardware/cashDrawer";
 import { shouldOpenCashDrawer } from "@/lib/hardware/cashDrawerPolicy";
 import { printExpenseVoucherOnImin } from "@/lib/hardware/iminExpenseVoucherPrint";
 import {
@@ -150,6 +151,15 @@ async function printViaImin(
   };
 }
 
+async function kickDrawerForExpenseCash(
+  transaction: Transaction,
+  openDrawer: boolean,
+  hw: HardwareConfig
+): Promise<void> {
+  if (transaction.type !== "expense" || !openDrawer || transaction.paymentMethod !== "cash") return;
+  await openCashDrawer({ hardwareConfig: hw }).catch(() => {});
+}
+
 export async function printReceipt(
   transaction: Transaction,
   receipt: Receipt,
@@ -164,7 +174,10 @@ export async function printReceipt(
 
     if (shouldTryImin(hw)) {
       try {
-        return await printViaImin(transaction, receipt, options, hw);
+        const openDrawer = options?.openDrawer ?? shouldOpenCashDrawer(transaction);
+        const result = await printViaImin(transaction, receipt, options, hw);
+        if (result.success) await kickDrawerForExpenseCash(transaction, openDrawer, hw);
+        return result;
       } catch (e) {
         const message = e instanceof Error ? e.message : "พิมพ์ผ่าน iMin ไม่สำเร็จ";
         if (hw.printerType === "imin") {
@@ -174,7 +187,10 @@ export async function printReceipt(
     }
 
     if (hw.printerType === "lan" || hw.printerType === "usb") {
-      return printViaServerApi(transaction, receipt, options, hw);
+      const openDrawer = options?.openDrawer ?? shouldOpenCashDrawer(transaction);
+      const result = await printViaServerApi(transaction, receipt, options, hw);
+      if (result.success) await kickDrawerForExpenseCash(transaction, openDrawer, hw);
+      return result;
     }
 
     return {

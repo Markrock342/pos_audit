@@ -135,6 +135,7 @@ export function thermalSubLine(printer: IminPrinterInstance, text: string): void
 export function thermalFinish(printer: IminPrinterInstance, openDrawer = false): void {
   thermalBlankLine(printer);
   printer.printAndFeedPaper(80);
-  printer.partialCut();
+  // เปิดลิ้นชักก่อนตัด — ใบรายจ่ายยาวกว่าใบเสร็จ ถ้าตัดก่อน iMin บางรุ่นไม่ส่ง openCashBox
   if (openDrawer) printer.openCashBox();
+  printer.partialCut();
 }

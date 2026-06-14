@@ -33,6 +33,8 @@ export async function printTransactionDocument(
   const taxId = org?.taxId;
   const displayName = readSessionDisplayName();
 
+  const openDrawer = shouldOpenCashDrawer(transaction);
+
   if (transaction.type === "expense") {
     const voucherNumber = resolveExpenseVoucherNumber(transaction);
     const categoryNames = options?.categories
@@ -47,7 +49,7 @@ export async function printTransactionDocument(
         receiptNumber: voucherNumber,
       },
       {
-        openDrawer: shouldOpenCashDrawer(transaction),
+        openDrawer,
         shopName,
         footer,
         recorderName: displayName,
@@ -68,7 +70,7 @@ export async function printTransactionDocument(
       receiptNumber: resolveReceiptNumber(transaction),
     },
     {
-      openDrawer: shouldOpenCashDrawer(transaction),
+      openDrawer,
       shopName,
       footer,
       sellerName: displayName,
