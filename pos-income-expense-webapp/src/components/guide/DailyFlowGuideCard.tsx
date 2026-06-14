@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DAILY_FLOW_STEPS } from "./DailyFlowGuide";
+import { DAILY_FLOW_STEPS } from "./dailyFlowSteps";
 import { ListOrdered } from "lucide-react";
 
 export function DailyFlowGuideCard() {
