@@ -21,8 +21,8 @@ export function DailyCloseStatusCard({ status }: DailyCloseStatusCardProps) {
   const StatusIcon = status.isLocked ? Lock : status.hasManualCount ? CheckCircle : CircleDashed;
 
   return (
-    <Link href="/cash-count" className="block active:scale-[0.98] transition-transform">
-      <Card className="border-l-4 border-l-brand">
+    <Link href="/cash-count" className="block h-full active:scale-[0.98] transition-transform">
+      <Card className="h-full border-l-4 border-l-brand">
         <CardContent className="pos-stat-body space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">

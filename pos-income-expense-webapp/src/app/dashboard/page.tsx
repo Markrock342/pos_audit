@@ -41,11 +41,8 @@ export default async function DashboardPage() {
           <SummaryCards summary={summary} />
         </div>
 
-        <div className="shrink-0">
+        <div className="grid shrink-0 grid-cols-2 gap-3 2xl:gap-4">
           <DailyCloseStatusCard status={dashboardData.dailyCloseStatus} />
-        </div>
-
-        <div className="shrink-0">
           <DailyFlowGuideCard />
         </div>
 

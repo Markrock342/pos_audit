@@ -5,14 +5,14 @@ import { ListOrdered } from "lucide-react";
 
 export function DailyFlowGuideCard() {
   return (
-    <Card className="border border-brand/25 bg-brand/5">
+    <Card className="flex h-full flex-col border border-brand/25 bg-brand/5">
       <CardHeader className="pb-2 pt-4">
         <CardTitle className="flex items-center gap-2 text-base font-black text-text-main">
           <ListOrdered size={18} className="shrink-0 text-brand" />
           วันนี้ทำอะไรบ้าง?
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 pb-4">
+      <CardContent className="flex flex-1 flex-col space-y-3 pb-4">
         <ol className="space-y-2">
           {DAILY_FLOW_STEPS.map((s) => (
             <li key={s.n} className="flex items-baseline gap-2 text-sm">
