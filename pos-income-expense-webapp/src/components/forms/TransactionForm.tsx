@@ -16,6 +16,7 @@ import { TransactionCartList } from "@/components/forms/TransactionCartList";
 import {
   TransactionAmountPanel,
   TransactionCategoryPanel,
+  TransactionLineTitleField,
   useTransactionLineDraft,
 } from "@/components/forms/TransactionLineBuilder";
 import { Button } from "@/components/ui/Button";
@@ -201,6 +202,11 @@ export function TransactionForm({
                 }}
               />
 
+              <TransactionLineTitleField
+                value={lineDraft.customTitle}
+                onChange={lineDraft.setCustomTitle}
+              />
+
               <div className="pos-txn-bill mt-4 border-t border-border-default pt-4">
                 <h3 className="pos-panel-title mb-3 text-sm font-black uppercase tracking-wide text-text-secondary">
                   2. ข้อมูลบิล
@@ -277,14 +283,12 @@ export function TransactionForm({
                 type={type}
                 amountString={lineDraft.amountString}
                 quantity={lineDraft.quantity}
-                customTitle={lineDraft.customTitle}
                 error={lineDraft.error}
                 onAmountChange={(v) => {
                   lineDraft.setAmountString(v);
                   lineDraft.setError(null);
                 }}
                 onQuantityChange={(fn) => lineDraft.setQuantity(fn)}
-                onCustomTitleChange={lineDraft.setCustomTitle}
                 onAdd={() => lineDraft.handleAdd(handleAddLine)}
               />
 

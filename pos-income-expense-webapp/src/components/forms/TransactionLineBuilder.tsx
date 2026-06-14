@@ -59,23 +59,41 @@ interface AmountPanelProps {
   type: "income" | "expense";
   amountString: string;
   quantity: number;
-  customTitle: string;
   error: string | null;
   onAmountChange: (v: string) => void;
   onQuantityChange: (fn: (q: number) => number) => void;
-  onCustomTitleChange: (v: string) => void;
   onAdd: () => void;
+}
+
+export function TransactionLineTitleField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="pos-line-title mt-4 border-t border-border-default pt-4">
+      <label className="mb-1 block text-xs font-semibold text-text-secondary">
+        ชื่อรายการ <span className="font-normal text-text-muted">(ว่างได้ — ใช้ชื่อหมวด)</span>
+      </label>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="เช่น น้ำดื่ม, ค่าขนส่ง"
+        className="pos-bill-input min-h-14 w-full rounded-xl border-2 border-border-default bg-surface-inset px-3 text-base"
+      />
+    </div>
+  );
 }
 
 export function TransactionAmountPanel({
   type,
   amountString,
   quantity,
-  customTitle,
   error,
   onAmountChange,
   onQuantityChange,
-  onCustomTitleChange,
   onAdd,
 }: AmountPanelProps) {
   const accent = type === "income" ? "text-income" : "text-expense";
@@ -127,19 +145,7 @@ export function TransactionAmountPanel({
         )}
       </div>
 
-      <div className="mt-1.5 shrink-0">
-        <label className="mb-1 block text-xs font-semibold text-text-secondary">
-          ชื่อรายการ <span className="font-normal text-text-muted">(ว่างได้ — ใช้ชื่อหมวด)</span>
-        </label>
-        <input
-          value={customTitle}
-          onChange={(e) => onCustomTitleChange(e.target.value)}
-          placeholder="เช่น น้ำดื่ม, ค่าขนส่ง"
-          className="pos-bill-input h-11 w-full rounded-xl border-2 border-border-default bg-surface-inset px-3 text-base"
-        />
-      </div>
-
-      <div className="pos-line-add-row mt-2 shrink-0 space-y-1.5">
+      <div className="pos-line-add-row mt-auto shrink-0 space-y-1.5 pt-2">
         {error && <p className="text-xs font-bold text-error">{error}</p>}
         <button
           type="button"
@@ -256,18 +262,17 @@ export function TransactionLineBuilder({
           draft.setError(null);
         }}
       />
+      <TransactionLineTitleField value={draft.customTitle} onChange={draft.setCustomTitle} />
       <TransactionAmountPanel
         type={type}
         amountString={draft.amountString}
         quantity={draft.quantity}
-        customTitle={draft.customTitle}
         error={draft.error}
         onAmountChange={(v) => {
           draft.setAmountString(v);
           draft.setError(null);
         }}
         onQuantityChange={(fn) => draft.setQuantity(fn)}
-        onCustomTitleChange={draft.setCustomTitle}
         onAdd={() => draft.handleAdd(onAdd)}
       />
     </>
