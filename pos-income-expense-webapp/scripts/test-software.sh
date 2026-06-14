@@ -34,7 +34,7 @@ done
 echo ""
 echo "[Auth]"
 code=$(curl -s -o /tmp/login.json -w "%{http_code}" -X POST "$BASE/api/auth/login" \
-  -H "Content-Type: application/json" -d '{"username":"lcs","pin":"0000"}')
+  -H "Content-Type: application/json" -d '{"username":"peeraphat","pin":"0000"}')
 [ "$code" = "200" ] && ok "POST /api/auth/login" || bad "POST /api/auth/login ($code)"
 
 echo ""

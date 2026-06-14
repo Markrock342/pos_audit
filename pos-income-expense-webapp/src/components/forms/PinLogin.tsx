@@ -9,6 +9,7 @@ import {
   KIOSK_SESSION_KEY,
   toKioskSession,
 } from "@/constants/kioskUsers";
+import { findKioskAccountWithPin } from "@/lib/auth/kioskPinStorage";
 import { loginApi } from "@/lib/api/client";
 
 const MAX_PIN = 4;
@@ -148,10 +149,17 @@ export function PinLogin() {
     let authenticated = false;
 
     try {
-      const session = await loginApi(trimmedUser, pin);
-      localStorage.setItem(CURRENT_USER_KEY, trimmedUser);
-      localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(session));
-      authenticated = true;
+      const builtin = findKioskAccountWithPin(trimmedUser, pin);
+      if (builtin) {
+        localStorage.setItem(CURRENT_USER_KEY, trimmedUser);
+        localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(toKioskSession(builtin)));
+        authenticated = true;
+      } else {
+        const session = await loginApi(trimmedUser, pin);
+        localStorage.setItem(CURRENT_USER_KEY, trimmedUser);
+        localStorage.setItem(KIOSK_SESSION_KEY, JSON.stringify(session));
+        authenticated = true;
+      }
     } catch {
       const match = users.find((u) => u.username === trimmedUser && u.pin === pin);
       const builtin = findKioskAccount(trimmedUser, pin);

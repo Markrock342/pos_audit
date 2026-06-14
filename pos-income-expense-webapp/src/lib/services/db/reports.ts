@@ -163,16 +163,7 @@ export async function getDashboard(): Promise<DashboardData> {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  // Expected cash balance: today's cash income - today's cash expense
-  const cashIncome = todayTransactions
-    .filter((t) => t.type === "income" && t.paymentMethod === "cash")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const cashExpense = todayTransactions
-    .filter((t) => t.type === "expense" && t.paymentMethod === "cash")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  // Check for today's cash count opening balance
+  // Expected cash balance via daily close service
   const { data: cashCount } = await getDb()
     .from("cash_counts")
     .select("opening_balance")

@@ -5,7 +5,7 @@ export function getClientDataSource(): DataSource {
   return "supabase";
 }
 
-export function setClientDataSource(_source: DataSource) {
+export function setClientDataSource() {
   // no-op: production uses Supabase only
 }
 

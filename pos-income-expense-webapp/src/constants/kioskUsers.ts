@@ -15,8 +15,18 @@ export interface KioskAccount {
   hiddenFromProfiles: boolean;
 }
 
-/** บัญชีระบบ 2 ชุด — ลูกค้า vs ทีม dev */
+/** บัญชีระบบ — ลูกค้า vs ทีม dev */
 export const KIOSK_ACCOUNTS: KioskAccount[] = [
+  {
+    type: "customer",
+    username: "peeraphat",
+    pin: "0000",
+    displayName: "พีระพัฒน์ (ร้าน)",
+    organizationId: ORG_IDS.customer,
+    userId: "33333333-3333-3333-3333-333333333334",
+    role: "admin",
+    hiddenFromProfiles: false,
+  },
   {
     type: "customer",
     username: "lcs",
@@ -30,7 +40,7 @@ export const KIOSK_ACCOUNTS: KioskAccount[] = [
   {
     type: "dev",
     username: "dev",
-    pin: "0000",
+    pin: "9999",
     displayName: "ทีมพัฒนา",
     organizationId: ORG_IDS.dev,
     userId: "44444444-4444-4444-4444-444444444444",
@@ -51,8 +61,11 @@ export interface KioskSession {
 }
 
 export function findKioskAccount(username: string, pin: string): KioskAccount | undefined {
+  // Server-side: default PIN only (overrides are per-device in localStorage)
   const trimmed = username.trim();
-  return KIOSK_ACCOUNTS.find((a) => a.username === trimmed && a.pin === pin);
+  const account = KIOSK_ACCOUNTS.find((a) => a.username === trimmed);
+  if (!account || account.pin !== pin) return undefined;
+  return account;
 }
 
 export function isBuiltinUsername(username: string): boolean {

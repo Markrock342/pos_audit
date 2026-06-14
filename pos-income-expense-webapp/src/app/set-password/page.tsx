@@ -98,7 +98,7 @@ export default function SetPasswordPage() {
     if (!trimmed || pin.length !== MAX_PIN) return;
 
     if (isBuiltinUsername(trimmed)) {
-      setErrorMsg(`"${trimmed}" เป็นชื่อระบบ (ลูกค้า/dev) — ใช้ชื่ออื่น`);
+      setErrorMsg(`"${trimmed}" เป็นบัญชีระบบ — เปลี่ยน PIN ที่ ตั้งค่า → PIN เข้าระบบ`);
       return;
     }
 

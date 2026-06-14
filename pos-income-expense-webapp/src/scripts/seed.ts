@@ -20,7 +20,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const db = createClient(supabaseUrl, supabaseKey);
 
-const customerAccount = KIOSK_ACCOUNTS.find((a) => a.type === "customer")!;
+const customerAccount = KIOSK_ACCOUNTS.find((a) => a.username === "peeraphat")!;
 const devAccount = KIOSK_ACCOUNTS.find((a) => a.type === "dev")!;
 
 function assertOk(error: PostgrestError | null, label: string) {
