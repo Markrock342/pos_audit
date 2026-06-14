@@ -11,6 +11,8 @@
     "db:clear": "tsx src/scripts/clear-data.ts",
     "db:clear-daily-close": "tsx src/scripts/clear-daily-close.ts",
     "db:status": "tsx src/scripts/db-status.ts",
+    "db:cleanup-test": "tsx src/scripts/cleanup-test-data.ts",
+    "test:integration": "tsx src/scripts/integration-test.ts",
     "bridge": "node hardware-bridge/server.mjs"
   },
   "dependencies": {

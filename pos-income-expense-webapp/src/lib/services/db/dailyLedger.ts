@@ -134,9 +134,12 @@ async function getTransferOpeningForDate(
   return opening;
 }
 
+import type { Transaction } from "@/types";
+
 export async function getDailyLedgerSummary(
   organizationId: string,
-  countDate: string
+  countDate: string,
+  options?: { dayTransactions?: Transaction[] }
 ): Promise<DailyLedgerSummary> {
   const businessToday = getBusinessToday();
   const cashCount = await getCashCountByDate(organizationId, countDate);
@@ -146,11 +149,13 @@ export async function getDailyLedgerSummary(
     if (snapshot) return snapshot;
   }
 
-  const transactions = await getTransactions(organizationId, {
-    status: "active",
-    startDate: countDate,
-    endDate: countDate,
-  });
+  const transactions =
+    options?.dayTransactions ??
+    (await getTransactions(organizationId, {
+      status: "active",
+      startDate: countDate,
+      endDate: countDate,
+    }));
 
   let cashIncome = 0;
   let cashExpense = 0;
@@ -212,9 +217,12 @@ export async function getDailyLedgerSummary(
   };
 }
 
-export async function getDailyCloseStatus(organizationId: string): Promise<DailyCloseStatus> {
+export async function getDailyCloseStatus(
+  organizationId: string,
+  options?: { dayTransactions?: Transaction[] }
+): Promise<DailyCloseStatus> {
   const businessToday = getBusinessToday();
-  const summary = await getDailyLedgerSummary(organizationId, businessToday);
+  const summary = await getDailyLedgerSummary(organizationId, businessToday, options);
   const cashCount = await getCashCountByDate(organizationId, businessToday);
 
   return {

@@ -7,20 +7,15 @@ import { IncomeExpenseChart } from "@/components/charts/IncomeExpenseChartLazy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ArrowUpCircle, ArrowDownCircle, TrendingUp } from "lucide-react";
-import { loadCategories, loadChartTransactions, loadRecentTransactions } from "@/lib/data/loader";
+import { loadDashboardPageData } from "@/lib/data/loader";
 import { buildChartData } from "@/lib/reports/summary";
-import { getDashboard } from "@/lib/services/db/reports";
 
-// โหลดยอด/รายการสดทุกครั้ง — ไม่ prerender ค้างตั้งแต่ตอน build
-export const dynamic = "force-dynamic";
+/** cache สั้นๆ — ลด round-trip ซ้ำเวลาเปลี่ยนหน้าแล้วกลับมา */
+export const revalidate = 15;
 
 export default async function DashboardPage() {
-  const [chartTransactions, categories, dashboardData, recentTransactions] = await Promise.all([
-    loadChartTransactions(6),
-    loadCategories(),
-    getDashboard(),
-    loadRecentTransactions(5),
-  ]);
+  const { dashboardData, categories, chartTransactions, recentTransactions } =
+    await loadDashboardPageData();
 
   const summary = {
     todayIncome: dashboardData.todayIncome,

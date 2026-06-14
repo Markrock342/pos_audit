@@ -66,6 +66,11 @@ function getError(json: unknown): { code?: string; message?: string } | null {
 async function main() {
   console.log(`\n=== Integration Test @ ${BASE} ===\n`);
 
+  let businessToday = "";
+  let cashCountId = "";
+  const createdTxIds: string[] = [];
+
+  try {
   // --- Setup: health checks ---
   let r = await req("GET", "/api/categories");
   record("GET /api/categories", r.status === 200, r.status);
@@ -86,7 +91,7 @@ async function main() {
     data?: { id: string; countDate: string; expectedBalance: number; closedAt?: string | null };
     expectedBalance?: number;
   };
-  const businessToday = todayPayload.businessToday ?? todayPayload.data?.countDate ?? "";
+  businessToday = todayPayload.businessToday ?? todayPayload.data?.countDate ?? "";
   record("ได้ businessToday", !!businessToday, undefined, businessToday);
 
   r = await req("GET", "/api/reports/dashboard");
@@ -101,8 +106,7 @@ async function main() {
     process.exit(1);
   }
 
-  const createdTxIds: string[] = [];
-  let cashCountId = todayPayload.data?.id ?? "";
+  cashCountId = todayPayload.data?.id ?? "";
 
   // --- Income tests ---
   r = await req("POST", "/api/transactions", {
@@ -467,15 +471,72 @@ async function main() {
     r = await req("PUT", `/api/cash-counts/${cashCountId}`, { actualBalance: -1 });
     record("PUT negative actual → 400", r.status === 400, r.status);
   }
-
-  // --- Cleanup: void remaining test transactions ---
-  for (const id of createdTxIds.slice(1)) {
-    await req("POST", `/api/transactions/${id}/void`, { voidReason: "integration cleanup" });
+  } finally {
+    if (businessToday) {
+      await cleanupTestArtifacts({ businessToday, cashCountId, createdTxIds });
+    }
   }
 
   printSummary();
   const failed = results.filter((x) => !x.pass).length;
   process.exit(failed > 0 ? 1 : 0);
+}
+
+const ADMIN_HEADERS = { "X-Kiosk-Role": "admin" };
+
+async function cleanupTestArtifacts(opts: {
+  businessToday: string;
+  cashCountId: string;
+  createdTxIds: string[];
+}) {
+  console.log("\n--- Cleanup test data ---");
+
+  for (const id of [...new Set(opts.createdTxIds)]) {
+    await req(
+      "POST",
+      `/api/transactions/${id}/void`,
+      { voidReason: "integration cleanup" },
+      ADMIN_HEADERS
+    );
+  }
+
+  const list = await req("GET", "/api/transactions?status=active");
+  const active =
+    getData<Array<{ id: string; title: string }>>(list.json) ?? [];
+  for (const t of active) {
+    if (/^(TEST |soft-test)/i.test(t.title)) {
+      await req(
+        "POST",
+        `/api/transactions/${t.id}/void`,
+        { voidReason: "integration cleanup" },
+        ADMIN_HEADERS
+      );
+    }
+  }
+
+  const todayRes = await req("GET", "/api/cash-counts/today", undefined, ADMIN_HEADERS);
+  const todayData = (
+    todayRes.json as {
+      data?: { id: string; openingBalance: number; expectedBalance: number };
+    }
+  ).data;
+
+  if (todayData?.id) {
+    await req(
+      "PUT",
+      `/api/cash-counts/${todayData.id}`,
+      {
+        openingBalance: todayData.openingBalance ?? 0,
+        actualBalance: todayData.expectedBalance ?? 0,
+        note: "",
+      },
+      ADMIN_HEADERS
+    );
+    console.log("  ✓ reset cash count for today");
+  }
+
+  console.log("  ✓ voided test transactions");
+  console.log("  · withdrawals: npm run db:cleanup-test");
 }
 
 function printSummary() {

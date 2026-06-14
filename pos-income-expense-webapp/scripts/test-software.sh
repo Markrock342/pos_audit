@@ -140,5 +140,13 @@ echo "[Audit]"
 check_http "GET audit-logs" "$BASE/api/audit-logs" "200"
 
 echo ""
+echo "[Cleanup test data]"
+if (cd "$(dirname "$0")/.." && npm run db:cleanup-test --silent 2>/dev/null); then
+  ok "removed test transactions/withdrawals"
+else
+  bad "cleanup failed — run npm run db:cleanup-test manually"
+fi
+
+echo ""
 echo "=== Result: $PASS passed, $FAIL failed ==="
 [ "$FAIL" -eq 0 ]

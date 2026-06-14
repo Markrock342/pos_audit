@@ -1,5 +1,7 @@
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getCategories } from "@/lib/services/db/categories";
+import { getDailyCloseStatus } from "@/lib/services/db/dailyLedger";
+import type { DashboardData } from "@/lib/services/db/reports";
 import { getTransactions } from "@/lib/services/db/transactions";
 import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
 import type { Category, Transaction, TransactionType } from "@/types";
@@ -43,4 +45,58 @@ export async function loadChartTransactions(days = 6): Promise<Transaction[]> {
     { status: "active", startDate },
     { includeLineItems: false }
   );
+}
+
+export type DashboardPageData = {
+  dashboardData: DashboardData;
+  categories: Category[];
+  chartTransactions: Transaction[];
+  recentTransactions: Transaction[];
+};
+
+/** โหลด dashboard ครั้งเดียว — ลด query ซ้ำไป Supabase */
+export async function loadDashboardPageData(): Promise<DashboardPageData> {
+  const today = getBusinessToday();
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const chartStart = shiftBusinessDate(today, -5);
+  const queryStart = chartStart < monthStart ? chartStart : monthStart;
+
+  const [transactions, categories] = await Promise.all([
+    getTransactions(
+      DEFAULT_ORG_ID,
+      { status: "active", startDate: queryStart, endDate: today },
+      { includeLineItems: false }
+    ),
+    getCategories(DEFAULT_ORG_ID),
+  ]);
+
+  const todayTransactions = transactions.filter((t) => t.transactionDate === today);
+  const monthTransactions = transactions.filter(
+    (t) => t.transactionDate >= monthStart && t.transactionDate <= today
+  );
+
+  const dailyCloseStatus = await getDailyCloseStatus(DEFAULT_ORG_ID, {
+    dayTransactions: todayTransactions,
+  });
+
+  const sum = (rows: Transaction[], type: "income" | "expense") =>
+    rows.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
+
+  const dashboardData: DashboardData = {
+    todayIncome: sum(todayTransactions, "income"),
+    todayExpense: sum(todayTransactions, "expense"),
+    monthIncome: sum(monthTransactions, "income"),
+    monthExpense: sum(monthTransactions, "expense"),
+    netProfit: sum(monthTransactions, "income") - sum(monthTransactions, "expense"),
+    expectedCashBalance: dailyCloseStatus.cashClosing,
+    transactionCount: monthTransactions.length,
+    dailyCloseStatus,
+  };
+
+  return {
+    dashboardData,
+    categories,
+    chartTransactions: transactions.filter((t) => t.transactionDate >= chartStart),
+    recentTransactions: transactions.slice(0, 5),
+  };
 }
