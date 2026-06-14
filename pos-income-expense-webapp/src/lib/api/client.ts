@@ -257,9 +257,34 @@ export async function deleteCategoryApi(id: string): Promise<void> {
   );
 }
 
-export async function fetchCashCounts(): Promise<CashCount[]> {
-  const { data } = await parseJson<{ data: CashCount[] }>(await fetch("/api/cash-counts"));
+export async function fetchCashCounts(limit = 60): Promise<CashCount[]> {
+  const { data } = await parseJson<{ data: CashCount[] }>(
+    await fetch(`/api/cash-counts?limit=${limit}`)
+  );
   return data;
+}
+
+export type CashCountPageData = {
+  businessToday: string;
+  today: {
+    data: CashCount | null;
+    expectedBalance: number;
+    openingBalance: number;
+    countDate: string;
+    isLocked: boolean;
+  };
+  ledger: DailyLedgerSummary;
+  withdrawals: {
+    data: CashWithdrawal[];
+    totalWithdrawn: number;
+    count: number;
+  };
+  history: CashCount[];
+};
+
+/** โหลดหน้าปิดยอดครั้งเดียว (สรุป 2 กระเป๋า + นับเงิน + ถอน + ประวัติ) */
+export async function fetchCashCountPageData(): Promise<CashCountPageData> {
+  return parseJson(await fetch("/api/cash-count/page-data", { cache: "no-store" }));
 }
 
 export async function fetchCashCountByDate(date: string): Promise<CashCount | null> {

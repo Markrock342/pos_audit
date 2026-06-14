@@ -24,7 +24,6 @@ const postSchema = z.object({
 
 export async function GET(request: Request) {
   try {
-    await ensureDailyCashCountCycle(DEFAULT_ORG_ID);
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
     if (date) {
@@ -37,7 +36,9 @@ export async function GET(request: Request) {
       const row = await getCashCountByDate(DEFAULT_ORG_ID, date);
       return NextResponse.json({ data: row });
     }
-    const data = await getCashCounts(DEFAULT_ORG_ID);
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? Math.min(Number(limitParam) || 60, 120) : undefined;
+    const data = await getCashCounts(DEFAULT_ORG_ID, limit ? { limit } : undefined);
     return NextResponse.json({ data, total: data.length });
   } catch (e) {
     console.error("[cash-counts GET]", e);

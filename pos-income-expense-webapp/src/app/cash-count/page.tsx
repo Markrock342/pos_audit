@@ -13,9 +13,7 @@ import { Input } from "@/components/ui/Input";
 import { SegmentTabs } from "@/components/ui/SegmentTabs";
 import { AmountDisplay, AmountNumpad } from "@/components/ui/AmountNumpad";
 import {
-  fetchCashCountToday,
-  fetchCashWithdrawalsToday,
-  fetchDailyCloseToday,
+  fetchCashCountPageData,
   saveCashCountApi,
   updateCashCountApi,
 } from "@/lib/api/client";
@@ -62,70 +60,56 @@ export default function CashCountPage() {
   const [withdrawLoading, setWithdrawLoading] = useState(true);
   const [ledger, setLedger] = useState<DailyLedgerSummary | null>(null);
   const [ledgerLoading, setLedgerLoading] = useState(true);
+  const [history, setHistory] = useState<CashCount[]>([]);
   const [activeTab, setActiveTab] = useState<CashCountTab>("today");
 
-  const loadLedger = useCallback(async () => {
-    setLedgerLoading(true);
-    try {
-      setLedger(await fetchDailyCloseToday());
-    } catch {
-      setLedger(null);
-    } finally {
-      setLedgerLoading(false);
-    }
-  }, []);
+  const applyPageData = useCallback((page: Awaited<ReturnType<typeof fetchCashCountPageData>>) => {
+    const today = page.today;
+    const bizToday = page.businessToday;
+    setBusinessToday(bizToday);
+    setCountDate(today.data?.countDate ?? today.countDate ?? bizToday);
+    setExpectedBalance(today.data?.expectedBalance ?? today.expectedBalance ?? 0);
+    const pastDay = today.data && bizToday && today.data.countDate < bizToday;
+    setIsLocked(pastDay || (today.isLocked ?? !!today.data?.closedAt));
 
-  const loadWithdrawals = useCallback(async () => {
-    setWithdrawLoading(true);
-    try {
-      const today = await fetchCashWithdrawalsToday();
-      setWithdrawals(today.data);
-      setWithdrawTotal(today.totalWithdrawn);
-      setWithdrawCount(today.count);
-    } catch {
-      setWithdrawals([]);
-      setWithdrawTotal(0);
-      setWithdrawCount(0);
-    } finally {
-      setWithdrawLoading(false);
+    if (today.data) {
+      setExisting(today.data);
+      setOpeningBalance(String(today.data.openingBalance));
+      setActualBalance(String(today.data.actualBalance));
+      setNote(today.data.note ?? "");
+      setExpectedBalance(today.data.expectedBalance);
+      setActualTouched(!!today.data.hasManualCount);
+    } else {
+      setExisting(null);
+      setOpeningBalance(String(today.openingBalance ?? 0));
+      setActualBalance("0");
+      setNote("");
+      setActualTouched(false);
     }
+
+    setLedger(page.ledger);
+    setWithdrawals(page.withdrawals.data);
+    setWithdrawTotal(page.withdrawals.totalWithdrawn);
+    setWithdrawCount(page.withdrawals.count);
+    setHistory(page.history);
   }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLedgerLoading(true);
+    setWithdrawLoading(true);
     setMessage(null);
     try {
-      const today = await fetchCashCountToday();
-      const bizToday = today.businessToday ?? today.countDate ?? "";
-      setBusinessToday(bizToday);
-      const date = today.data?.countDate ?? bizToday;
-      setCountDate(date);
-      setExpectedBalance(today.data?.expectedBalance ?? today.expectedBalance ?? 0);
-      const pastDay = today.data && bizToday && today.data.countDate < bizToday;
-      setIsLocked(pastDay || (today.isLocked ?? !!today.data?.closedAt));
-
-      if (today.data) {
-        setExisting(today.data);
-        setOpeningBalance(String(today.data.openingBalance));
-        setActualBalance(String(today.data.actualBalance));
-        setNote(today.data.note ?? "");
-        setExpectedBalance(today.data.expectedBalance);
-        setActualTouched(!!today.data.hasManualCount);
-      } else {
-        setExisting(null);
-        setOpeningBalance(String(today.openingBalance ?? 0));
-        setActualBalance("0");
-        setNote("");
-        setActualTouched(false);
-      }
+      const page = await fetchCashCountPageData();
+      applyPageData(page);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
     } finally {
       setLoading(false);
+      setLedgerLoading(false);
+      setWithdrawLoading(false);
     }
-    await loadWithdrawals();
-    await loadLedger();
-  }, [loadWithdrawals, loadLedger]);
+  }, [applyPageData]);
 
   useEffect(() => {
     void load();
@@ -356,7 +340,9 @@ export default function CashCountPage() {
           />
         )}
 
-        {activeTab === "history" && <CashCountHistory refreshKey={historyKey} />}
+        {activeTab === "history" && (
+          <CashCountHistory refreshKey={historyKey} items={history} loading={loading} />
+        )}
       </div>
 
       <CashWithdrawModal

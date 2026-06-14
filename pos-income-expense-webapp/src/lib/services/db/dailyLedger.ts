@@ -119,11 +119,15 @@ async function getTransferOpeningForDate(
   const dayBefore = getBusinessYesterday(countDate);
   if (dayBefore < monthStart) return opening;
 
-  const prior = await getTransactions(organizationId, {
-    status: "active",
-    startDate: monthStart,
-    endDate: dayBefore,
-  });
+  const prior = await getTransactions(
+    organizationId,
+    {
+      status: "active",
+      startDate: monthStart,
+      endDate: dayBefore,
+    },
+    { includeLineItems: false }
+  );
 
   for (const t of prior) {
     if (!isTransferLedgerPayment(t.paymentMethod)) continue;
@@ -151,11 +155,15 @@ export async function getDailyLedgerSummary(
 
   const transactions =
     options?.dayTransactions ??
-    (await getTransactions(organizationId, {
-      status: "active",
-      startDate: countDate,
-      endDate: countDate,
-    }));
+    (await getTransactions(
+      organizationId,
+      {
+        status: "active",
+        startDate: countDate,
+        endDate: countDate,
+      },
+      { includeLineItems: false }
+    ));
 
   let cashIncome = 0;
   let cashExpense = 0;

@@ -8,7 +8,7 @@ import {
 import { getTransactions } from "./transactions";
 import { getTotalWithdrawnForDate } from "./cashWithdrawals";
 import { getDailyLedgerSummary, ledgerPatchFromSummary } from "./dailyLedger";
-import type { CashCount, CashCountStatus } from "@/types";
+import type { CashCount, CashCountStatus, DailyLedgerSummary } from "@/types";
 
 const TABLE = "cash_counts";
 
@@ -21,11 +21,15 @@ export async function calculateExpectedBalance(
   countDate: string,
   openingBalance: number
 ): Promise<number> {
-  const transactions = await getTransactions(organizationId, {
-    status: "active",
-    startDate: countDate,
-    endDate: countDate,
-  });
+  const transactions = await getTransactions(
+    organizationId,
+    {
+      status: "active",
+      startDate: countDate,
+      endDate: countDate,
+    },
+    { includeLineItems: false }
+  );
 
   const income = transactions
     .filter((t) => t.type === "income" && t.paymentMethod === "cash")
@@ -69,12 +73,17 @@ export async function getCashCount(id: string): Promise<CashCount | null> {
   return mapCashCount(data as Record<string, unknown>);
 }
 
-export async function getCashCounts(organizationId: string): Promise<CashCount[]> {
-  const { data, error } = await getDb()
+export async function getCashCounts(
+  organizationId: string,
+  options?: { limit?: number }
+): Promise<CashCount[]> {
+  let q = getDb()
     .from(TABLE)
     .select("*")
     .eq("organization_id", organizationId)
     .order("count_date", { ascending: false });
+  if (options?.limit) q = q.limit(options.limit);
+  const { data, error } = await q;
   if (error || !data) return [];
   return (data as Record<string, unknown>[]).map(mapCashCount);
 }
@@ -169,6 +178,7 @@ export async function ensureDailyCashCountCycle(organizationId: string): Promise
   todayRecord: CashCount | null;
   expectedBalance: number;
   openingBalance: number;
+  ledger: DailyLedgerSummary | null;
 }> {
   const businessToday = getBusinessToday();
 
@@ -220,16 +230,24 @@ export async function ensureDailyCashCountCycle(organizationId: string): Promise
         : await getCashCountByDate(organizationId, businessToday);
   }
 
-  if (todayRecord && !todayRecord.closedAt) {
-    await refreshOpenDailyCloseRecord(organizationId, todayRecord.countDate);
-    todayRecord = await getCashCountByDate(organizationId, businessToday);
+  let ledger: DailyLedgerSummary | null = null;
+
+  if (todayRecord) {
+    if (!todayRecord.closedAt) {
+      ledger = await getDailyLedgerSummary(organizationId, todayRecord.countDate);
+      await refreshOpenDailyCloseRecord(organizationId, todayRecord.countDate, ledger);
+      todayRecord = await getCashCountByDate(organizationId, businessToday);
+    } else {
+      ledger = await getDailyLedgerSummary(organizationId, todayRecord.countDate);
+    }
   }
 
   return {
     businessToday,
     todayRecord,
-    expectedBalance: todayRecord?.expectedBalance ?? 0,
-    openingBalance: todayRecord?.openingBalance ?? 0,
+    expectedBalance: todayRecord?.expectedBalance ?? ledger?.cash.closing ?? 0,
+    openingBalance: todayRecord?.openingBalance ?? ledger?.cash.opening ?? 0,
+    ledger,
   };
 }
 
@@ -338,18 +356,19 @@ export async function updateCashCount(
 
 export async function refreshOpenDailyCloseRecord(
   organizationId: string,
-  countDate: string
+  countDate: string,
+  summary?: DailyLedgerSummary
 ): Promise<void> {
   const row = await getCashCountByDate(organizationId, countDate);
   if (!row || row.closedAt) return;
 
-  const summary = await getDailyLedgerSummary(organizationId, countDate);
-  const variance = row.actualBalance - summary.cash.closing;
+  const ledger = summary ?? (await getDailyLedgerSummary(organizationId, countDate));
+  const variance = row.actualBalance - ledger.cash.closing;
 
   await getDb()
     .from(TABLE)
     .update({
-      ...ledgerPatchFromSummary(summary),
+      ...ledgerPatchFromSummary(ledger),
       variance,
       status: determineStatus(variance),
       updated_at: new Date().toISOString(),

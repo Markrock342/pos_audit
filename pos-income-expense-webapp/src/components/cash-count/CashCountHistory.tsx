@@ -16,19 +16,31 @@ import { History, CheckCircle, AlertTriangle, Lock, CircleDashed, ChevronRight }
 
 interface CashCountHistoryProps {
   refreshKey?: number;
+  /** ส่งจาก page-data — ไม่ต้อง fetch ซ้ำ */
+  items?: CashCount[];
+  loading?: boolean;
 }
 
-export function CashCountHistory({ refreshKey = 0 }: CashCountHistoryProps) {
-  const [history, setHistory] = useState<CashCount[]>([]);
-  const [loading, setLoading] = useState(true);
+export function CashCountHistory({
+  refreshKey = 0,
+  items: itemsProp,
+  loading: loadingProp,
+}: CashCountHistoryProps) {
+  const [history, setHistory] = useState<CashCount[]>(itemsProp ?? []);
+  const [loading, setLoading] = useState(loadingProp ?? !itemsProp);
 
   useEffect(() => {
+    if (itemsProp !== undefined) {
+      setHistory(itemsProp);
+      setLoading(loadingProp ?? false);
+      return;
+    }
     setLoading(true);
-    fetchCashCounts()
+    fetchCashCounts(60)
       .then((rows) => setHistory([...rows].sort((a, b) => b.countDate.localeCompare(a.countDate))))
       .catch(() => setHistory([]))
       .finally(() => setLoading(false));
-  }, [refreshKey]);
+  }, [refreshKey, itemsProp, loadingProp]);
 
   return (
     <Card className="flex flex-col">
