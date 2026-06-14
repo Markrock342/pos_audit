@@ -30,7 +30,7 @@ export function PinPadDialog({
 
   useEffect(() => {
     if (open) setPin("");
-  }, [open]);
+  }, [open, title]);
 
   useEffect(() => {
     if (error) {

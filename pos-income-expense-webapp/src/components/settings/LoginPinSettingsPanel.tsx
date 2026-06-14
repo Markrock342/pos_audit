@@ -159,6 +159,7 @@ export function LoginPinSettingsPanel() {
       {error && !pinMode && <p className="text-sm font-medium text-error">{error}</p>}
 
       <PinPadDialog
+        key={pinMode ?? "closed"}
         open={pinMode !== null}
         title={pinTitle}
         subtitle={pinSubtitle}
