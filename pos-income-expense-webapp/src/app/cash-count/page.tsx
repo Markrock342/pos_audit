@@ -16,6 +16,7 @@ import {
   fetchCashCountPageData,
   saveCashCountApi,
   updateCashCountApi,
+  type CashCountPageData,
 } from "@/lib/api/client";
 import {
   CASH_COUNT_STATUS_LABEL,
@@ -35,6 +36,26 @@ const CASH_COUNT_TABS = [
   { id: "withdraw" as const, label: "ถอนเงิน" },
   { id: "history" as const, label: "ประวัติ" },
 ];
+
+const PAGE_CACHE_KEY = "pos-cash-count-page-v1";
+
+function readPageCache(): CashCountPageData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(PAGE_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as CashCountPageData) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writePageCache(data: CashCountPageData) {
+  try {
+    sessionStorage.setItem(PAGE_CACHE_KEY, JSON.stringify(data));
+  } catch {
+    /* ignore quota */
+  }
+}
 
 export default function CashCountPage() {
   const { session } = useAuth();
@@ -63,7 +84,7 @@ export default function CashCountPage() {
   const [history, setHistory] = useState<CashCount[]>([]);
   const [activeTab, setActiveTab] = useState<CashCountTab>("today");
 
-  const applyPageData = useCallback((page: Awaited<ReturnType<typeof fetchCashCountPageData>>) => {
+  const applyPageData = useCallback((page: CashCountPageData) => {
     const today = page.today;
     const bizToday = page.businessToday;
     setBusinessToday(bizToday);
@@ -95,15 +116,26 @@ export default function CashCountPage() {
   }, []);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setLedgerLoading(true);
-    setWithdrawLoading(true);
+    const cached = readPageCache();
+    if (cached) {
+      applyPageData(cached);
+      setLoading(false);
+      setLedgerLoading(false);
+      setWithdrawLoading(false);
+    } else {
+      setLoading(true);
+      setLedgerLoading(true);
+      setWithdrawLoading(true);
+    }
     setMessage(null);
     try {
       const page = await fetchCashCountPageData();
       applyPageData(page);
+      writePageCache(page);
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
+      if (!cached) {
+        setMessage(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
+      }
     } finally {
       setLoading(false);
       setLedgerLoading(false);

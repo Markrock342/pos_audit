@@ -8,7 +8,7 @@ import {
 import { getTotalWithdrawnForDate } from "./cashWithdrawals";
 import { getOrganization } from "./organizations";
 import { getTransactions } from "./transactions";
-import type { CashCount, DailyCloseStatus, DailyLedgerSummary, PaymentMethod } from "@/types";
+import type { CashCount, DailyCloseStatus, DailyLedgerSummary, PaymentMethod, Transaction } from "@/types";
 
 /** เงินโอน/บัญชีในสมุด — ทุกช่องทางที่ไม่ใช่เงินสด */
 export function isTransferLedgerPayment(method: PaymentMethod): boolean {
@@ -32,12 +32,12 @@ export function ledgerPatchFromSummary(summary: DailyLedgerSummary): Record<stri
   };
 }
 
-function summaryFromCashCountSnapshot(
+/** อ่านสรุป 2 กระเป๋าจากฟิลด์ที่ sync ไว้ใน cash_counts — เร็ว ไม่ต้องคำนวณใหม่ */
+export function summaryFromStoredLedgerFields(
   cashCount: CashCount,
   countDate: string,
   businessToday: string
 ): DailyLedgerSummary | null {
-  if (!cashCount.closedAt) return null;
   if (cashCount.cashIncome == null && cashCount.totalIncome == null) return null;
 
   return {
@@ -66,6 +66,15 @@ function summaryFromCashCountSnapshot(
       netTotal: cashCount.netTotal ?? 0,
     },
   };
+}
+
+function summaryFromCashCountSnapshot(
+  cashCount: CashCount,
+  countDate: string,
+  businessToday: string
+): DailyLedgerSummary | null {
+  if (!cashCount.closedAt) return null;
+  return summaryFromStoredLedgerFields(cashCount, countDate, businessToday);
 }
 
 async function getCashOpeningForDate(
@@ -138,19 +147,19 @@ async function getTransferOpeningForDate(
   return opening;
 }
 
-import type { Transaction } from "@/types";
-
 export async function getDailyLedgerSummary(
   organizationId: string,
   countDate: string,
-  options?: { dayTransactions?: Transaction[] }
+  options?: { dayTransactions?: Transaction[]; forceRecalc?: boolean }
 ): Promise<DailyLedgerSummary> {
   const businessToday = getBusinessToday();
   const cashCount = await getCashCountByDate(organizationId, countDate);
 
-  if (cashCount) {
+  if (!options?.forceRecalc && cashCount) {
     const snapshot = summaryFromCashCountSnapshot(cashCount, countDate, businessToday);
     if (snapshot) return snapshot;
+    const stored = summaryFromStoredLedgerFields(cashCount, countDate, businessToday);
+    if (stored) return stored;
   }
 
   const transactions =

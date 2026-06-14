@@ -10,6 +10,7 @@ import { KIOSK_ACCOUNTS } from "@/constants/kioskUsers";
 import { isAdminRequest } from "@/lib/api/requestRole";
 import { assertTransactionDateAllowed } from "@/lib/api/transactionDateLock";
 import { ensureKioskUserById } from "@/lib/services/db/kioskUsers";
+import { syncTodayLedgerAfterMutation } from "@/lib/services/db/cashCountPage";
 
 const DEFAULT_USER_ID = KIOSK_ACCOUNTS.find((a) => a.type === "customer")!.userId;
 
@@ -68,6 +69,11 @@ export async function POST(
     oldValue: oldSnapshot,
     newValue: transactionAuditSnapshot(voided),
   });
+
+  await syncTodayLedgerAfterMutation(
+    existing.organizationId ?? DEFAULT_ORG_ID,
+    existing.transactionDate
+  );
 
   return NextResponse.json({ data: voided });
 }

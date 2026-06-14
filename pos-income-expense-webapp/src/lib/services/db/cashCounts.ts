@@ -7,7 +7,7 @@ import {
 } from "@/lib/utils/businessDate";
 import { getTransactions } from "./transactions";
 import { getTotalWithdrawnForDate } from "./cashWithdrawals";
-import { getDailyLedgerSummary, ledgerPatchFromSummary } from "./dailyLedger";
+import { getDailyLedgerSummary, ledgerPatchFromSummary, summaryFromStoredLedgerFields } from "./dailyLedger";
 import type { CashCount, CashCountStatus, DailyLedgerSummary } from "@/types";
 
 const TABLE = "cash_counts";
@@ -173,7 +173,10 @@ async function closeCashCountRecord(
 }
 
 /** ปิดวันเก่าที่ค้าง + เตรียม record วันปัจจุบัน (lazy close) */
-export async function ensureDailyCashCountCycle(organizationId: string): Promise<{
+export async function ensureDailyCashCountCycle(
+  organizationId: string,
+  options?: { syncLedger?: boolean }
+): Promise<{
   businessToday: string;
   todayRecord: CashCount | null;
   expectedBalance: number;
@@ -233,12 +236,24 @@ export async function ensureDailyCashCountCycle(organizationId: string): Promise
   let ledger: DailyLedgerSummary | null = null;
 
   if (todayRecord) {
-    if (!todayRecord.closedAt) {
-      ledger = await getDailyLedgerSummary(organizationId, todayRecord.countDate);
+    ledger = summaryFromStoredLedgerFields(
+      todayRecord,
+      todayRecord.countDate,
+      businessToday
+    );
+
+    const needsSync = options?.syncLedger === true || !ledger;
+
+    if (needsSync && !todayRecord.closedAt) {
+      ledger = await getDailyLedgerSummary(organizationId, todayRecord.countDate, {
+        forceRecalc: options?.syncLedger === true || !ledger,
+      });
       await refreshOpenDailyCloseRecord(organizationId, todayRecord.countDate, ledger);
       todayRecord = await getCashCountByDate(organizationId, businessToday);
-    } else {
-      ledger = await getDailyLedgerSummary(organizationId, todayRecord.countDate);
+    } else if (needsSync && todayRecord.closedAt) {
+      ledger =
+        ledger ??
+        (await getDailyLedgerSummary(organizationId, todayRecord.countDate));
     }
   }
 
