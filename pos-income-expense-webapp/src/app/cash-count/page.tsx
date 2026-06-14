@@ -10,6 +10,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { SegmentTabs } from "@/components/ui/SegmentTabs";
 import { AmountDisplay, AmountNumpad } from "@/components/ui/AmountNumpad";
 import {
   fetchCashCountToday,
@@ -29,6 +30,13 @@ import type { CashCount, CashWithdrawal, DailyLedgerSummary } from "@/types";
 import { Wallet, CheckCircle, AlertTriangle, Lock } from "lucide-react";
 
 type ActiveField = "opening" | "actual";
+type CashCountTab = "today" | "withdraw" | "history";
+
+const CASH_COUNT_TABS = [
+  { id: "today" as const, label: "วันนี้" },
+  { id: "withdraw" as const, label: "ถอนเงิน" },
+  { id: "history" as const, label: "ประวัติ" },
+];
 
 export default function CashCountPage() {
   const { session } = useAuth();
@@ -54,6 +62,7 @@ export default function CashCountPage() {
   const [withdrawLoading, setWithdrawLoading] = useState(true);
   const [ledger, setLedger] = useState<DailyLedgerSummary | null>(null);
   const [ledgerLoading, setLedgerLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<CashCountTab>("today");
 
   const loadLedger = useCallback(async () => {
     setLedgerLoading(true);
@@ -191,7 +200,7 @@ export default function CashCountPage() {
   const isPendingCount = !readOnly && !showVariance;
 
   return (
-    <AppLayout title="สรุปปิดยอด" subtitle="เงินสดใน POS · โอนในสมุด · ปิดอัตโนมัติ 00:00">
+    <AppLayout title="สรุปปิดยอด" subtitle="เงินในลิ้นชักวันนี้ · โอนตามสมุด · ปิดอัตโนมัติเที่ยงคืน">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6">
         {message && (
           <p
@@ -203,157 +212,151 @@ export default function CashCountPage() {
           </p>
         )}
 
-        <DailyLedgerSummaryPanel data={ledger} loading={ledgerLoading} />
+        <SegmentTabs tabs={CASH_COUNT_TABS} active={activeTab} onChange={(id) => setActiveTab(id as CashCountTab)} />
 
-        <CashWithdrawTodayPanel
-          items={withdrawals}
-          totalWithdrawn={withdrawTotal}
-          count={withdrawCount}
-          loading={withdrawLoading}
-          readOnly={readOnly}
-          onWithdrawClick={() => setWithdrawOpen(true)}
-        />
+        {activeTab === "today" && (
+          <>
+            <DailyLedgerSummaryPanel data={ledger} loading={ledgerLoading} />
 
-        <details
-          className="group rounded-2xl border-2 border-border-default bg-surface-card"
-          open={actualTouched || !!existing?.hasManualCount}
-        >
-          <summary className="cursor-pointer list-none px-4 py-4 font-bold text-text-main marker:content-none [&::-webkit-details-marker]:hidden">
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2">
-                <Wallet size={20} className="text-text-muted" />
-                นับเงินสดด้วยตนเอง (ไม่บังคับ)
-              </span>
-              <span className="text-xs font-normal text-text-muted group-open:hidden">
-                แตะเพื่อเปิด
-              </span>
-            </div>
-            <p className="mt-1 text-xs font-normal text-text-muted">
-              ระบบปิดอัตโนมัติ 00:00 ใช้ยอดคำนวณ — ใช้ส่วนนี้เมื่อต้องการเทียบเงินในลิ้นชัก
-            </p>
-          </summary>
-
-        <Card className="shrink-0 border-0 shadow-none">
-          <CardHeader className="pt-0">
-            <CardTitle className="sr-only">นับเงินสดประจำวัน</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-text-muted">กำลังโหลด...</p>
-            ) : (
-              <div className="pos-cash-grid pos-cash-form grid grid-cols-1 gap-6 2xl:grid-cols-2 2xl:gap-6">
-                <div className="pos-cash-form flex flex-col gap-4">
-                  <div className="space-y-1">
-                    <p className="text-sm text-text-secondary">
-                      วันที่: <strong>{formatDateShort(countDate)}</strong>
-                    </p>
-                    {readOnly ? (
-                      <p className="flex items-center gap-1.5 text-sm font-bold text-text-muted">
-                        <Lock size={14} />
-                        ปิดยอดแล้ว — แก้ไขไม่ได้
-                      </p>
-                    ) : (
-                      <p className="text-xs text-text-muted">
-                        แก้ไขได้จนถึงเที่ยงคืน · ระบบตัดยอดอัตโนมัติทุก 00:00 น.
-                      </p>
-                    )}
-                    {isLocked && isAdmin && (
-                      <p className="text-xs font-bold text-brand">Admin: แก้ไขวันที่ปิดแล้วได้</p>
-                    )}
-                  </div>
-
-                  <div className="rounded-xl bg-surface-inset p-4">
-                    <p className="text-sm text-text-muted">เงินสดใน POS (คงเหลือ)</p>
-                    <p className="text-3xl font-black text-brand">
-                      {formatCurrency(ledger?.cash.closing ?? expectedBalance)}
-                    </p>
-                    <p className="mt-1 text-xs text-text-muted">
-                      ยอดเงินทอน + รายรับเงินสด − รายจ่ายเงินสด − ถอนออกวันนี้
-                    </p>
-                  </div>
-
-                  <AmountDisplay
-                    label="ยอดเงินทอน (เปิดวัน)"
-                    value={openingBalance}
-                    active={!readOnly && activeField === "opening"}
-                    onClick={() => !readOnly && setActiveField("opening")}
-                  />
-
-                  <AmountDisplay
-                    label="ยอดเงินที่นับได้ (รวมทั้งหมด)"
-                    value={actualBalance}
-                    active={!readOnly && activeField === "actual"}
-                    onClick={() => !readOnly && setActiveField("actual")}
-                  />
-
-                  <Input
-                    label="หมายเหตุ (ถ้ามี)"
-                    value={note}
-                    onChange={(e) => !readOnly && setNote(e.target.value)}
-                    placeholder="เช่น ทอนไม่พอ, เงินหาย"
-                    disabled={readOnly}
-                  />
-
-                  {isPendingCount && (
-                    <p className="rounded-xl bg-surface-inset px-4 py-3 text-sm text-text-muted">
-                      กรอกยอดเงินสดที่นับได้จริง แล้วกดบันทึกปิดยอด
-                    </p>
-                  )}
-
-                  {showVariance && (
-                    <div
-                      className={`flex items-start gap-3 rounded-xl p-4 ${cashCountStatusBadgeClass(varianceStatus)}`}
-                    >
-                      {varianceStatus === "balanced" ? (
-                        <CheckCircle size={22} className="mt-0.5 shrink-0" />
-                      ) : (
-                        <AlertTriangle size={22} className="mt-0.5 shrink-0" />
-                      )}
-                      <div className="min-w-0 space-y-1">
-                        <p className="font-bold">{statusLabel}</p>
-                        {varianceStatus !== "balanced" && (
-                          <p className="text-sm font-semibold">
-                            ส่วนต่าง: {variance >= 0 ? "+" : ""}
-                            {formatCurrency(variance)}
+            <Card className="shrink-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Wallet size={20} className="text-text-muted" />
+                  นับเงินสดในลิ้นชัก
+                </CardTitle>
+                <p className="text-xs font-normal text-text-muted">
+                  เทียบเงินที่นับได้กับยอดคำนวณ — ระบบปิดอัตโนมัติ 00:00 หากไม่บันทึก
+                </p>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <p className="text-text-muted">กำลังโหลด...</p>
+                ) : (
+                  <div className="pos-cash-grid pos-cash-form grid grid-cols-1 gap-6 2xl:grid-cols-2 2xl:gap-6">
+                    <div className="pos-cash-form flex flex-col gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-text-secondary">
+                          วันที่: <strong>{formatDateShort(countDate)}</strong>
+                        </p>
+                        {readOnly ? (
+                          <p className="flex items-center gap-1.5 text-sm font-bold text-text-muted">
+                            <Lock size={14} />
+                            ปิดยอดแล้ว — แก้ไขไม่ได้
+                          </p>
+                        ) : (
+                          <p className="text-xs text-text-muted">
+                            แก้ไขได้จนถึงเที่ยงคืน · ระบบตัดยอดอัตโนมัติทุก 00:00 น.
                           </p>
                         )}
-                        <p className="text-xs opacity-90">{CASH_COUNT_VARIANCE_HINT}</p>
+                        {isLocked && isAdmin && (
+                          <p className="text-xs font-bold text-brand">Admin: แก้ไขวันที่ปิดแล้วได้</p>
+                        )}
                       </div>
+
+                      <div className="rounded-xl bg-surface-inset p-4">
+                        <p className="text-sm text-text-muted">เงินในลิ้นชัก (คำนวณ)</p>
+                        <p className="text-3xl font-black text-brand">
+                          {formatCurrency(ledger?.cash.closing ?? expectedBalance)}
+                        </p>
+                        <p className="mt-1 text-xs text-text-muted">
+                          ยอดเงินทอน + รายรับเงินสด − รายจ่ายเงินสด − ถอนออกวันนี้
+                        </p>
+                      </div>
+
+                      <AmountDisplay
+                        label="ยอดเงินทอน (เปิดวัน)"
+                        value={openingBalance}
+                        active={!readOnly && activeField === "opening"}
+                        onClick={() => !readOnly && setActiveField("opening")}
+                      />
+
+                      <AmountDisplay
+                        label="ยอดเงินที่นับได้ (รวมทั้งหมด)"
+                        value={actualBalance}
+                        active={!readOnly && activeField === "actual"}
+                        onClick={() => !readOnly && setActiveField("actual")}
+                      />
+
+                      <Input
+                        label="หมายเหตุ (ถ้ามี)"
+                        value={note}
+                        onChange={(e) => !readOnly && setNote(e.target.value)}
+                        placeholder="เช่น ทอนไม่พอ, เงินหาย"
+                        disabled={readOnly}
+                      />
+
+                      {isPendingCount && (
+                        <p className="rounded-xl bg-surface-inset px-4 py-3 text-sm text-text-muted">
+                          กรอกยอดเงินสดที่นับได้จริง แล้วกดบันทึกปิดยอด
+                        </p>
+                      )}
+
+                      {showVariance && (
+                        <div
+                          className={`flex items-start gap-3 rounded-xl p-4 ${cashCountStatusBadgeClass(varianceStatus)}`}
+                        >
+                          {varianceStatus === "balanced" ? (
+                            <CheckCircle size={22} className="mt-0.5 shrink-0" />
+                          ) : (
+                            <AlertTriangle size={22} className="mt-0.5 shrink-0" />
+                          )}
+                          <div className="min-w-0 space-y-1">
+                            <p className="font-bold">{statusLabel}</p>
+                            {varianceStatus !== "balanced" && (
+                              <p className="text-sm font-semibold">
+                                ส่วนต่าง: {variance >= 0 ? "+" : ""}
+                                {formatCurrency(variance)}
+                              </p>
+                            )}
+                            <p className="text-xs opacity-90">{CASH_COUNT_VARIANCE_HINT}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div className="flex flex-col gap-4 2xl:sticky 2xl:top-4 2xl:self-start">
-                  {!readOnly && (
-                    <>
-                      <p className="text-center text-sm font-bold text-text-muted">
-                        กำลังกรอก: {activeField === "opening" ? "ยอดเงินทอน" : "ยอดที่นับได้"}
-                      </p>
-                      <AmountNumpad value={numpadValue} onChange={handleNumpadChange} />
-                    </>
-                  )}
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={handleSave}
-                    disabled={saving || readOnly}
-                  >
-                    {readOnly
-                      ? "ปิดยอดแล้ว"
-                      : saving
-                        ? "กำลังบันทึก..."
-                        : existing?.hasManualCount
-                          ? "อัปเดตปิดยอด"
-                          : "บันทึกปิดยอด"}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        </details>
+                    <div className="flex flex-col gap-4 2xl:sticky 2xl:top-4 2xl:self-start">
+                      {!readOnly && (
+                        <>
+                          <p className="text-center text-sm font-bold text-text-muted">
+                            กำลังกรอก: {activeField === "opening" ? "ยอดเงินทอน" : "ยอดที่นับได้"}
+                          </p>
+                          <AmountNumpad value={numpadValue} onChange={handleNumpadChange} />
+                        </>
+                      )}
+                      <Button
+                        className="w-full"
+                        size="lg"
+                        onClick={handleSave}
+                        disabled={saving || readOnly}
+                      >
+                        {readOnly
+                          ? "ปิดยอดแล้ว"
+                          : saving
+                            ? "กำลังบันทึก..."
+                            : existing?.hasManualCount
+                              ? "อัปเดตปิดยอด"
+                              : "บันทึกปิดยอด"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
 
-        <CashCountHistory refreshKey={historyKey} />
+        {activeTab === "withdraw" && (
+          <CashWithdrawTodayPanel
+            items={withdrawals}
+            totalWithdrawn={withdrawTotal}
+            count={withdrawCount}
+            loading={withdrawLoading}
+            readOnly={readOnly}
+            onWithdrawClick={() => setWithdrawOpen(true)}
+          />
+        )}
+
+        {activeTab === "history" && <CashCountHistory refreshKey={historyKey} />}
       </div>
 
       <CashWithdrawModal

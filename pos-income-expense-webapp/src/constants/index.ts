@@ -68,7 +68,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: "สรุปและตรวจสอบ",
     items: [
-      { href: "/balance", label: "ยอดคงเหลือ", hint: "เงินสด+บัญชี ทั้งเดือน", icon: Scale },
+      { href: "/balance", label: "สรุปเงินทั้งเดือน", hint: "สด+โอน รวมทั้งเดือน", icon: Scale },
       { href: "/reports", label: "รายงาน", hint: "กราฟ / ส่งออก CSV", icon: TrendingUp },
       { href: "/history", label: "ประวัติรายการ", hint: "ดูแก้ไข / ยกเลิก", icon: History },
     ],
@@ -77,7 +77,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: "ตั้งค่า",
     items: [
       { href: "/categories", label: "หมวดหมู่", hint: "ชื่อประเภทรายการ", icon: Tag },
-      { href: "/settings", label: "ตั้งค่า", hint: "ยอดยกมา + ข้อมูลร้าน", icon: Settings },
+      { href: "/settings", label: "ตั้งค่า", hint: "เงินเริ่มต้นเดือน + ร้าน", icon: Settings },
     ],
   },
 ];
@@ -97,7 +97,7 @@ export const BOTTOM_NAV_PRIMARY = [
 export const TABLET_MORE_NAV = [
   { href: "/income", label: "รายการรายรับ", icon: DollarSign },
   { href: "/expense", label: "รายการรายจ่าย", icon: ArrowDownCircle },
-  { href: "/balance", label: "ยอดคงเหลือ", icon: Scale },
+  { href: "/balance", label: "สรุปเงินทั้งเดือน", icon: Scale },
   { href: "/reports", label: "รายงาน", icon: TrendingUp },
   { href: "/history", label: "ประวัติ", icon: History },
   { href: "/categories", label: "หมวดหมู่", icon: Tag },

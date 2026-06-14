@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-const STEPS = [
+export const DAILY_FLOW_STEPS = [
   { n: 1, text: "เช้า — ใส่ยอดเงินทอน", href: "/cash-count" },
   { n: 2, text: "วัน — บันทึกรายรับ / รายจ่าย (ลิ้นชักเด้ง)", href: "/income/add" },
   { n: 3, text: "เย็น — นับเงินที่นับได้ทั้งหมด", href: "/cash-count" },
@@ -14,7 +14,7 @@ export function DailyFlowGuide() {
       <p className="font-bold text-text-main">ทุกวัน 3 ขั้น</p>
 
       <ol className="space-y-2">
-        {STEPS.map((s) => (
+        {DAILY_FLOW_STEPS.map((s) => (
           <li key={s.n} className="flex items-baseline gap-2">
             <span className="font-black text-brand">{s.n}.</span>
             <Link href={s.href} className="font-medium text-text-main hover:text-brand hover:underline">
@@ -25,20 +25,20 @@ export function DailyFlowGuide() {
       </ol>
 
       <p className="rounded-lg bg-surface-inset px-3 py-2 text-sm text-text-secondary">
-        ยอดเงินทอน + รายรับ(สด) − รายจ่าย(สด) = ยอดเงินคงเหลือ → เทียบกับที่นับได้ = เงินขาด/เงินเกิน
+        ยอดเงินทอน + รายรับ(สด) − รายจ่าย(สด) = เงินในลิ้นชักวันนี้ → เทียบกับที่นับได้ = เงินขาด/เงินเกิน
       </p>
 
       <div className="space-y-1 border-t border-border-default pt-3 text-sm text-text-muted">
         <p>
-          ต้นเดือน →{" "}
+          ต้นเดือน (ไม่ใช่ในลิ้นชัก) →{" "}
           <Link href="/settings" className="font-bold text-brand hover:underline">
-            ตั้งค่ายอดยกมา
+            ตั้งค่าเงินเริ่มต้นเดือน
           </Link>
         </p>
         <p>
-          ดูรวมเดือน →{" "}
+          ดูรวมทั้งเดือน →{" "}
           <Link href="/balance" className="font-bold text-brand hover:underline">
-            ยอดคงเหลือ
+            สรุปเงินทั้งเดือน
           </Link>
         </p>
       </div>

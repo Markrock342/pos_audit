@@ -9,6 +9,8 @@
     "lint": "eslint",
     "db:seed": "tsx src/scripts/seed.ts",
     "db:clear": "tsx src/scripts/clear-data.ts",
+    "db:clear-daily-close": "tsx src/scripts/clear-daily-close.ts",
+    "db:status": "tsx src/scripts/db-status.ts",
     "bridge": "node hardware-bridge/server.mjs"
   },
   "dependencies": {

@@ -117,8 +117,10 @@ export function ShopSettingsForm() {
       />
 
       <div className="border-t border-border-default pt-4">
-        <h3 className="mb-1 text-base font-bold text-text-main">ยอดเงินยกมา (ต้นเดือน)</h3>
-        <p className="mb-3 text-sm text-text-muted">สำหรับหน้ายอดคงเหลือ ต้นเดือน</p>
+        <h3 className="mb-1 text-base font-bold text-text-main">เงินเริ่มต้นเดือน</h3>
+        <p className="mb-3 text-sm text-text-muted">
+          ใช้คำนวณสรุปเงินทั้งเดือน — ไม่ใช่เงินในลิ้นชัก POS วันนี้
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
             label="เงินสดยกมา (บาท)"

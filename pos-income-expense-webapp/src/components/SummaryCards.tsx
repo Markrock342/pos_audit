@@ -34,7 +34,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
         <StatCard
           title="เงินสดใน POS"
           value={formatCurrency(summary.expectedCashBalance ?? 0)}
-          subtitle="ดูสรุปปิดยอด"
+          subtitle="เงินในลิ้นชักวันนี้"
           icon={Wallet}
           trend="neutral"
         />

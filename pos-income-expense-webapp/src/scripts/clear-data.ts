@@ -6,6 +6,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import { createClient, type PostgrestError } from "@supabase/supabase-js";
+import { createServiceRoleClient } from "./supabaseAdmin";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -33,11 +34,41 @@ async function clearTable(table: string) {
   console.log(`  ✓ cleared ${table}`);
 }
 
+async function clearDailyCloseTables() {
+  const { data, error } = await db.rpc("fn_admin_clear_daily_close", {
+    p_organization_id: null,
+  });
+
+  if (!error && data) {
+    const payload = data as {
+      cash_withdrawals_deleted?: number;
+      cash_counts_deleted?: number;
+    };
+    console.log(
+      `  ✓ cleared cash_withdrawals (${payload.cash_withdrawals_deleted ?? 0} rows)`
+    );
+    console.log(`  ✓ cleared cash_counts (${payload.cash_counts_deleted ?? 0} rows)`);
+    return;
+  }
+
+  const admin = createServiceRoleClient();
+  if (admin) {
+    const ALL = "00000000-0000-0000-0000-000000000000";
+    await admin.from("cash_withdrawals").delete().neq("id", ALL);
+    await admin.from("cash_counts").delete().neq("id", ALL);
+    console.log("  ✓ cleared cash_withdrawals (service role)");
+    console.log("  ✓ cleared cash_counts (service role)");
+    return;
+  }
+
+  console.log("  · skipped cash_withdrawals + cash_counts (RLS — run docs/supabase-admin-clear-daily-close.sql)");
+}
+
 async function clearAll() {
   console.log("Clearing Supabase data...\n");
 
   await clearTable("audit_logs");
-  await clearTable("cash_counts");
+  await clearDailyCloseTables();
   await clearTable("transaction_line_items");
   await clearTable("transactions");
   await clearTable("categories");

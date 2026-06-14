@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DailyCloseStatusCard } from "@/components/cash-count/DailyCloseStatusCard";
+import { DailyFlowGuideCard } from "@/components/guide/DailyFlowGuideCard";
 import { SummaryCards } from "@/components/SummaryCards";
 import { RecentTransactionList } from "@/components/RecentTransactionList";
 import { IncomeExpenseChart } from "@/components/charts/IncomeExpenseChartLazy";
@@ -42,6 +43,10 @@ export default async function DashboardPage() {
 
         <div className="shrink-0">
           <DailyCloseStatusCard status={dashboardData.dailyCloseStatus} />
+        </div>
+
+        <div className="shrink-0">
+          <DailyFlowGuideCard />
         </div>
 
         <div className="pos-dashboard-actions grid shrink-0 grid-cols-2 gap-3 2xl:gap-3">

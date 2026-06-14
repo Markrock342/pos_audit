@@ -94,27 +94,27 @@ export function BalanceSummaryView() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Wallet size={22} className="text-brand" />
-                ยอดเงินยกมา
+                เงินเริ่มต้นเดือน
               </CardTitle>
               <Link
                 href="/settings"
                 className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
               >
                 <Settings size={16} />
-                ตั้งค่ายอดยกมา
+                ตั้งค่า
               </Link>
             </CardHeader>
             <CardContent>
               {hasOpening ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-xl bg-surface-inset p-4">
-                    <p className="text-sm text-text-muted">เงินสดยกมา</p>
+                    <p className="text-sm text-text-muted">เงินสดเริ่มต้น</p>
                     <p className="text-2xl font-black text-text-main">
                       {formatCurrency(data.openingCash)}
                     </p>
                   </div>
                   <div className="rounded-xl bg-surface-inset p-4">
-                    <p className="text-sm text-text-muted">โอน (ยอดยกมา)</p>
+                    <p className="text-sm text-text-muted">โอนเริ่มต้น</p>
                     <p className="text-2xl font-black text-text-main">
                       {formatCurrency(data.openingSavings)}
                     </p>
@@ -122,7 +122,7 @@ export function BalanceSummaryView() {
                 </div>
               ) : (
                 <p className="text-sm text-text-secondary">
-                  ยังไม่ตั้งยอดยกมา —{" "}
+                  ยังไม่ตั้งเงินเริ่มต้นเดือน —{" "}
                   <Link href="/settings" className="font-bold text-brand hover:underline">
                     ไปตั้งค่า
                   </Link>
@@ -171,8 +171,8 @@ export function BalanceSummaryView() {
 
           <Card className="border-2 border-brand/30 bg-brand/5">
             <CardHeader>
-              <CardTitle>ยอดเงินคงเหลือ</CardTitle>
-              <p className="text-sm text-text-muted">ยอดยกมา + รายรับ − รายจ่าย</p>
+              <CardTitle>สรุปคงเหลือช่วงที่เลือก</CardTitle>
+              <p className="text-sm text-text-muted">เงินเริ่มต้นเดือน + รายรับ − รายจ่าย</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="tablet-touch-row flex items-center justify-between rounded-2xl border-2 border-border-default bg-surface-elevated px-5">
