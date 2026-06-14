@@ -56,16 +56,16 @@ export function ShopSettingsForm() {
 
       const saved = await updateOrganizationApi({
         name: name.trim(),
-        address: address.trim() || undefined,
-        phone: phone.trim() || undefined,
-        taxId: taxId.trim() || undefined,
+        address: address.trim(),
+        phone: phone.trim(),
+        taxId: taxId.trim(),
         receiptConfig: {
           header: receiptHeader.trim() || name.trim(),
-          footer: receiptFooter.trim() || undefined,
+          footer: receiptFooter.trim(),
         },
         financeConfig: {
-          openingCashBalance: parseFloat(openingCash) || 0,
-          openingSavingsBalance: parseFloat(openingSavings) || 0,
+          openingCashBalance: openingCash.trim() === "" ? 0 : parseFloat(openingCash) || 0,
+          openingSavingsBalance: openingSavings.trim() === "" ? 0 : parseFloat(openingSavings) || 0,
           openingBalanceMonth: month,
         },
       });

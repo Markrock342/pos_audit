@@ -99,12 +99,28 @@ export function toOrganizationUpdate(
   data: Partial<Omit<Organization, "id" | "createdAt">>
 ) {
   const result: Record<string, unknown> = {};
-  if (data.name !== undefined) result.name = data.name;
-  if (data.taxId !== undefined) result.tax_id = data.taxId;
-  if (data.address !== undefined) result.address = data.address;
-  if (data.phone !== undefined) result.phone = data.phone;
+  if (data.name !== undefined) result.name = data.name.trim();
+  if (data.taxId !== undefined) {
+    const v = data.taxId.trim();
+    result.tax_id = v === "" ? null : v;
+  }
+  if (data.address !== undefined) {
+    const v = data.address.trim();
+    result.address = v === "" ? null : v;
+  }
+  if (data.phone !== undefined) {
+    const v = data.phone.trim();
+    result.phone = v === "" ? null : v;
+  }
   if (data.currency !== undefined) result.currency = data.currency;
-  if (data.receiptConfig !== undefined) result.receipt_config = data.receiptConfig;
+  if (data.receiptConfig !== undefined) {
+    const header = data.receiptConfig.header?.trim() ?? "";
+    const footer = data.receiptConfig.footer?.trim() ?? "";
+    result.receipt_config = {
+      header: header === "" ? null : header,
+      footer: footer === "" ? null : footer,
+    };
+  }
   if (data.hardwareConfig !== undefined) result.hardware_config = data.hardwareConfig;
   if (data.financeConfig !== undefined) result.finance_config = data.financeConfig;
   return result;

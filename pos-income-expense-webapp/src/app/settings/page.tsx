@@ -1,10 +1,11 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { HardwareSettingsPanel } from "@/components/settings/HardwareSettingsPanel";
 import { ShopSettingsForm } from "@/components/settings/ShopSettingsForm";
 
 export default function SettingsPage() {
   return (
-    <AppLayout title="ตั้งค่า" subtitle="ข้อมูลร้าน · ยอดยกมา">
+    <AppLayout title="ตั้งค่า" subtitle="ข้อมูลร้าน · ลิ้นชัก · เครื่องพิมพ์">
       <div className="mx-auto max-w-4xl space-y-6">
         <Card>
           <CardHeader>
@@ -12,6 +13,14 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             <ShopSettingsForm />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>ลิ้นชักและเครื่องพิมพ์</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HardwareSettingsPanel />
           </CardContent>
         </Card>
       </div>

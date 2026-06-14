@@ -40,9 +40,19 @@ export async function updateOrganization(
   id: string,
   data: Partial<Omit<Organization, "id" | "createdAt">>
 ): Promise<Organization> {
+  const patch = toOrganizationUpdate(data);
+
+  if (data.receiptConfig !== undefined) {
+    const existing = await getOrganization(id);
+    patch.receipt_config = {
+      ...(existing?.receiptConfig ?? {}),
+      ...(patch.receipt_config as Record<string, unknown>),
+    };
+  }
+
   const { data: updated, error } = await getDb()
     .from(TABLE)
-    .update(toOrganizationUpdate(data))
+    .update(patch)
     .eq("id", id)
     .select()
     .single();
