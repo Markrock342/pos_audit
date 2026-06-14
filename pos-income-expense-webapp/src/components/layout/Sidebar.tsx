@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_SECTIONS, APP_NAME } from "@/constants";
+import { NAV_SECTIONS, APP_NAME, APP_VERSION } from "@/constants";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { useOrganization } from "@/components/providers/OrganizationProvider";
 import { cn } from "@/lib/utils/cn";
@@ -68,7 +68,7 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-border-default px-6 py-5 text-sm font-bold text-text-muted">
-        v0.1.0 — Swan 2
+        v{APP_VERSION} — Swan 2
       </div>
     </aside>
   );

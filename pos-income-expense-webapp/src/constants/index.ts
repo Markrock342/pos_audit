@@ -1,4 +1,5 @@
 import type { PaymentMethod } from "@/types";
+import pkg from "../../package.json";
 import {
   LayoutDashboard,
   DollarSign,
@@ -13,6 +14,7 @@ import {
 
 export const APP_NAME = "สมุดรายรับ-รายจ่าย";
 export const SHOP_NAME = "บัญชีร้าน";
+export const APP_VERSION = pkg.version;
 
 export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "cash", label: "เงินสด" },
