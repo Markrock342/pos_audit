@@ -6,6 +6,7 @@ import {
   isCashCountLocked,
 } from "./cashCounts";
 import { getTotalWithdrawnForDate } from "./cashWithdrawals";
+import { getTotalDepositedForDate } from "./cashDeposits";
 import { getOrganization } from "./organizations";
 import { getTransactions } from "./transactions";
 import type { CashCount, DailyCloseStatus, DailyLedgerSummary, PaymentMethod, Transaction } from "@/types";
@@ -52,6 +53,7 @@ export function summaryFromStoredLedgerFields(
       income: cashCount.cashIncome ?? 0,
       expense: cashCount.cashExpense ?? 0,
       withdrawn: cashCount.cashWithdrawn ?? 0,
+      deposited: 0,
       closing: cashCount.closingCash ?? cashCount.expectedBalance,
     },
     transfer: {
@@ -174,7 +176,7 @@ export function applyTransactionToLedgerSummary(
   }
 
   business.netTotal = business.totalIncome - business.totalExpense;
-  cash.closing = cash.opening + cash.income - cash.expense - cash.withdrawn;
+  cash.closing = cash.opening + cash.income - cash.expense - cash.withdrawn + cash.deposited;
   transfer.closing = transfer.opening + transfer.income - transfer.expense;
 
   return { ...summary, cash, transfer, business };
@@ -226,13 +228,14 @@ export async function getDailyLedgerSummary(
     }
   }
 
-  const [cashOpening, transferOpening, cashWithdrawn] = await Promise.all([
+  const [cashOpening, transferOpening, cashWithdrawn, cashDeposited] = await Promise.all([
     getCashOpeningForDate(organizationId, countDate),
     getTransferOpeningForDate(organizationId, countDate),
     getTotalWithdrawnForDate(organizationId, countDate),
+    getTotalDepositedForDate(organizationId, countDate),
   ]);
 
-  const cashClosing = cashOpening + cashIncome - cashExpense - cashWithdrawn;
+  const cashClosing = cashOpening + cashIncome - cashExpense - cashWithdrawn + cashDeposited;
   const transferClosing = transferOpening + transferIncome - transferExpense;
 
   const isLocked = cashCount
@@ -251,6 +254,7 @@ export async function getDailyLedgerSummary(
       income: cashIncome,
       expense: cashExpense,
       withdrawn: cashWithdrawn,
+      deposited: cashDeposited,
       closing: cashClosing,
     },
     transfer: {

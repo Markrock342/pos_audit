@@ -5,6 +5,7 @@ import type {
   AuditLogAction,
   BalanceSummary,
   CashCount,
+  CashDeposit,
   CashWithdrawal,
   CashWithdrawalsTodaySummary,
   DailyLedgerSummary,
@@ -396,12 +397,45 @@ export async function fetchCashWithdrawals(filters?: {
 
 export async function createCashWithdrawalApi(body: {
   amount: number;
-  note: string;
+  note?: string;
   recordedBy?: string;
   withdrawalDate?: string;
 }): Promise<CashWithdrawal> {
   const { data } = await parseJson<{ data: CashWithdrawal }>(
     await fetch("/api/cash-withdrawals", {
+      method: "POST",
+      headers: jsonAuthHeaders(),
+      body: JSON.stringify(body),
+    })
+  );
+  invalidateCashCountPageCache();
+  return data;
+}
+
+export async function fetchCashDeposits(filters?: {
+  startDate?: string;
+  endDate?: string;
+  depositDate?: string;
+}): Promise<{ data: CashDeposit[]; totalDeposited: number }> {
+  const params = new URLSearchParams();
+  if (filters?.startDate) params.set("startDate", filters.startDate);
+  if (filters?.endDate) params.set("endDate", filters.endDate);
+  if (filters?.depositDate) params.set("depositDate", filters.depositDate);
+  const qs = params.toString() ? `?${params}` : "";
+  const { data, totalDeposited } = await parseJson<{
+    data: CashDeposit[];
+    totalDeposited: number;
+  }>(await fetch(`/api/cash-deposits${qs}`));
+  return { data, totalDeposited };
+}
+
+export async function createCashDepositApi(body: {
+  amount: number;
+  recordedBy?: string;
+  depositDate?: string;
+}): Promise<CashDeposit> {
+  const { data } = await parseJson<{ data: CashDeposit }>(
+    await fetch("/api/cash-deposits", {
       method: "POST",
       headers: jsonAuthHeaders(),
       body: JSON.stringify(body),

@@ -3,6 +3,7 @@ import type {
   AuditLogAction,
   AuditLogEntityType,
   CashCount,
+  CashDeposit,
   CashWithdrawal,
   Category,
   Organization,
@@ -169,6 +170,17 @@ export function mapCashWithdrawal(row: Record<string, unknown>): CashWithdrawal 
     withdrawalDate: String(row.withdrawal_date),
     amount: Number(row.amount ?? 0),
     note: String(row.note ?? ""),
+    recordedBy: row.recorded_by as string | undefined,
+    createdAt: row.created_at as string | undefined,
+  };
+}
+
+export function mapCashDeposit(row: Record<string, unknown>): CashDeposit {
+  return {
+    id: String(row.id),
+    organizationId: row.organization_id as string | undefined,
+    depositDate: String(row.deposit_date),
+    amount: Number(row.amount ?? 0),
     recordedBy: row.recorded_by as string | undefined,
     createdAt: row.created_at as string | undefined,
   };

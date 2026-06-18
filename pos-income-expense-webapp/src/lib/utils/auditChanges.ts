@@ -1,5 +1,5 @@
 import { getPaymentMethodLabel } from "@/constants";
-import { formatCurrency, formatDateShort } from "@/lib/utils/format";
+import { formatCurrency, formatDateShort, formatWithdrawalAmount } from "@/lib/utils/format";
 import type { AuditLog, PaymentMethod } from "@/types";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -51,6 +51,28 @@ function formatLineItemsSummary(lineItems: unknown): string[] {
 export function describeAuditChanges(log: AuditLog): string[] {
   const oldV = log.oldValue ?? {};
   const newV = log.newValue ?? {};
+
+  if (log.entityType === "cash_deposit" && log.action === "create") {
+    const lines = ["ฝากเงินสดเข้า POS"];
+    if (newV.amount != null) {
+      lines.push(`จำนวน: ${formatCurrency(Number(newV.amount))}`);
+    }
+    if (newV.depositDate) {
+      lines.push(`วันที่: ${formatDateShort(String(newV.depositDate))}`);
+    }
+    return lines;
+  }
+
+  if (log.entityType === "cash_withdrawal" && log.action === "create") {
+    const lines = ["ถอนเงินสดจาก POS"];
+    if (newV.amount != null) {
+      lines.push(`จำนวน: ${formatWithdrawalAmount(Number(newV.amount))}`);
+    }
+    if (newV.withdrawalDate) {
+      lines.push(`วันที่: ${formatDateShort(String(newV.withdrawalDate))}`);
+    }
+    return lines;
+  }
 
   if (log.action === "create") {
     const lines: string[] = ["บันทึกรายการใหม่"];

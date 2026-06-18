@@ -28,6 +28,7 @@ async function main() {
   for (const table of [
     "cash_counts",
     "cash_withdrawals",
+    "cash_deposits",
     "transactions",
     "transaction_line_items",
     "audit_logs",

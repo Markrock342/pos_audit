@@ -126,14 +126,21 @@ export async function getActivityLogs(
   filters?: AuditLogFilters
 ): Promise<AuditLog[]> {
   const includeLegacyCreates =
-    !filters?.action || filters.action === "create";
+    (!filters?.action || filters.action === "create") &&
+    filters?.entityType !== "cash_deposit" &&
+    filters?.entityType !== "cash_withdrawal" &&
+    filters?.entityType !== "category";
 
   const logs = await getAuditLogs(organizationId, {
     ...filters,
     action: includeLegacyCreates ? filters?.action : filters?.action,
   });
 
-  if (!includeLegacyCreates) {
+  if (
+    !includeLegacyCreates ||
+    filters?.entityType === "cash_deposit" ||
+    filters?.entityType === "cash_withdrawal"
+  ) {
     const users = await getUsers(organizationId);
     return enrichWithUserNames(logs, organizationId, users);
   }
@@ -164,6 +171,12 @@ export async function getActivityLogs(
     }));
 
   let merged = [...logs, ...legacyCreates];
+
+  if (filters?.transactionType) {
+    merged = merged.filter(
+      (l) => l.entityType === "transaction" && l.transactionType === filters.transactionType
+    );
+  }
 
   if (filters?.action === "create") {
     merged = merged.filter((l) => l.action === "create");

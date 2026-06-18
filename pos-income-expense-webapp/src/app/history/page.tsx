@@ -6,11 +6,13 @@ import { DateTimeDisplay } from "@/components/ui/DateTimeDisplay";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { fetchAuditLogs } from "@/lib/api/client";
 import { describeAuditChanges } from "@/lib/utils/auditChanges";
-import { formatCurrency, formatDateShort } from "@/lib/utils/format";
+import { formatCurrency, formatDateShort, formatWithdrawalAmount } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { AuditLog, AuditLogAction, TransactionType } from "@/types";
 import {
   ArrowDownCircle,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   ArrowUpCircle,
   FilePlus2,
   History,
@@ -107,7 +109,21 @@ function presetSummary(preset: DatePreset): string {
   }
 }
 
-function logAmount(log: AuditLog): { text: string; type: TransactionType } | null {
+function logAmount(log: AuditLog): { text: string; type: TransactionType | "deposit" | "withdraw" } | null {
+  if (log.entityType === "cash_deposit") {
+    const amount = log.newValue?.amount;
+    if (amount == null) return null;
+    const num = Number(amount);
+    if (Number.isNaN(num)) return null;
+    return { text: `+${formatCurrency(num)}`, type: "deposit" };
+  }
+  if (log.entityType === "cash_withdrawal") {
+    const amount = log.newValue?.amount;
+    if (amount == null) return null;
+    const num = Number(amount);
+    if (Number.isNaN(num)) return null;
+    return { text: formatWithdrawalAmount(num), type: "withdraw" };
+  }
   const amount = log.newValue?.amount ?? log.oldValue?.amount;
   if (amount == null) return null;
   const num = Number(amount);
@@ -138,6 +154,9 @@ function TypeBadge({ type }: { type?: TransactionType }) {
 /** ตัดบรรทัดที่ซ้ำกับส่วนหัวการ์ด (ชื่อ/ยอด/หัวข้อ) ออก เหลือรายละเอียดที่มีประโยชน์ */
 function detailLines(log: AuditLog): string[] {
   const lines = describeAuditChanges(log);
+  if (log.entityType === "cash_deposit" || log.entityType === "cash_withdrawal") {
+    return lines.filter((l) => !l.startsWith("จำนวน:"));
+  }
   if (log.action === "create") {
     return lines.filter(
       (l) =>
@@ -151,7 +170,22 @@ function detailLines(log: AuditLog): string[] {
 
 function HistoryCard({ log }: { log: AuditLog }) {
   const amount = logAmount(log);
-  const action = ACTION_STYLES[log.action];
+  const isDeposit = log.entityType === "cash_deposit";
+  const isWithdraw = log.entityType === "cash_withdrawal";
+  const isCashMovement = isDeposit || isWithdraw;
+  const action = isDeposit
+    ? {
+        label: "ฝากเงินสด",
+        chip: "border-brand/25 bg-brand-light text-brand",
+        icon: ArrowDownToLine,
+      }
+    : isWithdraw
+      ? {
+          label: "ถอนเงินสด",
+          chip: "border-expense/25 bg-expense-light text-expense",
+          icon: ArrowUpFromLine,
+        }
+      : ACTION_STYLES[log.action];
   const ActionIcon = action.icon;
   const changeLines = detailLines(log);
 
@@ -177,7 +211,7 @@ function HistoryCard({ log }: { log: AuditLog }) {
               >
                 {action.label}
               </span>
-              <TypeBadge type={log.transactionType} />
+              {!isCashMovement && <TypeBadge type={log.transactionType} />}
             </div>
             <p className="mt-1.5 truncate text-base font-bold text-text-main">
               {log.entityTitle ?? "ไม่มีชื่อรายการ"}
@@ -198,7 +232,11 @@ function HistoryCard({ log }: { log: AuditLog }) {
           <p
             className={cn(
               "shrink-0 text-lg font-black tabular-nums",
-              amount.type === "income" ? "text-income" : "text-expense"
+              amount.type === "deposit" || amount.type === "income"
+                ? "text-income"
+                : amount.type === "withdraw" || amount.type === "expense"
+                  ? "text-expense"
+                  : "text-text-main"
             )}
           >
             {amount.text}

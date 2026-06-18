@@ -65,6 +65,9 @@ export function DailyLedgerSummaryPanel({ data, loading, dateLabel }: DailyLedge
           <LedgerLine label="+ รายรับ (สด)" value={data.cash.income} />
           <LedgerLine label="− รายจ่าย (สด)" value={data.cash.expense} negative />
           <LedgerLine label="− ถอนออกวันนี้" value={data.cash.withdrawn} negative />
+          {data.cash.deposited > 0 && (
+            <LedgerLine label="+ ฝากเงินสดวันนี้" value={data.cash.deposited} />
+          )}
           <div className="my-2 border-t border-border-default" />
           <LedgerLine label="คงเหลือ (สด)" value={data.cash.closing} emphasize />
         </CardContent>

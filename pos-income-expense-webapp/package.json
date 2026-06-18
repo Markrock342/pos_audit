@@ -13,6 +13,7 @@
     "db:status": "tsx src/scripts/db-status.ts",
     "db:cleanup-test": "tsx src/scripts/cleanup-test-data.ts",
     "test:integration": "tsx src/scripts/integration-test.ts",
+    "test:readonly": "tsx src/scripts/readonly-smoke-test.ts",
     "bridge": "node hardware-bridge/server.mjs"
   },
   "dependencies": {

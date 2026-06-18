@@ -7,6 +7,7 @@ import {
 } from "@/lib/utils/businessDate";
 import { getTransactions } from "./transactions";
 import { getTotalWithdrawnForDate } from "./cashWithdrawals";
+import { getTotalDepositedForDate } from "./cashDeposits";
 import { getDailyLedgerSummary, ledgerPatchFromSummary, summaryFromStoredLedgerFields } from "./dailyLedger";
 import type { CashCount, CashCountStatus, DailyLedgerSummary } from "@/types";
 
@@ -40,8 +41,9 @@ export async function calculateExpectedBalance(
     .reduce((sum, t) => sum + t.amount, 0);
 
   const withdrawn = await getTotalWithdrawnForDate(organizationId, countDate);
+  const deposited = await getTotalDepositedForDate(organizationId, countDate);
 
-  return openingBalance + income - expense - withdrawn;
+  return openingBalance + income - expense - withdrawn + deposited;
 }
 
 function determineStatus(variance: number): CashCountStatus {

@@ -13,8 +13,10 @@
 | 7 | `supabase-cash-count-close-rls-fix.sql` | แก้ RLS ปิดยอด |
 | 8 | `supabase-cash-withdrawals.sql` | ถอนเงินจาก POS |
 | 9 | `supabase-daily-close-ledger.sql` | สรุป 2 กระเป๋า / daily close |
-| 10 | `supabase-admin-clear-daily-close.sql` | (optional) RPC ลบประวัติปิดยอด |
-| 11 | `supabase-add-kiosk-users.sql` | (legacy) อัปเดต user kiosk ด้วยมือ — ปกติ login sync อัตโนมัติ |
+| 10 | `supabase-cash-deposits.sql` | ฝากเงินสดเข้า POS |
+| 11 | `supabase-cash-movements-audit.sql` | audit สำหรับฝาก/ถอน (ถ้ารัน #10 ก่อนแล้ว) |
+| 12 | `supabase-admin-clear-daily-close.sql` | (optional) RPC ลบประวัติปิดยอด |
+| 13 | `supabase-add-kiosk-users.sql` | (legacy) อัปเดต user kiosk ด้วยมือ — ปกติ login sync อัตโนมัติ |
 
 หลังรัน SQL:
 

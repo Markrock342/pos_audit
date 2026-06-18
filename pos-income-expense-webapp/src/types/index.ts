@@ -156,6 +156,16 @@ export interface CashWithdrawalsTodaySummary {
   data: CashWithdrawal[];
 }
 
+/** ฝากเงินสดเข้า POS — ไม่ใช่รายรับธุรกิจ */
+export interface CashDeposit {
+  id: string;
+  organizationId?: string;
+  depositDate: string;
+  amount: number;
+  recordedBy?: string;
+  createdAt?: string;
+}
+
 export interface DailyLedgerWallet {
   opening: number;
   income: number;
@@ -165,6 +175,7 @@ export interface DailyLedgerWallet {
 
 export interface DailyLedgerCashWallet extends DailyLedgerWallet {
   withdrawn: number;
+  deposited: number;
 }
 
 export interface DailyLedgerSummary {
@@ -239,7 +250,11 @@ export interface DailyCloseStatus {
 
 export type AuditLogAction = "create" | "update" | "void";
 
-export type AuditLogEntityType = "transaction" | "category";
+export type AuditLogEntityType =
+  | "transaction"
+  | "category"
+  | "cash_deposit"
+  | "cash_withdrawal";
 
 export interface AuditLog {
   id: string;

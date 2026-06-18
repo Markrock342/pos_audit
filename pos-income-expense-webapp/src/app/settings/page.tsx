@@ -1,12 +1,12 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { HardwareSettingsPanel } from "@/components/settings/HardwareSettingsPanel";
 import { LoginPinSettingsPanel } from "@/components/settings/LoginPinSettingsPanel";
+import { SettingsCashPanels } from "@/components/settings/SettingsCashPanels";
 import { ShopSettingsForm } from "@/components/settings/ShopSettingsForm";
 
 export default function SettingsPage() {
   return (
-    <AppLayout title="ตั้งค่า" subtitle="ข้อมูลร้าน · PIN · ลิ้นชัก · เครื่องพิมพ์">
+    <AppLayout title="ตั้งค่า" subtitle="ข้อมูลร้าน · PIN · ลิ้นชัก · ประวัติการเงินสด">
       <div className="mx-auto max-w-4xl space-y-6">
         <Card>
           <CardHeader>
@@ -24,14 +24,7 @@ export default function SettingsPage() {
             <ShopSettingsForm />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>ลิ้นชักและเครื่องพิมพ์</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <HardwareSettingsPanel />
-          </CardContent>
-        </Card>
+        <SettingsCashPanels />
       </div>
     </AppLayout>
   );
