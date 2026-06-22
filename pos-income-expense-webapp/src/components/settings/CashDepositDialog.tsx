@@ -49,13 +49,10 @@ export function CashDepositDialog({
         amount: value,
         recordedBy,
       });
-      const drawer = await openCashDrawer();
-      if (!drawer.success) {
-        setError(`บันทึกแล้ว แต่เปิดลิ้นชักไม่สำเร็จ: ${drawer.message}`);
-      }
       setAmount("0");
       onSaved?.(created);
-      if (drawer.success) onClose();
+      onClose();
+      void openCashDrawer();
     } catch (e) {
       setError(e instanceof Error ? e.message : "บันทึกฝากไม่สำเร็จ");
     } finally {
@@ -89,7 +86,7 @@ export function CashDepositDialog({
           <AmountNumpad value={amount} onChange={setAmount} />
 
           <p className="rounded-xl bg-surface-inset px-4 py-3 text-sm text-text-secondary">
-            ยอดเงินสดใน POS จะเพิ่ม {formatCurrency(parseFloat(amount) || 0)} · ดูประวัติได้ที่ ตั้งค่า → ประวัติการเงินสด
+            ยอดเงินสดใน POS จะเพิ่ม {formatCurrency(parseFloat(amount) || 0)} · ดูประวัติได้ที่การ์ดด้านล่าง
           </p>
 
           {error && <p className="text-sm font-medium text-error">{error}</p>}

@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createCashDeposit, getCashDeposits } from "@/lib/services/db/cashDeposits";
 import {
-  ensureDailyCashCountCycle,
-  refreshOpenCashCountExpected,
+  ensureTodayCashCountRecord,
+  refreshExpectedBalanceQuick,
 } from "@/lib/services/db/cashCounts";
 import { safeCreateAuditLog } from "@/lib/services/db/safeAuditLog";
 import { assertTransactionDateAllowed } from "@/lib/api/transactionDateLock";
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     const dateBlocked = await assertTransactionDateAllowed(depositDate, isAdmin);
     if (dateBlocked) return dateBlocked;
 
-    await ensureDailyCashCountCycle(DEFAULT_ORG_ID);
+    await ensureTodayCashCountRecord(DEFAULT_ORG_ID);
 
     const recordedBy = parsed.data.recordedBy ?? DEFAULT_USER_ID;
     await ensureKioskUserById(recordedBy);
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
       },
     });
 
-    await refreshOpenCashCountExpected(DEFAULT_ORG_ID, depositDate);
+    await refreshExpectedBalanceQuick(DEFAULT_ORG_ID, depositDate);
 
     return NextResponse.json({ data: created }, { status: 201 });
   } catch (e) {

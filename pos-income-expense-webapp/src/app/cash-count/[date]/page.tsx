@@ -5,16 +5,17 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CashCountDayMeta } from "@/components/cash-count/CashCountDayMeta";
+import { CashMovementDayPanel } from "@/components/cash-count/CashMovementDayPanel";
 import { DailyLedgerSummaryPanel } from "@/components/cash-count/DailyLedgerSummaryPanel";
 import {
   fetchCashCountByDate,
+  fetchCashDeposits,
   fetchCashWithdrawals,
   fetchDailyCloseByDate,
 } from "@/lib/api/client";
-import { formatCurrency, formatDateShort, formatWithdrawalAmount } from "@/lib/utils/format";
-import type { CashCount, CashWithdrawal, DailyLedgerSummary } from "@/types";
-import { ArrowLeft, ArrowDownCircle, Lock } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { formatDateShort } from "@/lib/utils/format";
+import type { CashCount, CashDeposit, CashWithdrawal, DailyLedgerSummary } from "@/types";
+import { ArrowLeft, Lock } from "lucide-react";
 
 export default function CashCountDayPage() {
   const params = useParams<{ date: string }>();
@@ -23,6 +24,8 @@ export default function CashCountDayPage() {
 
   const [ledger, setLedger] = useState<DailyLedgerSummary | null>(null);
   const [cashCount, setCashCount] = useState<CashCount | null>(null);
+  const [deposits, setDeposits] = useState<CashDeposit[]>([]);
+  const [depositTotal, setDepositTotal] = useState(0);
   const [withdrawals, setWithdrawals] = useState<CashWithdrawal[]>([]);
   const [withdrawTotal, setWithdrawTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -37,19 +40,24 @@ export default function CashCountDayPage() {
     setLoading(true);
     setError(null);
     try {
-      const [ledgerData, countData, withdrawData] = await Promise.all([
+      const [ledgerData, countData, depositData, withdrawData] = await Promise.all([
         fetchDailyCloseByDate(date),
         fetchCashCountByDate(date),
+        fetchCashDeposits({ depositDate: date }),
         fetchCashWithdrawals({ withdrawalDate: date }),
       ]);
       setLedger(ledgerData);
       setCashCount(countData);
+      setDeposits(depositData.data);
+      setDepositTotal(depositData.totalDeposited);
       setWithdrawals(withdrawData.data);
       setWithdrawTotal(withdrawData.totalWithdrawn);
     } catch (e) {
       setError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
       setLedger(null);
       setCashCount(null);
+      setDeposits([]);
+      setDepositTotal(0);
       setWithdrawals([]);
       setWithdrawTotal(0);
     } finally {
@@ -66,7 +74,7 @@ export default function CashCountDayPage() {
   return (
     <AppLayout
       title={validDate ? `ปิดยอด ${formatDateShort(date)}` : "ปิดยอดรายวัน"}
-      subtitle="สรุป 2 กระเป๋า · รายละเอียดวันนั้น"
+      subtitle="สรุป 2 กระเป๋า · ฝาก/ถอน · รายละเอียดวันนั้น"
     >
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6">
         <Link
@@ -106,42 +114,14 @@ export default function CashCountDayPage() {
 
             <DailyLedgerSummaryPanel data={ledger} loading={false} dateLabel={formatDateShort(date)} />
 
-            <CashCountDayMeta
-              cashCount={cashCount}
-              expectedBalance={ledger.cash.closing}
-            />
+            <CashCountDayMeta cashCount={cashCount} expectedBalance={ledger.cash.closing} />
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <ArrowDownCircle size={20} className="text-expense" />
-                  ถอนเงินออกจาก POS
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {withdrawals.length === 0 ? (
-                  <p className="text-sm text-text-muted">ไม่มีรายการถอนในวันนี้</p>
-                ) : (
-                  <>
-                    <p className="mb-3 text-sm text-text-muted">
-                      รวม {withdrawals.length} รายการ ·{" "}
-                      <span className="font-bold text-expense">{formatWithdrawalAmount(withdrawTotal)}</span>
-                    </p>
-                    <div className="space-y-2">
-                      {withdrawals.map((row) => (
-                        <div
-                          key={row.id}
-                          className="tablet-touch-row flex items-start justify-between gap-4 rounded-2xl border-2 border-border-default px-4"
-                        >
-                          <p className="min-w-0 font-medium text-text-main">{row.note}</p>
-                          <p className="shrink-0 font-black text-expense">−{formatCurrency(row.amount)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            <CashMovementDayPanel
+              deposits={deposits}
+              depositTotal={depositTotal}
+              withdrawals={withdrawals}
+              withdrawTotal={withdrawTotal}
+            />
 
             {isToday && (
               <Link

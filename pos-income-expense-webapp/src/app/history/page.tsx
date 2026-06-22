@@ -6,13 +6,12 @@ import { DateTimeDisplay } from "@/components/ui/DateTimeDisplay";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { fetchAuditLogs } from "@/lib/api/client";
 import { describeAuditChanges } from "@/lib/utils/auditChanges";
-import { formatCurrency, formatDateShort, formatWithdrawalAmount } from "@/lib/utils/format";
+import { formatCurrency, formatDateShort } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
 import type { AuditLog, AuditLogAction, TransactionType } from "@/types";
 import {
   ArrowDownCircle,
-  ArrowDownToLine,
-  ArrowUpFromLine,
   ArrowUpCircle,
   FilePlus2,
   History,
@@ -63,31 +62,15 @@ const ACTION_STYLES: Record<
   },
 };
 
-function getToday() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getFirstDayOfMonth() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-}
-
-function getDaysAgo(days: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - (days - 1));
-  return d.toISOString().slice(0, 10);
-}
-
 function getPresetRange(preset: DatePreset): { startDate?: string; endDate?: string } {
+  const today = getBusinessToday();
   switch (preset) {
-    case "today": {
-      const today = getToday();
+    case "today":
       return { startDate: today, endDate: today };
-    }
     case "week":
-      return { startDate: getDaysAgo(7), endDate: getToday() };
+      return { startDate: shiftBusinessDate(today, -6), endDate: today };
     case "month":
-      return { startDate: getFirstDayOfMonth(), endDate: getToday() };
+      return { startDate: `${today.slice(0, 7)}-01`, endDate: today };
     case "all":
       return {};
   }
@@ -109,21 +92,7 @@ function presetSummary(preset: DatePreset): string {
   }
 }
 
-function logAmount(log: AuditLog): { text: string; type: TransactionType | "deposit" | "withdraw" } | null {
-  if (log.entityType === "cash_deposit") {
-    const amount = log.newValue?.amount;
-    if (amount == null) return null;
-    const num = Number(amount);
-    if (Number.isNaN(num)) return null;
-    return { text: `+${formatCurrency(num)}`, type: "deposit" };
-  }
-  if (log.entityType === "cash_withdrawal") {
-    const amount = log.newValue?.amount;
-    if (amount == null) return null;
-    const num = Number(amount);
-    if (Number.isNaN(num)) return null;
-    return { text: formatWithdrawalAmount(num), type: "withdraw" };
-  }
+function logAmount(log: AuditLog): { text: string; type: TransactionType } | null {
   const amount = log.newValue?.amount ?? log.oldValue?.amount;
   if (amount == null) return null;
   const num = Number(amount);
@@ -154,9 +123,6 @@ function TypeBadge({ type }: { type?: TransactionType }) {
 /** ตัดบรรทัดที่ซ้ำกับส่วนหัวการ์ด (ชื่อ/ยอด/หัวข้อ) ออก เหลือรายละเอียดที่มีประโยชน์ */
 function detailLines(log: AuditLog): string[] {
   const lines = describeAuditChanges(log);
-  if (log.entityType === "cash_deposit" || log.entityType === "cash_withdrawal") {
-    return lines.filter((l) => !l.startsWith("จำนวน:"));
-  }
   if (log.action === "create") {
     return lines.filter(
       (l) =>
@@ -170,22 +136,7 @@ function detailLines(log: AuditLog): string[] {
 
 function HistoryCard({ log }: { log: AuditLog }) {
   const amount = logAmount(log);
-  const isDeposit = log.entityType === "cash_deposit";
-  const isWithdraw = log.entityType === "cash_withdrawal";
-  const isCashMovement = isDeposit || isWithdraw;
-  const action = isDeposit
-    ? {
-        label: "ฝากเงินสด",
-        chip: "border-brand/25 bg-brand-light text-brand",
-        icon: ArrowDownToLine,
-      }
-    : isWithdraw
-      ? {
-          label: "ถอนเงินสด",
-          chip: "border-expense/25 bg-expense-light text-expense",
-          icon: ArrowUpFromLine,
-        }
-      : ACTION_STYLES[log.action];
+  const action = ACTION_STYLES[log.action];
   const ActionIcon = action.icon;
   const changeLines = detailLines(log);
 
@@ -211,7 +162,7 @@ function HistoryCard({ log }: { log: AuditLog }) {
               >
                 {action.label}
               </span>
-              {!isCashMovement && <TypeBadge type={log.transactionType} />}
+              <TypeBadge type={log.transactionType} />
             </div>
             <p className="mt-1.5 truncate text-base font-bold text-text-main">
               {log.entityTitle ?? "ไม่มีชื่อรายการ"}
@@ -232,11 +183,7 @@ function HistoryCard({ log }: { log: AuditLog }) {
           <p
             className={cn(
               "shrink-0 text-lg font-black tabular-nums",
-              amount.type === "deposit" || amount.type === "income"
-                ? "text-income"
-                : amount.type === "withdraw" || amount.type === "expense"
-                  ? "text-expense"
-                  : "text-text-main"
+              amount.type === "income" ? "text-income" : "text-expense"
             )}
           >
             {amount.text}
@@ -303,7 +250,7 @@ export default function HistoryPage() {
   const summary = useMemo(() => presetSummary(datePreset), [datePreset]);
 
   return (
-    <AppLayout title="ประวัติรายการ">
+    <AppLayout title="ประวัติรายการ" subtitle="รายรับและรายจ่ายธุรกิจ — ฝาก/ถอนเงินสดดูที่ตั้งค่า">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 pb-6">
         {error && (
           <p className="rounded-xl border border-expense/20 bg-error-light px-4 py-3 text-sm font-bold text-error">
@@ -384,8 +331,8 @@ export default function HistoryPage() {
         ) : logs.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border-default bg-surface-elevated py-4">
             <EmptyState
-              title="ยังไม่มีประวัติรายการ"
-              message="เมื่อมีการบันทึก แก้ไข หรือยกเลิกรายการ จะแสดงที่นี่ — ลองเปลี่ยนช่วงวันที่หรือตัวกรอง"
+              title="ยังไม่มีประวัติรายรับ–รายจ่าย"
+              message="เมื่อมีการบันทึก แก้ไข หรือยกเลิกรายรับ/รายจ่าย จะแสดงที่นี่ — ฝาก/ถอนเงินสดดูที่ ตั้งค่า"
             />
           </div>
         ) : (

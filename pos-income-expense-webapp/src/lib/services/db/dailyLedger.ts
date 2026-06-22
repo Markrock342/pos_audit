@@ -1,6 +1,5 @@
 import { getBusinessToday, getBusinessYesterday } from "@/lib/utils/businessDate";
 import {
-  calculateExpectedBalance,
   getCashCountByDate,
   isBusinessDateClosed,
   isCashCountLocked,
@@ -34,13 +33,20 @@ export function ledgerPatchFromSummary(summary: DailyLedgerSummary): Record<stri
   };
 }
 
-/** อ่านสรุป 2 กระเป๋าจากฟิลด์ที่ sync ไว้ใน cash_counts — เร็ว ไม่ต้องคำนวณใหม่ */
+/** อ่านสรุป 2 กระเป๋าจากฟิลด์ที่ sync ไว้ใน cash_counts — ใช้เฉพาะวันที่ปิดแล้ว */
 export function summaryFromStoredLedgerFields(
   cashCount: CashCount,
   countDate: string,
   businessToday: string
 ): DailyLedgerSummary | null {
   if (cashCount.cashIncome == null && cashCount.totalIncome == null) return null;
+
+  const opening = 0;
+  const income = cashCount.cashIncome ?? 0;
+  const expense = cashCount.cashExpense ?? 0;
+  const withdrawn = cashCount.cashWithdrawn ?? 0;
+  const closing = cashCount.closingCash ?? cashCount.expectedBalance ?? 0;
+  const deposited = Math.max(0, closing - opening - income + expense + withdrawn);
 
   return {
     countDate,
@@ -50,12 +56,12 @@ export function summaryFromStoredLedgerFields(
     closingType: cashCount.closingType,
     autoClosed: cashCount.autoClosed,
     cash: {
-      opening: cashCount.openingBalance,
-      income: cashCount.cashIncome ?? 0,
-      expense: cashCount.cashExpense ?? 0,
-      withdrawn: cashCount.cashWithdrawn ?? 0,
-      deposited: 0,
-      closing: cashCount.closingCash ?? cashCount.expectedBalance,
+      opening: 0,
+      income,
+      expense,
+      withdrawn,
+      deposited,
+      closing,
     },
     transfer: {
       opening: cashCount.openingTransfer ?? 0,
@@ -71,41 +77,10 @@ export function summaryFromStoredLedgerFields(
   };
 }
 
-function summaryFromCashCountSnapshot(
-  cashCount: CashCount,
-  countDate: string,
-  businessToday: string
-): DailyLedgerSummary | null {
-  if (!cashCount.closedAt) return null;
-  return summaryFromStoredLedgerFields(cashCount, countDate, businessToday);
-}
-
 async function getCashOpeningForDate(
-  organizationId: string,
-  countDate: string
+  _organizationId: string,
+  _countDate: string
 ): Promise<number> {
-  const row = await getCashCountByDate(organizationId, countDate);
-  if (row) return row.openingBalance;
-
-  const org = await getOrganization(organizationId);
-  if (isFullDailyReset(org?.financeConfig)) {
-    return 0;
-  }
-
-  const yesterday = getBusinessYesterday(countDate);
-  const prev = await getCashCountByDate(organizationId, yesterday);
-  if (prev?.closedAt) {
-    return prev.closingCash ?? prev.actualBalance;
-  }
-  if (prev) {
-    return calculateExpectedBalance(organizationId, yesterday, prev.openingBalance);
-  }
-
-  const finance = org?.financeConfig;
-  const month = finance?.openingBalanceMonth ?? countDate.slice(0, 7);
-  if (countDate >= `${month}-01`) {
-    return finance?.openingCashBalance ?? 0;
-  }
   return 0;
 }
 
@@ -198,14 +173,9 @@ export async function getDailyLedgerSummary(
   const businessToday = getBusinessToday();
   const cashCount = await getCashCountByDate(organizationId, countDate);
 
-  if (!options?.forceRecalc && cashCount) {
-    const snapshot = summaryFromCashCountSnapshot(cashCount, countDate, businessToday);
-    if (snapshot) return snapshot;
-    // วันที่ยังไม่ปิด — ต้องคำนวณใหม่เสมอ (ฝาก/ถอนอาจเปลี่ยนหลัง sync snapshot)
-    if (cashCount.closedAt) {
-      const stored = summaryFromStoredLedgerFields(cashCount, countDate, businessToday);
-      if (stored) return stored;
-    }
+  if (!options?.forceRecalc && cashCount?.closedAt) {
+    const stored = summaryFromStoredLedgerFields(cashCount, countDate, businessToday);
+    if (stored) return stored;
   }
 
   const transactions =

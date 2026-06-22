@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { getBusinessToday } from "@/lib/utils/businessDate";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import type { Category, TransactionType } from "@/types";
@@ -67,7 +68,7 @@ export function TransactionForm({
       title: "",
       note: "",
       paymentMethod: "cash",
-      transactionDate: new Date().toISOString().slice(0, 10),
+      transactionDate: getBusinessToday(),
     },
   });
 
@@ -95,7 +96,7 @@ export function TransactionForm({
       title: "",
       note: "",
       paymentMethod: "cash",
-      transactionDate: new Date().toISOString().slice(0, 10),
+      transactionDate: getBusinessToday(),
     });
   };
 

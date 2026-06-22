@@ -1,3 +1,4 @@
+import { getBusinessToday } from "@/lib/utils/businessDate";
 import type { LineItemFormValues } from "@/lib/validations/transaction";
 import { resolveBillTitle } from "@/lib/validations/transaction";
 import { computeLineAmount, sumLineAmounts } from "@/lib/utils/lineAmount";
@@ -36,7 +37,7 @@ export function buildDraftTransaction(params: {
 
   if (entries.length === 0) {
     if (!trimmedBillTitle && !trimmedNote) return null;
-    const txDate = transactionDate || new Date().toISOString().slice(0, 10);
+    const txDate = transactionDate || getBusinessToday();
     return {
       id: "draft",
       type,
@@ -71,7 +72,7 @@ export function buildDraftTransaction(params: {
   const amount = sumLineAmounts(lineItems.map((l) => l.lineAmount));
   const formLines = entries.map((e) => e.line);
   const title = resolveBillTitle(type, billTitle, formLines);
-  const txDate = transactionDate || new Date().toISOString().slice(0, 10);
+  const txDate = transactionDate || getBusinessToday();
 
   return {
     id: "draft",

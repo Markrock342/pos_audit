@@ -1,28 +1,28 @@
 import { NextResponse } from "next/server";
-import { ensureDailyCashCountCycle } from "@/lib/services/db/cashCounts";
+import { getTodayCashCountView } from "@/lib/services/db/cashCountPage";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
 export async function GET() {
   try {
-    const cycle = await ensureDailyCashCountCycle(DEFAULT_ORG_ID);
+    const view = await getTodayCashCountView(DEFAULT_ORG_ID);
 
-    if (cycle.todayRecord) {
+    if (view.record) {
       return NextResponse.json({
-        data: cycle.todayRecord,
-        expectedBalance: cycle.todayRecord.expectedBalance,
-        openingBalance: cycle.todayRecord.openingBalance,
-        countDate: cycle.todayRecord.countDate,
-        businessToday: cycle.businessToday,
-        isLocked: !!cycle.todayRecord.closedAt,
+        data: { ...view.record, expectedBalance: view.expectedBalance },
+        expectedBalance: view.expectedBalance,
+        openingBalance: view.openingBalance,
+        countDate: view.record.countDate,
+        businessToday: view.businessToday,
+        isLocked: view.isLocked,
       });
     }
 
     return NextResponse.json({
       data: null,
-      expectedBalance: cycle.expectedBalance,
-      openingBalance: cycle.openingBalance,
-      countDate: cycle.businessToday,
-      businessToday: cycle.businessToday,
+      expectedBalance: view.expectedBalance,
+      openingBalance: view.openingBalance,
+      countDate: view.businessToday,
+      businessToday: view.businessToday,
       isLocked: false,
     });
   } catch (e) {

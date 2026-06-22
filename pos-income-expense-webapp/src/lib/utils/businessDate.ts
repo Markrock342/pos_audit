@@ -21,3 +21,13 @@ export function getBusinessYesterday(today = getBusinessToday()): string {
 export function isPastBusinessDate(dateStr: string, today = getBusinessToday()): boolean {
   return dateStr < today;
 }
+
+/** ISO timestamp เริ่มต้นวันธุรกิจ (00:00 Asia/Bangkok) */
+export function businessDayStartIso(dateStr: string): string {
+  return `${dateStr}T00:00:00+07:00`;
+}
+
+/** ISO timestamp สิ้นสุดวันธุรกิจ (23:59:59.999 Asia/Bangkok) */
+export function businessDayEndIso(dateStr: string): string {
+  return `${dateStr}T23:59:59.999+07:00`;
+}

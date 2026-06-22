@@ -1,14 +1,10 @@
 /**
  * Read-only smoke test — GET only, no data mutation.
- * Run: npx tsx src/scripts/readonly-smoke-test.ts
+ * Run: npm run test:readonly
  */
-const BASE = process.env.TEST_BASE_URL ?? "http://localhost:3000";
+import { getBusinessToday, shiftBusinessDate } from "../lib/utils/businessDate";
 
-function daysAgo(n: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-}
+const BASE = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 
 async function check(name: string, url: string) {
   try {
@@ -39,8 +35,8 @@ async function check(name: string, url: string) {
 }
 
 async function main() {
-  const endDate = daysAgo(0);
-  const startDate = daysAgo(30);
+  const endDate = getBusinessToday();
+  const startDate = shiftBusinessDate(endDate, -30);
   const range = `startDate=${startDate}&endDate=${endDate}`;
 
   console.log(`\n=== Read-only smoke test @ ${BASE} ===\n`);
@@ -48,6 +44,8 @@ async function main() {
   const tests = [
     ["Page /cash-count", "/cash-count"],
     ["Page /settings", "/settings"],
+    ["Page /history", "/history"],
+    ["Page /dashboard", "/dashboard"],
     ["Redirect /cash-count/withdrawals", "/cash-count/withdrawals"],
     ["GET /api/cash-count/page-data", "/api/cash-count/page-data"],
     ["GET /api/cash-deposits", `/api/cash-deposits?${range}`],
@@ -55,6 +53,8 @@ async function main() {
     ["GET /api/daily-close/today", "/api/daily-close/today"],
     ["GET /api/audit-logs", `/api/audit-logs?${range}`],
     ["GET /api/cash-counts", "/api/cash-counts?limit=5"],
+    ["GET /api/transactions", "/api/transactions?status=active&limit=5"],
+    ["GET /api/reports/dashboard", "/api/reports/dashboard"],
   ] as const;
 
   const results = await Promise.all(tests.map(([name, url]) => check(name, url)));

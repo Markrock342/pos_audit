@@ -163,19 +163,10 @@ export async function getDashboard(): Promise<DashboardData> {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  // Expected cash balance via daily close service
-  const { data: cashCount } = await getDb()
-    .from("cash_counts")
-    .select("opening_balance")
-    .eq("organization_id", DEFAULT_ORG_ID)
-    .eq("count_date", today)
-    .single();
-
-  const openingBalance = (cashCount?.opening_balance as number) ?? 0;
   const expectedCashBalance = await calculateExpectedBalance(
     DEFAULT_ORG_ID,
     today,
-    openingBalance
+    0
   );
 
   const dailyCloseStatus = await getDailyCloseStatus(DEFAULT_ORG_ID);

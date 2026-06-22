@@ -4,7 +4,7 @@ import {
   getCashCounts,
   getCashCountByDate,
   createCashCount,
-  ensureDailyCashCountCycle,
+  ensureTodayCashCountRecord,
   isCashCountLocked,
 } from "@/lib/services/db/cashCounts";
 import { getBusinessToday } from "@/lib/utils/businessDate";
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     );
   }
 
-  await ensureDailyCashCountCycle(DEFAULT_ORG_ID);
+  await ensureTodayCashCountRecord(DEFAULT_ORG_ID);
   const existing = await getCashCountByDate(DEFAULT_ORG_ID, businessToday);
 
   if (existing && isCashCountLocked(existing, businessToday)) {

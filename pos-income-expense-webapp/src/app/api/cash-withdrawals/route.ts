@@ -5,8 +5,8 @@ import {
   getCashWithdrawals,
 } from "@/lib/services/db/cashWithdrawals";
 import {
-  ensureDailyCashCountCycle,
-  refreshOpenCashCountExpected,
+  ensureTodayCashCountRecord,
+  refreshExpectedBalanceQuick,
 } from "@/lib/services/db/cashCounts";
 import { safeCreateAuditLog } from "@/lib/services/db/safeAuditLog";
 import { assertTransactionDateAllowed } from "@/lib/api/transactionDateLock";
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     const dateBlocked = await assertTransactionDateAllowed(withdrawalDate, isAdmin);
     if (dateBlocked) return dateBlocked;
 
-    await ensureDailyCashCountCycle(DEFAULT_ORG_ID);
+    await ensureTodayCashCountRecord(DEFAULT_ORG_ID);
 
     const recordedBy = parsed.data.recordedBy ?? DEFAULT_USER_ID;
     await ensureKioskUserById(recordedBy);
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
       },
     });
 
-    await refreshOpenCashCountExpected(DEFAULT_ORG_ID, withdrawalDate);
+    await refreshExpectedBalanceQuick(DEFAULT_ORG_ID, withdrawalDate);
 
     return NextResponse.json({ data: created }, { status: 201 });
   } catch (e) {

@@ -61,13 +61,7 @@ export function DailyLedgerSummaryPanel({ data, loading, dateLabel }: DailyLedge
           <p className="text-xs text-text-muted">เงินที่ควรมีในเครื่องตามที่บันทึก</p>
         </CardHeader>
         <CardContent className="space-y-2">
-          <LedgerLine label="ยอดเปิดวัน" value={data.cash.opening} />
-          <LedgerLine label="+ รายรับ (สด)" value={data.cash.income} />
-          <LedgerLine label="− รายจ่าย (สด)" value={data.cash.expense} negative />
-          <LedgerLine label="− ถอนออกวันนี้" value={data.cash.withdrawn} negative />
-          {data.cash.deposited > 0 && (
-            <LedgerLine label="+ ฝากเงินสดวันนี้" value={data.cash.deposited} />
-          )}
+          <LedgerLine label="+ ฝากเงินสดวันนี้" value={data.cash.deposited} />
           <div className="my-2 border-t border-border-default" />
           <LedgerLine label="คงเหลือ (สด)" value={data.cash.closing} emphasize />
         </CardContent>
@@ -101,7 +95,7 @@ export function DailyLedgerSummaryPanel({ data, loading, dateLabel }: DailyLedge
               </span>
             )}
           </div>
-          <p className="text-xs text-text-muted">ไม่รวมการถอนเงิน — นับเฉพาะรายรับ/รายจ่าย</p>
+          <p className="text-xs text-text-muted">ไม่รวมฝาก/ถอน — นับเฉพาะรายรับ/รายจ่ายธุรกิจ</p>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-3">

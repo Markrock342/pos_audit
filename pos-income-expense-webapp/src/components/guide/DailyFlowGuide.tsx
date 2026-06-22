@@ -20,9 +20,7 @@ export function DailyFlowGuide() {
       </ol>
 
       <p className="rounded-lg bg-surface-inset px-3 py-2 text-sm text-text-secondary">
-        เช้าใส่เงินทอน → กลางวันจดรายรับ-รายจ่าย → เย็นนับเงินแล้วกด{" "}
-        <strong className="text-text-main">เคลียร์ลิ้นชัก</strong> (เอาเงินออกหมด) →
-        พรุ่งนี้ใส่ทอนใหม่
+        ฝาก + รายรับ(สด) − รายจ่าย(สด) − ถอน = เงินในลิ้นชักวันนี้ → เทียบกับที่นับได้ = เงินขาด/เงินเกิน
       </p>
 
       <div className="space-y-1 border-t border-border-default pt-3 text-sm text-text-muted">

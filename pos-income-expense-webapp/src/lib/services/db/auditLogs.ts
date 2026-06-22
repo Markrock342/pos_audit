@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db/supabase";
+import { businessDayEndIso, businessDayStartIso } from "@/lib/utils/businessDate";
 import { mapAuditLog, toAuditLogInsert } from "@/lib/utils/dbMap";
 import { transactionAuditSnapshot } from "@/lib/utils/auditSnapshot";
 import { getTransactions } from "@/lib/services/db/transactions";
@@ -66,10 +67,10 @@ export async function getAuditLogs(
     q = q.eq("transaction_type", filters.transactionType);
   }
   if (filters?.startDate) {
-    q = q.gte("created_at", `${filters.startDate}T00:00:00.000Z`);
+    q = q.gte("created_at", businessDayStartIso(filters.startDate));
   }
   if (filters?.endDate) {
-    q = q.lte("created_at", `${filters.endDate}T23:59:59.999Z`);
+    q = q.lte("created_at", businessDayEndIso(filters.endDate));
   }
 
   const { data, error } = await q;
@@ -80,11 +81,11 @@ export async function getAuditLogs(
 function applyDateFilters(logs: AuditLog[], filters?: AuditLogFilters): AuditLog[] {
   let result = logs;
   if (filters?.startDate) {
-    const start = `${filters.startDate}T00:00:00.000Z`;
+    const start = businessDayStartIso(filters.startDate);
     result = result.filter((l) => l.createdAt >= start);
   }
   if (filters?.endDate) {
-    const end = `${filters.endDate}T23:59:59.999Z`;
+    const end = businessDayEndIso(filters.endDate);
     result = result.filter((l) => l.createdAt <= end);
   }
   return result;
@@ -136,17 +137,23 @@ export async function getActivityLogs(
     action: includeLegacyCreates ? filters?.action : filters?.action,
   });
 
+  const cashMovementTypes = new Set<AuditLogEntityType>(["cash_deposit", "cash_withdrawal"]);
+  const filteredLogs =
+    filters?.entityType && cashMovementTypes.has(filters.entityType)
+      ? logs
+      : logs.filter((l) => !cashMovementTypes.has(l.entityType));
+
   if (
     !includeLegacyCreates ||
     filters?.entityType === "cash_deposit" ||
     filters?.entityType === "cash_withdrawal"
   ) {
     const users = await getUsers(organizationId);
-    return enrichWithUserNames(logs, organizationId, users);
+    return enrichWithUserNames(filteredLogs, organizationId, users);
   }
 
   const createEntityIds = new Set(
-    logs.filter((l) => l.action === "create").map((l) => l.entityId)
+    filteredLogs.filter((l) => l.action === "create").map((l) => l.entityId)
   );
 
   const transactions = await getTransactions(organizationId, {
@@ -170,7 +177,7 @@ export async function getActivityLogs(
       createdAt: t.createdAt,
     }));
 
-  let merged = [...logs, ...legacyCreates];
+  let merged = [...filteredLogs, ...legacyCreates];
 
   if (filters?.transactionType) {
     merged = merged.filter(

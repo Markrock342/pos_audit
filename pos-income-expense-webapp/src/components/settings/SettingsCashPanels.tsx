@@ -18,6 +18,9 @@ export function SettingsCashPanels() {
       <Card>
         <CardHeader>
           <CardTitle>ลิ้นชักและเครื่องพิมพ์</CardTitle>
+          <p className="text-sm font-normal text-text-muted">
+            ฝาก / ถอนเงินสด — ไม่นับเป็นรายรับ–รายจ่ายธุรกิจ
+          </p>
         </CardHeader>
         <CardContent>
           <HardwareSettingsPanel onMovementSaved={() => setRefreshKey((k) => k + 1)} />
@@ -25,7 +28,10 @@ export function SettingsCashPanels() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>ประวัติการเงินสด</CardTitle>
+          <CardTitle>ประวัติฝาก / ถอน</CardTitle>
+          <p className="text-sm font-normal text-text-muted">
+            บันทึกฝากและถอนเงินสด — แยกจากประวัติรายรับ–รายจ่าย
+          </p>
         </CardHeader>
         <CardContent>
           <CashMovementHistoryPanel refreshKey={refreshKey} />

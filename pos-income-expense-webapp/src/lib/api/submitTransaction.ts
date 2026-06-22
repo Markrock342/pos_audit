@@ -1,3 +1,4 @@
+import { getBusinessToday } from "@/lib/utils/businessDate";
 import { createTransactionApi, invalidateCashCountPageCache } from "@/lib/api/client";
 import { KIOSK_ACCOUNTS, KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
 import {
@@ -23,7 +24,7 @@ export async function submitTransaction(data: TransactionFormValues) {
     title: resolveBillTitle(data.type, data.title, data.lineItems),
     note: data.note?.trim() || undefined,
     paymentMethod: data.paymentMethod,
-    transactionDate: data.transactionDate ?? new Date().toISOString().slice(0, 10),
+    transactionDate: data.transactionDate ?? getBusinessToday(),
     lineItems: data.lineItems.map((item, index) => ({
       title: item.title.trim(),
       quantity: Math.round(item.quantity),

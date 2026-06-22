@@ -49,13 +49,10 @@ export function CashWithdrawDialog({
         amount: value,
         recordedBy,
       });
-      const drawer = await openCashDrawer();
-      if (!drawer.success) {
-        setError(`บันทึกแล้ว แต่เปิดลิ้นชักไม่สำเร็จ: ${drawer.message}`);
-      }
       setAmount("0");
       onSaved?.(created);
-      if (drawer.success) onClose();
+      onClose();
+      void openCashDrawer();
     } catch (e) {
       setError(e instanceof Error ? e.message : "บันทึกถอนไม่สำเร็จ");
     } finally {

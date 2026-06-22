@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { SegmentTabs } from "@/components/ui/SegmentTabs";
 import { fetchCashDeposits, fetchCashWithdrawals } from "@/lib/api/client";
+import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
 import {
   formatCurrency,
   formatDateShort,
@@ -18,23 +19,13 @@ const TABS = [
   { id: "withdraw" as const, label: "ถอน" },
 ];
 
-function getDefaultStartDate() {
-  const d = new Date();
-  d.setDate(d.getDate() - 30);
-  return d.toISOString().slice(0, 10);
-}
-
-function getToday() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 interface CashMovementHistoryPanelProps {
   refreshKey?: number;
 }
 
 export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistoryPanelProps) {
-  const startDate = getDefaultStartDate();
-  const endDate = getToday();
+  const endDate = getBusinessToday();
+  const startDate = shiftBusinessDate(endDate, -30);
   const [activeTab, setActiveTab] = useState<HistoryTab>("deposit");
   const [deposits, setDeposits] = useState<CashDeposit[]>([]);
   const [withdrawals, setWithdrawals] = useState<CashWithdrawal[]>([]);
@@ -72,9 +63,7 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
 
   return (
     <div id="cash-movement-history" className="space-y-4 scroll-mt-4">
-      <p className="text-sm text-text-muted">
-        แสดงรายการ 30 วันล่าสุด — ฝาก/ถอนไม่นับเป็นรายรับ–รายจ่ายธุรกิจ
-      </p>
+      <p className="text-sm text-text-muted">แสดงรายการ 30 วันล่าสุด</p>
 
       <SegmentTabs
         tabs={TABS}
@@ -93,9 +82,7 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
             <p className="text-xl font-black text-income">
               {loading ? "…" : formatCurrency(depositTotal)}
             </p>
-            {!loading && (
-              <p className="text-xs text-text-muted">{deposits.length} รายการ</p>
-            )}
+            {!loading && <p className="text-xs text-text-muted">{deposits.length} รายการ</p>}
           </div>
           {loading ? (
             <p className="text-text-muted">กำลังโหลด...</p>
@@ -130,9 +117,7 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
             <p className="text-xl font-black text-expense">
               {loading ? "…" : formatWithdrawalAmount(withdrawTotal)}
             </p>
-            {!loading && (
-              <p className="text-xs text-text-muted">{withdrawals.length} รายการ</p>
-            )}
+            {!loading && <p className="text-xs text-text-muted">{withdrawals.length} รายการ</p>}
           </div>
           {loading ? (
             <p className="text-text-muted">กำลังโหลด...</p>

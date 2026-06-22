@@ -380,6 +380,35 @@ async function main() {
     getError(r.json)?.code ?? "ok"
   );
 
+  r = await req("POST", "/api/cash-deposits", { amount: 25 });
+  record(
+    "POST cash-deposit",
+    r.status === 201 || r.status === 503,
+    r.status,
+    getError(r.json)?.code ?? "ok"
+  );
+
+  r = await req("GET", `/api/cash-deposits?depositDate=${businessToday}`);
+  const todayDeposits = getData<Array<{ amount: number }>>(r.json) ?? [];
+  record(
+    "GET cash-deposits today",
+    r.status === 200,
+    r.status,
+    `rows=${todayDeposits.length}`
+  );
+
+  r = await req("GET", `/api/audit-logs?startDate=${businessToday}&endDate=${businessToday}`);
+  const auditRows = getData<Array<{ entityType: string }>>(r.json) ?? [];
+  const hasCashInAudit = auditRows.some(
+    (row) => row.entityType === "cash_deposit" || row.entityType === "cash_withdrawal"
+  );
+  record(
+    "audit-logs excludes cash deposit/withdraw",
+    r.status === 200 && !hasCashInAudit,
+    r.status,
+    hasCashInAudit ? "BUG: cash movement in history" : `rows=${auditRows.length}`
+  );
+
   r = await req("GET", `/api/daily-close/${businessToday}`);
   const ledgerDay = getData<{ cash: { withdrawn: number } }>(r.json);
   record("GET /api/daily-close/[date]", r.status === 200, r.status);

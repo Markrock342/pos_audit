@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
-import { ensureDailyCashCountCycle } from "@/lib/services/db/cashCounts";
-import { getDailyLedgerSummary } from "@/lib/services/db/dailyLedger";
+import { getTodayCashCountView } from "@/lib/services/db/cashCountPage";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
 export async function GET() {
   try {
-    const cycle = await ensureDailyCashCountCycle(DEFAULT_ORG_ID);
-    const data =
-      cycle.ledger ??
-      (await getDailyLedgerSummary(DEFAULT_ORG_ID, cycle.businessToday));
-    return NextResponse.json({ data });
+    const view = await getTodayCashCountView(DEFAULT_ORG_ID);
+    return NextResponse.json({ data: view.ledger });
   } catch (e) {
     console.error("[daily-close/today GET]", e);
     return NextResponse.json(
