@@ -6,6 +6,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import { createClient, type PostgrestError } from "@supabase/supabase-js";
+import { ORG_IDS } from "../constants/organizations";
 import { createServiceRoleClient } from "./supabaseAdmin";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -35,19 +36,31 @@ async function clearTable(table: string) {
 }
 
 async function clearDailyCloseTables() {
-  const { data, error } = await db.rpc("fn_admin_clear_daily_close", {
-    p_organization_id: null,
-  });
+  let totalWithdrawals = 0;
+  let totalCounts = 0;
+  let rpcOk = true;
 
-  if (!error && data) {
+  for (const orgId of Object.values(ORG_IDS)) {
+    const { data, error } = await db.rpc("fn_admin_clear_daily_close", {
+      p_organization_id: orgId,
+    });
+
+    if (error) {
+      rpcOk = false;
+      break;
+    }
+
     const payload = data as {
       cash_withdrawals_deleted?: number;
       cash_counts_deleted?: number;
     };
-    console.log(
-      `  ✓ cleared cash_withdrawals (${payload.cash_withdrawals_deleted ?? 0} rows)`
-    );
-    console.log(`  ✓ cleared cash_counts (${payload.cash_counts_deleted ?? 0} rows)`);
+    totalWithdrawals += payload.cash_withdrawals_deleted ?? 0;
+    totalCounts += payload.cash_counts_deleted ?? 0;
+  }
+
+  if (rpcOk) {
+    console.log(`  ✓ cleared cash_withdrawals (${totalWithdrawals} rows)`);
+    console.log(`  ✓ cleared cash_counts (${totalCounts} rows)`);
     return;
   }
 

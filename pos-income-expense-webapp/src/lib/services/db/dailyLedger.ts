@@ -9,6 +9,7 @@ import { getTotalWithdrawnForDate } from "./cashWithdrawals";
 import { getTotalDepositedForDate } from "./cashDeposits";
 import { getOrganization } from "./organizations";
 import { getTransactions } from "./transactions";
+import { isFullDailyReset } from "@/lib/utils/dailyResetMode";
 import type { CashCount, DailyCloseStatus, DailyLedgerSummary, PaymentMethod, Transaction } from "@/types";
 
 /** เงินโอน/บัญชีในสมุด — ทุกช่องทางที่ไม่ใช่เงินสด */
@@ -86,6 +87,11 @@ async function getCashOpeningForDate(
   const row = await getCashCountByDate(organizationId, countDate);
   if (row) return row.openingBalance;
 
+  const org = await getOrganization(organizationId);
+  if (isFullDailyReset(org?.financeConfig)) {
+    return 0;
+  }
+
   const yesterday = getBusinessYesterday(countDate);
   const prev = await getCashCountByDate(organizationId, yesterday);
   if (prev?.closedAt) {
@@ -95,7 +101,6 @@ async function getCashOpeningForDate(
     return calculateExpectedBalance(organizationId, yesterday, prev.openingBalance);
   }
 
-  const org = await getOrganization(organizationId);
   const finance = org?.financeConfig;
   const month = finance?.openingBalanceMonth ?? countDate.slice(0, 7);
   if (countDate >= `${month}-01`) {
@@ -111,13 +116,16 @@ async function getTransferOpeningForDate(
   const row = await getCashCountByDate(organizationId, countDate);
   if (row) return row.openingTransfer ?? 0;
 
+  const org = await getOrganization(organizationId);
+  if (isFullDailyReset(org?.financeConfig)) {
+    return 0;
+  }
+
   const yesterday = getBusinessYesterday(countDate);
   const prev = await getCashCountByDate(organizationId, yesterday);
   if (prev?.closedAt && prev.closingTransfer != null) {
     return prev.closingTransfer;
   }
-
-  const org = await getOrganization(organizationId);
   const finance = org?.financeConfig;
   const month = finance?.openingBalanceMonth ?? countDate.slice(0, 7);
   const monthStart = `${month}-01`;

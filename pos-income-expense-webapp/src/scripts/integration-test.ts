@@ -2,7 +2,11 @@
  * Integration smoke test — รัน: npx tsx src/scripts/integration-test.ts
  * ทดสอบ API รายรับ/รายจ่าย/ปิดยอด ~30 กรณี
  */
-import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local" });
+
+import { ORG_IDS } from "../constants/organizations";
+import { createAnonClient, createServiceRoleClient } from "./supabaseAdmin";
 
 const BASE = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 
@@ -63,6 +67,20 @@ function getError(json: unknown): { code?: string; message?: string } | null {
   return null;
 }
 
+/** ลบปิดยอด/ถอนวันนี้ — ให้รันเทสซ้ำได้ */
+async function reopenTodayCashCountForTests(countDate: string) {
+  if (!countDate) return;
+  const orgId = ORG_IDS.customer;
+  const admin = createServiceRoleClient();
+  if (admin) {
+    await admin.from("cash_withdrawals").delete().eq("organization_id", orgId).eq("withdrawal_date", countDate);
+    await admin.from("cash_counts").delete().eq("organization_id", orgId).eq("count_date", countDate);
+    return;
+  }
+  const anon = createAnonClient();
+  await anon.rpc("fn_admin_clear_daily_close", { p_organization_id: orgId });
+}
+
 async function main() {
   console.log(`\n=== Integration Test @ ${BASE} ===\n`);
 
@@ -93,6 +111,7 @@ async function main() {
   };
   businessToday = todayPayload.businessToday ?? todayPayload.data?.countDate ?? "";
   record("ได้ businessToday", !!businessToday, undefined, businessToday);
+  await reopenTodayCashCountForTests(businessToday);
 
   r = await req("GET", "/api/reports/dashboard");
   record("GET /api/reports/dashboard", r.status === 200, r.status);
@@ -435,6 +454,40 @@ async function main() {
       r.status === 200 && mismatch?.status === "overage",
       r.status,
       mismatch ? `variance=${mismatch.variance}` : undefined
+    );
+  }
+
+  // --- Clear drawer (เคลียร์ลิ้นชัก — ปิดวัน) — หลังทดสอบอื่น เพราะล็อกวัน ---
+  r = await req("GET", "/api/cash-counts/today");
+  const todayForClear = getData<{
+    id?: string;
+    closedAt?: string | null;
+    expectedBalance?: number;
+  }>(r.json);
+  if (todayForClear?.id && !todayForClear.closedAt) {
+    r = await req("POST", "/api/cash-counts/today/clear-drawer", {
+      actualBalance: todayForClear.expectedBalance ?? 0,
+    });
+    record(
+      "POST /api/cash-counts/today/clear-drawer",
+      r.status === 200,
+      r.status,
+      getError(r.json)?.message
+    );
+
+    r = await req("POST", "/api/cash-counts/today/clear-drawer", {});
+    record(
+      "POST clear-drawer when locked → 403",
+      r.status === 403,
+      r.status,
+      getError(r.json)?.code
+    );
+  } else {
+    record(
+      "POST /api/cash-counts/today/clear-drawer",
+      !!todayForClear?.closedAt,
+      undefined,
+      todayForClear?.closedAt ? "already closed" : "no open row"
     );
   }
 

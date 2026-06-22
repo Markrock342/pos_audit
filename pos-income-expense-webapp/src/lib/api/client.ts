@@ -445,6 +445,35 @@ export async function createCashDepositApi(body: {
   return data;
 }
 
+export async function clearDrawerAndCloseDayApi(body?: {
+  actualBalance?: number;
+  note?: string;
+  recordedBy?: string;
+  updatedBy?: string;
+}): Promise<{
+  cashCount: CashCount;
+  withdrawal: CashWithdrawal | null;
+  ledger: DailyLedgerSummary;
+  message: string;
+}> {
+  const { data } = await parseJson<{
+    data: {
+      cashCount: CashCount;
+      withdrawal: CashWithdrawal | null;
+      ledger: DailyLedgerSummary;
+      message: string;
+    };
+  }>(
+    await fetch("/api/cash-counts/today/clear-drawer", {
+      method: "POST",
+      headers: jsonAuthHeaders(),
+      body: JSON.stringify(body ?? {}),
+    })
+  );
+  invalidateCashCountPageCache();
+  return data;
+}
+
 export async function fetchAuditLogs(filters?: {
   startDate?: string;
   endDate?: string;

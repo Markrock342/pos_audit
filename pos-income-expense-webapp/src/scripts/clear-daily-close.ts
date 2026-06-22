@@ -20,30 +20,38 @@ const ALL_ORGS = process.argv.includes("--all");
 
 async function clearViaRpc(): Promise<{ withdrawals: number; counts: number } | null> {
   const db = createAnonClient();
-  const orgId = ALL_ORGS ? null : ORG_IDS.customer;
-  const { data, error } = await db.rpc("fn_admin_clear_daily_close", {
-    p_organization_id: orgId,
-  });
+  const orgIds = ALL_ORGS ? Object.values(ORG_IDS) : [ORG_IDS.customer];
+  let totalWithdrawals = 0;
+  let totalCounts = 0;
+  let rpcMissing = false;
 
-  if (error) {
-    if (
-      error.message.includes("Could not find the function") ||
-      error.message.includes("schema cache")
-    ) {
-      return null;
+  for (const orgId of orgIds) {
+    const { data, error } = await db.rpc("fn_admin_clear_daily_close", {
+      p_organization_id: orgId,
+    });
+
+    if (error) {
+      if (
+        error.message.includes("Could not find the function") ||
+        error.message.includes("schema cache")
+      ) {
+        rpcMissing = true;
+        break;
+      }
+      throw error;
     }
-    throw error;
+
+    const payload = data as {
+      cash_withdrawals_deleted?: number;
+      cash_counts_deleted?: number;
+    };
+    totalWithdrawals += payload.cash_withdrawals_deleted ?? 0;
+    totalCounts += payload.cash_counts_deleted ?? 0;
   }
 
-  const payload = data as {
-    cash_withdrawals_deleted?: number;
-    cash_counts_deleted?: number;
-  };
+  if (rpcMissing) return null;
 
-  return {
-    withdrawals: payload.cash_withdrawals_deleted ?? 0,
-    counts: payload.cash_counts_deleted ?? 0,
-  };
+  return { withdrawals: totalWithdrawals, counts: totalCounts };
 }
 
 async function clearViaServiceRole(): Promise<void> {

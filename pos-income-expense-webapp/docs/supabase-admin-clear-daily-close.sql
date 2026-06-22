@@ -23,9 +23,10 @@ DECLARE
   v_counts INT := 0;
 BEGIN
   IF p_organization_id IS NULL THEN
-    DELETE FROM cash_withdrawals;
+    -- Supabase rejects DELETE without WHERE — match all rows explicitly
+    DELETE FROM cash_withdrawals WHERE id IS NOT NULL;
     GET DIAGNOSTICS v_withdrawals = ROW_COUNT;
-    DELETE FROM cash_counts;
+    DELETE FROM cash_counts WHERE id IS NOT NULL;
     GET DIAGNOSTICS v_counts = ROW_COUNT;
   ELSE
     DELETE FROM cash_withdrawals WHERE organization_id = p_organization_id;

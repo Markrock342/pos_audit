@@ -71,6 +71,8 @@ export interface FinanceConfig {
   openingSavingsBalance?: number;
   /** เดือนที่ตั้งยอดยกมา (YYYY-MM) */
   openingBalanceMonth?: string;
+  /** full_reset = เคลียร์ลิ้นชักทุกเย็น วันใหม่ opening เป็น 0 (ค่าเริ่มต้น) */
+  dailyResetMode?: "full_reset" | "carry_forward";
 }
 
 export interface Organization {

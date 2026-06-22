@@ -6,10 +6,12 @@ import {
   isPastBusinessDate,
 } from "@/lib/utils/businessDate";
 import { getTransactions } from "./transactions";
-import { getTotalWithdrawnForDate } from "./cashWithdrawals";
+import { getTotalWithdrawnForDate, createCashWithdrawal } from "./cashWithdrawals";
 import { getTotalDepositedForDate } from "./cashDeposits";
+import { getOrganization } from "./organizations";
 import { getDailyLedgerSummary, ledgerPatchFromSummary, summaryFromStoredLedgerFields } from "./dailyLedger";
-import type { CashCount, CashCountStatus, DailyLedgerSummary } from "@/types";
+import { isFullDailyReset } from "@/lib/utils/dailyResetMode";
+import type { CashCount, CashCountStatus, CashWithdrawal, DailyLedgerSummary } from "@/types";
 
 const TABLE = "cash_counts";
 
@@ -108,12 +110,106 @@ async function resolveOpeningBalance(
   organizationId: string,
   countDate: string
 ): Promise<{ cash: number; transfer: number }> {
+  const org = await getOrganization(organizationId);
+  if (isFullDailyReset(org?.financeConfig)) {
+    return { cash: 0, transfer: 0 };
+  }
+
   const yesterday = getBusinessYesterday(countDate);
   const prev = await getCashCountByDate(organizationId, yesterday);
   const ledger = await getDailyLedgerSummary(organizationId, countDate);
   return {
     cash: prev?.closingCash ?? prev?.actualBalance ?? ledger.cash.opening,
     transfer: prev?.closingTransfer ?? ledger.transfer.opening,
+  };
+}
+
+export const CLEAR_DRAWER_NOTE = "เคลียร์ลิ้นชักประจำวัน";
+
+/** เย็น — นับเงิน → ถอนออกหมดตามยอดคงเหลือ → ปิดวัน (variance คำนวณก่อนเคลียร์) */
+export async function clearDrawerAndCloseDay(
+  organizationId: string,
+  options?: {
+    actualBalance?: number;
+    note?: string;
+    recordedBy?: string;
+    updatedBy?: string;
+  }
+): Promise<{
+  cashCount: CashCount;
+  withdrawal: CashWithdrawal | null;
+  ledger: DailyLedgerSummary;
+}> {
+  const businessToday = getBusinessToday();
+  await ensureDailyCashCountCycle(organizationId, { syncLedger: true });
+
+  const record = await getCashCountByDate(organizationId, businessToday);
+  if (!record) throw new Error("ไม่พบข้อมูลวันนี้ — ลอง refresh หน้าใหม่");
+  if (record.closedAt) throw new Error("วันนี้ปิดยอดแล้ว — ไม่สามารถเคลียร์ซ้ำได้");
+
+  const ledgerBefore = await getDailyLedgerSummary(organizationId, businessToday, {
+    forceRecalc: true,
+  });
+  const expectedAtCount = ledgerBefore.cash.closing;
+
+  const actualAtCount =
+    options?.actualBalance ??
+    (record.hasManualCount ? record.actualBalance : expectedAtCount);
+
+  if (Number.isNaN(actualAtCount) || actualAtCount < 0) {
+    throw new Error("กรุณากรอกยอดเงินที่นับได้ก่อนเคลียร์ลิ้นชัก");
+  }
+
+  const variance = actualAtCount - expectedAtCount;
+  const status = determineStatus(variance);
+  const now = new Date().toISOString();
+
+  let withdrawal: CashWithdrawal | null = null;
+  if (expectedAtCount > 0) {
+    withdrawal = await createCashWithdrawal({
+      organizationId,
+      withdrawalDate: businessToday,
+      amount: expectedAtCount,
+      note: CLEAR_DRAWER_NOTE,
+      recordedBy: options?.recordedBy,
+    });
+  }
+
+  const ledgerAfter = await getDailyLedgerSummary(organizationId, businessToday, {
+    forceRecalc: true,
+  });
+
+  const note = options?.note?.trim()
+    ? appendNote(record.note, options.note.trim())
+    : record.note;
+
+  const patch: Record<string, unknown> = {
+    ...ledgerPatchFromSummary(ledgerAfter),
+    actual_balance: actualAtCount,
+    expected_balance: expectedAtCount,
+    variance,
+    status,
+    has_manual_count: true,
+    closed_at: now,
+    closing_type: "manual",
+    auto_closed: false,
+    note: note ?? null,
+    updated_at: now,
+    updated_by: options?.updatedBy ?? null,
+  };
+
+  const { data: updated, error } = await getDb()
+    .from(TABLE)
+    .update(patch)
+    .eq("id", record.id)
+    .select()
+    .single();
+  if (error) throw error;
+
+  return {
+    cashCount: mapCashCount(updated as Record<string, unknown>),
+    withdrawal,
+    ledger: ledgerAfter,
   };
 }
 
