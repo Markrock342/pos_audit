@@ -70,7 +70,12 @@ function applyWithdrawalToLedger(
   amount: number
 ): DailyLedgerSummary {
   const withdrawn = ledger.cash.withdrawn + amount;
-  const closing = ledger.cash.opening + ledger.cash.income - ledger.cash.expense - withdrawn;
+  const closing =
+    ledger.cash.opening +
+    ledger.cash.income -
+    ledger.cash.expense -
+    withdrawn +
+    ledger.cash.deposited;
   return {
     ...ledger,
     cash: { ...ledger.cash, withdrawn, closing },

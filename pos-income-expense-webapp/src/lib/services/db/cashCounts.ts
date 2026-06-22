@@ -475,7 +475,9 @@ export async function refreshOpenDailyCloseRecord(
   const row = await getCashCountByDate(organizationId, countDate);
   if (!row || row.closedAt) return;
 
-  const ledger = summary ?? (await getDailyLedgerSummary(organizationId, countDate));
+  const ledger =
+    summary ??
+    (await getDailyLedgerSummary(organizationId, countDate, { forceRecalc: true }));
   const variance = row.actualBalance - ledger.cash.closing;
 
   await getDb()

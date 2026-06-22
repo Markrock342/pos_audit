@@ -201,8 +201,11 @@ export async function getDailyLedgerSummary(
   if (!options?.forceRecalc && cashCount) {
     const snapshot = summaryFromCashCountSnapshot(cashCount, countDate, businessToday);
     if (snapshot) return snapshot;
-    const stored = summaryFromStoredLedgerFields(cashCount, countDate, businessToday);
-    if (stored) return stored;
+    // วันที่ยังไม่ปิด — ต้องคำนวณใหม่เสมอ (ฝาก/ถอนอาจเปลี่ยนหลัง sync snapshot)
+    if (cashCount.closedAt) {
+      const stored = summaryFromStoredLedgerFields(cashCount, countDate, businessToday);
+      if (stored) return stored;
+    }
   }
 
   const transactions =
