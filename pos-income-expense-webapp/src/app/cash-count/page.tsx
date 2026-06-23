@@ -26,6 +26,8 @@ import {
 
   CASH_COUNT_PAGE_CACHE_KEY,
 
+  clearDrawerAndCloseDayApi,
+
   fetchCashCountPageData,
 
   invalidateCashCountPageCache,
@@ -143,6 +145,8 @@ export default function CashCountPage() {
   const [loading, setLoading] = useState(true);
 
   const [saving, setSaving] = useState(false);
+
+  const [clearing, setClearing] = useState(false);
 
   const [message, setMessage] = useState<string | null>(null);
 
@@ -396,6 +400,59 @@ export default function CashCountPage() {
 
 
 
+  const handleClearDrawer = async () => {
+    if (readOnly || clearing) return;
+
+    let actualForClear: number | undefined;
+    if (actualTouched) {
+      const actual = parseFloat(actualBalance);
+      if (Number.isNaN(actual) || actual < 0) {
+        setMessage("กรุณากรอกยอดเงินที่นับได้ก่อนเคลียร์ลิ้นชัก");
+        return;
+      }
+      actualForClear = actual;
+    }
+
+    const closingAmount = ledger?.cash.closing ?? expectedBalance;
+    const confirmMsg =
+      closingAmount > 0
+        ? `เคลียร์ลิ้นชัก — นำเงินออก ${formatCurrency(closingAmount)} และปิดวัน?\n\nยอดรับ-จ่ายบนหน้าหลักจะเคลียร์เป็น 0 · ดูประวัติได้ที่แท็บ ประวัติ`
+        : "ปิดวัน (ลิ้นชักว่างแล้ว)?";
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setClearing(true);
+    setMessage(null);
+    try {
+      if (existing && actualForClear != null) {
+        await updateCashCountApi(existing.id, {
+          openingBalance: 0,
+          actualBalance: actualForClear,
+          note: note.trim() || undefined,
+          updatedBy: session?.userId,
+        });
+      }
+
+      const result = await clearDrawerAndCloseDayApi({
+        actualBalance: actualForClear,
+        note: note.trim() || undefined,
+        recordedBy: session?.userId,
+        updatedBy: session?.userId,
+      });
+
+      setMessage(result.message);
+      setHistoryKey((k) => k + 1);
+      clearPageCache();
+      await load({ skipCache: true });
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "เคลียร์ลิ้นชักไม่สำเร็จ");
+    } finally {
+      setClearing(false);
+    }
+  };
+
+
+
   const actualNum = parseFloat(actualBalance);
 
   const showVariance = actualTouched && !Number.isNaN(actualNum) && actualBalance !== "";
@@ -412,7 +469,7 @@ export default function CashCountPage() {
 
   return (
 
-    <AppLayout title="สรุปปิดยอด" subtitle="เงินในลิ้นชักวันนี้ · โอนตามสมุด · ปิดอัตโนมัติเที่ยงคืน">
+    <AppLayout title="สรุปปิดยอด" subtitle="เช้าใส่ทอน/ฝาก · กลางวันบันทึกรายการ · เย็นเคลียร์ลิ้นชัก">
 
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6">
 
@@ -570,7 +627,7 @@ export default function CashCountPage() {
 
                         <p className="rounded-xl bg-surface-inset px-4 py-3 text-sm text-text-muted">
 
-                          กรอกยอดเงินสดที่นับได้จริง แล้วกดบันทึกปิดยอด
+                          กรอกยอดเงินสดที่นับได้จริง แล้วกด เคลียร์ลิ้นชัก — ปิดวัน
 
                         </p>
 
@@ -648,9 +705,29 @@ export default function CashCountPage() {
 
                         size="lg"
 
+                        variant="outline"
+
                         onClick={handleSave}
 
-                        disabled={saving || readOnly}
+                        disabled={saving || clearing || readOnly}
+
+                      >
+
+                        {saving ? "กำลังบันทึก..." : "บันทึกยอดนับ"}
+
+                      </Button>
+
+                      <Button
+
+                        className="w-full"
+
+                        size="lg"
+
+                        variant="danger"
+
+                        onClick={handleClearDrawer}
+
+                        disabled={saving || clearing || readOnly}
 
                       >
 
@@ -658,15 +735,11 @@ export default function CashCountPage() {
 
                           ? "ปิดยอดแล้ว"
 
-                          : saving
+                          : clearing
 
-                            ? "กำลังบันทึก..."
+                            ? "กำลังเคลียร์..."
 
-                            : existing?.hasManualCount
-
-                              ? "อัปเดตปิดยอด"
-
-                              : "บันทึกปิดยอด"}
+                            : "เคลียร์ลิ้นชัก — ปิดวัน"}
 
                       </Button>
 

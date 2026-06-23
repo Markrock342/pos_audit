@@ -1,6 +1,6 @@
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getCategories } from "@/lib/services/db/categories";
-import { getDailyCloseStatus } from "@/lib/services/db/dailyLedger";
+import { getDailyCloseStatus, getDailyLedgerSummary } from "@/lib/services/db/dailyLedger";
 import type { DashboardData } from "@/lib/services/db/reports";
 import { getTransactions } from "@/lib/services/db/transactions";
 import {
@@ -54,6 +54,7 @@ export async function loadChartTransactions(days = 6): Promise<Transaction[]> {
 
 export type DashboardPageData = {
   dashboardData: DashboardData;
+  todayLedger: Awaited<ReturnType<typeof getDailyLedgerSummary>> | null;
   categories: Category[];
   chartTransactions: Transaction[];
   recentTransactions: Transaction[];
@@ -84,6 +85,10 @@ export async function loadDashboardPageData(): Promise<DashboardPageData> {
     dayTransactions: todayTransactions,
   });
 
+  const todayLedger = await getDailyLedgerSummary(DEFAULT_ORG_ID, today, {
+    dayTransactions: todayTransactions,
+  });
+
   const sum = (rows: Transaction[], type: "income" | "expense") =>
     rows.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
 
@@ -103,6 +108,7 @@ export async function loadDashboardPageData(): Promise<DashboardPageData> {
 
   return {
     dashboardData,
+    todayLedger,
     categories,
     chartTransactions: transactions.filter((t) => t.transactionDate >= chartStart),
     recentTransactions: transactions.slice(0, 5),

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DailyCloseStatusCard } from "@/components/cash-count/DailyCloseStatusCard";
 import { DashboardLiveRefresh } from "@/components/dashboard/DashboardLiveRefresh";
+import { PosAccountSummaryCard } from "@/components/dashboard/PosAccountSummaryCard";
 import { SummaryCards } from "@/components/SummaryCards";
 import { RecentTransactionList } from "@/components/RecentTransactionList";
 import { IncomeExpenseChart } from "@/components/charts/IncomeExpenseChartLazy";
@@ -15,7 +16,7 @@ import { buildChartData } from "@/lib/reports/summary";
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  const { dashboardData, categories, chartTransactions, recentTransactions } =
+  const { dashboardData, todayLedger, categories, chartTransactions, recentTransactions } =
     await loadDashboardPageData();
 
   const summary = {
@@ -35,6 +36,13 @@ export default async function DashboardPage() {
       <div className="pos-page gap-3 2xl:gap-4">
         <div className="pos-stat-compact shrink-0">
           <SummaryCards summary={summary} dailyCloseStatus={dashboardData.dailyCloseStatus} />
+        </div>
+
+        <div className="shrink-0">
+          <PosAccountSummaryCard
+            ledger={todayLedger}
+            status={dashboardData.dailyCloseStatus}
+          />
         </div>
 
         <div className="shrink-0">

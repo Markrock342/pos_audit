@@ -61,9 +61,17 @@ export function DailyLedgerSummaryPanel({ data, loading, dateLabel }: DailyLedge
           <p className="text-xs text-text-muted">เงินที่ควรมีในเครื่องตามที่บันทึก</p>
         </CardHeader>
         <CardContent className="space-y-2">
-          <LedgerLine label="+ ฝากเงินสดวันนี้" value={data.cash.deposited} />
+          <LedgerLine label="เงินทอนตอนเช้า" value={data.cash.opening} />
+          {data.cash.deposited > 0 && (
+            <LedgerLine label="+ ฝากเงินสดวันนี้" value={data.cash.deposited} />
+          )}
+          <LedgerLine label="+ รายรับ (สด)" value={data.cash.income} />
+          <LedgerLine label="− รายจ่าย (สด)" value={data.cash.expense} negative />
+          {data.cash.withdrawn > 0 && (
+            <LedgerLine label="− ถอนออกวันนี้" value={data.cash.withdrawn} negative />
+          )}
           <div className="my-2 border-t border-border-default" />
-          <LedgerLine label="คงเหลือ (สด)" value={data.cash.closing} emphasize />
+          <LedgerLine label="เงินใน POS (คงเหลือ)" value={data.cash.closing} emphasize />
         </CardContent>
       </Card>
 
