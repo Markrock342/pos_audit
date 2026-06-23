@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { DailyCloseStatusCard } from "@/components/cash-count/DailyCloseStatusCard";
-import { DashboardLiveRefresh } from "@/components/dashboard/DashboardLiveRefresh";
-import { PosAccountSummaryCard } from "@/components/dashboard/PosAccountSummaryCard";
-import { SummaryCards } from "@/components/SummaryCards";
+import { DashboardLiveSummary } from "@/components/dashboard/DashboardLiveSummary";
 import { RecentTransactionList } from "@/components/RecentTransactionList";
 import { IncomeExpenseChart } from "@/components/charts/IncomeExpenseChartLazy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -32,22 +29,12 @@ export default async function DashboardPage() {
 
   return (
     <AppLayout title="ภาพรวม">
-      <DashboardLiveRefresh />
       <div className="pos-page gap-3 2xl:gap-4">
-        <div className="pos-stat-compact shrink-0">
-          <SummaryCards summary={summary} dailyCloseStatus={dashboardData.dailyCloseStatus} />
-        </div>
-
-        <div className="shrink-0">
-          <PosAccountSummaryCard
-            ledger={todayLedger}
-            status={dashboardData.dailyCloseStatus}
-          />
-        </div>
-
-        <div className="shrink-0">
-          <DailyCloseStatusCard status={dashboardData.dailyCloseStatus} />
-        </div>
+        <DashboardLiveSummary
+          initialSummary={summary}
+          initialStatus={dashboardData.dailyCloseStatus}
+          initialLedger={todayLedger}
+        />
 
         <div className="pos-dashboard-actions grid shrink-0 grid-cols-2 gap-3 2xl:gap-3">
           <Link href="/income/add" prefetch>

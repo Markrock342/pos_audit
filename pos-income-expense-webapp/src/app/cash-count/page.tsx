@@ -378,7 +378,7 @@ export default function CashCountPage() {
 
       }
 
-      setMessage("บันทึกปิดยอดเงินสดแล้ว");
+      setMessage("บันทึกยอดนับแล้ว — ยังไม่ปิดวัน · กดเคลียร์ลิ้นชักเมื่อจบวัน");
 
       setHistoryKey((k) => k + 1);
 
@@ -443,7 +443,7 @@ export default function CashCountPage() {
       setMessage(result.message);
       setHistoryKey((k) => k + 1);
       clearPageCache();
-      await load({ skipCache: true });
+      window.location.href = "/dashboard";
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "เคลียร์ลิ้นชักไม่สำเร็จ");
     } finally {
@@ -705,24 +705,6 @@ export default function CashCountPage() {
 
                         size="lg"
 
-                        variant="outline"
-
-                        onClick={handleSave}
-
-                        disabled={saving || clearing || readOnly}
-
-                      >
-
-                        {saving ? "กำลังบันทึก..." : "บันทึกยอดนับ"}
-
-                      </Button>
-
-                      <Button
-
-                        className="w-full"
-
-                        size="lg"
-
                         variant="danger"
 
                         onClick={handleClearDrawer}
@@ -739,7 +721,25 @@ export default function CashCountPage() {
 
                             ? "กำลังเคลียร์..."
 
-                            : "เคลียร์ลิ้นชัก — ปิดวัน"}
+                            : "เคลียร์ลิ้นชัก — ปิดวัน (เคลียร์ยอดหน้าหลัก)"}
+
+                      </Button>
+
+                      <Button
+
+                        className="w-full"
+
+                        size="sm"
+
+                        variant="ghost"
+
+                        onClick={handleSave}
+
+                        disabled={saving || clearing || readOnly}
+
+                      >
+
+                        {saving ? "กำลังบันทึก..." : "บันทึกยอดนับอย่างเดียว (ยังไม่ปิดวัน)"}
 
                       </Button>
 
