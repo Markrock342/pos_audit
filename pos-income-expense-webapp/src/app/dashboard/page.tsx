@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { DashboardCloseHistoryPanel } from "@/components/dashboard/DashboardCloseHistoryPanel";
 import { DashboardLiveSummary } from "@/components/dashboard/DashboardLiveSummary";
-import { DashboardTransactionHistoryPanel } from "@/components/dashboard/DashboardTransactionHistoryPanel";
 import { Button } from "@/components/ui/Button";
 import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { loadDashboardPageData } from "@/lib/data/loader";
@@ -11,7 +9,7 @@ import { loadDashboardPageData } from "@/lib/data/loader";
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  const { dashboardData, todayLedger, activityLogs, closeHistory } = await loadDashboardPageData();
+  const { dashboardData, todayLedger } = await loadDashboardPageData();
 
   const summary = {
     todayIncome: dashboardData.todayIncome,
@@ -45,11 +43,6 @@ export default async function DashboardPage() {
               เพิ่มรายจ่าย
             </Button>
           </Link>
-        </div>
-
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 2xl:grid-cols-3 2xl:gap-4">
-          <DashboardTransactionHistoryPanel logs={activityLogs} />
-          <DashboardCloseHistoryPanel items={closeHistory} />
         </div>
       </div>
     </AppLayout>

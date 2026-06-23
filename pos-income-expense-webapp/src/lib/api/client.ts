@@ -74,12 +74,30 @@ function jsonAuthHeaders(): HeadersInit {
   return { "Content-Type": "application/json", ...kioskAuthHeaders() };
 }
 
-export async function fetchTransactions(type?: "income" | "expense"): Promise<Transaction[]> {
-  const params = new URLSearchParams({ status: "active" });
+export async function fetchTransactions(
+  type?: "income" | "expense",
+  businessDate?: string
+): Promise<Transaction[]> {
+  const params = new URLSearchParams({ status: "active", includeLineItems: "false" });
   if (type) params.set("type", type);
+  if (businessDate) {
+    params.set("startDate", businessDate);
+    params.set("endDate", businessDate);
+  }
   const { data } = await parseJson<{ data: Transaction[] }>(
     await fetch(`/api/transactions?${params}`)
   );
+  return data;
+}
+
+export async function fetchActiveDayListPage(type: "income" | "expense"): Promise<{
+  transactions: Transaction[];
+  categories: Category[];
+  dayCleared: boolean;
+}> {
+  const { data } = await parseJson<{
+    data: { transactions: Transaction[]; categories: Category[]; dayCleared: boolean };
+  }>(await fetch(`/api/transactions/list-page?type=${type}`, { cache: "no-store" }));
   return data;
 }
 

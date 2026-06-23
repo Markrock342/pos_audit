@@ -26,13 +26,14 @@ export async function GET(request: Request) {
   const status = searchParams.get("status") as Transaction["status"] | null;
   const startDate = searchParams.get("startDate") ?? undefined;
   const endDate = searchParams.get("endDate") ?? undefined;
+  const includeLineItems = searchParams.get("includeLineItems") !== "false";
 
   const data = await getTransactions(DEFAULT_ORG_ID, {
     type: type ?? undefined,
     status: status ?? undefined,
     startDate,
     endDate,
-  });
+  }, { includeLineItems });
 
   return NextResponse.json({ data, total: data.length });
 }

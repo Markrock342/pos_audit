@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { useTransactions } from "@/hooks/useTransactions";
+import { useActiveDayTransactions } from "@/hooks/useActiveDayTransactions";
 import { formatCurrency } from "@/lib/utils/format";
 import type { Transaction } from "@/types";
 import { ArrowDownCircle, TrendingDown, CreditCard } from "lucide-react";
@@ -23,7 +23,8 @@ function sortNewestFirst(items: Transaction[]): Transaction[] {
 export default function ExpenseListPage() {
   const [search, setSearch] = useState("");
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const { transactions, categories, loading, error, reload } = useTransactions("expense");
+  const { transactions, categories, loading, error, dayCleared, reload } =
+    useActiveDayTransactions("expense");
 
   const filtered = useMemo(() => {
     const list = search
@@ -55,6 +56,12 @@ export default function ExpenseListPage() {
           </p>
         )}
 
+        {dayCleared && (
+          <p className="shrink-0 rounded-xl border-2 border-amber-400/60 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-800 dark:text-amber-200">
+            ปิดยอดแล้ว — รายการวันนี้ถูกเคลียร์ · แก้ไขได้ที่ สรุปปิดยอด → แก้ไขปิดยอด (PIN)
+          </p>
+        )}
+
         <Card className="shrink-0 border-t-4 border-t-expense 2xl:hidden">
           <CardContent className="py-4">
             <div className="flex items-center justify-between gap-4">
@@ -67,12 +74,14 @@ export default function ExpenseListPage() {
                   {loading ? "..." : `${filtered.length} รายการ`}
                 </p>
               </div>
-              <Link href="/expense/add">
-                <Button variant="danger" size="lg" className="min-h-[56px] gap-2 px-5">
-                  <ArrowDownCircle size={22} />
-                  เพิ่ม
-                </Button>
-              </Link>
+              {!dayCleared && (
+                <Link href="/expense/add">
+                  <Button variant="danger" size="lg" className="min-h-[56px] gap-2 px-5">
+                    <ArrowDownCircle size={22} />
+                    เพิ่ม
+                  </Button>
+                </Link>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -126,12 +135,14 @@ export default function ExpenseListPage() {
                 placeholder="ค้นหารายการรายจ่าย..."
                 wrapperClassName="flex-1"
               />
-              <Link href="/expense/add">
-                <Button variant="danger" size="lg" className="gap-2 whitespace-nowrap px-4">
-                  <ArrowDownCircle size={20} />
-                  เพิ่ม
-                </Button>
-              </Link>
+              {!dayCleared && (
+                <Link href="/expense/add">
+                  <Button variant="danger" size="lg" className="gap-2 whitespace-nowrap px-4">
+                    <ArrowDownCircle size={20} />
+                    เพิ่ม
+                  </Button>
+                </Link>
+              )}
             </div>
 
             <SearchBar
@@ -172,14 +183,16 @@ export default function ExpenseListPage() {
                   <p className="py-12 text-center text-text-muted">กำลังโหลด...</p>
                 ) : filtered.length === 0 ? (
                   <EmptyState
-                    title="ไม่พบรายการ"
+                    title={dayCleared ? "ปิดยอดแล้ว" : "ไม่พบรายการ"}
                     message={
-                      search
-                        ? `ไม่พบ "${search}" ในรายการรายจ่าย`
-                        : "ยังไม่มีรายจ่าย — เริ่มบันทึกรายการแรก"
+                      dayCleared
+                        ? "รายการวันนี้ถูกเคลียร์ — เปิดแก้ไขปิดยอดที่หน้าสรุปปิดยอดเพื่อดู/แก้ไข"
+                        : search
+                          ? `ไม่พบ "${search}" ในรายการรายจ่าย`
+                          : "ยังไม่มีรายจ่าย — เริ่มบันทึกรายการแรก"
                     }
-                    actionHref="/expense/add"
-                    actionLabel="+ เพิ่มรายจ่าย"
+                    actionHref={dayCleared ? undefined : "/expense/add"}
+                    actionLabel={dayCleared ? undefined : "+ เพิ่มรายจ่าย"}
                   />
                 ) : (
                   <TransactionTable

@@ -192,54 +192,34 @@ export async function loadCashCountPageData(organizationId: string): Promise<Cas
 
 
 
-/** โหลด snapshot วันนี้ — ใช้ใน API /today (ไม่ดึง history) */
-
+/** โหลด snapshot วันนี้ — อ่านอย่างเดียว ไม่ sync ledger (sync หลัง mutation เท่านั้น) */
 export async function getTodayCashCountView(organizationId: string) {
-
   const businessToday = getBusinessToday();
-
   let record = await getCashCountByDate(organizationId, businessToday);
 
   if (!record) {
-
     record = await ensureTodayCashCountRecord(organizationId);
-
   }
 
+  const storedLedger =
+    record &&
+    (record.closedAt || record.cashIncome != null || record.totalIncome != null)
+      ? summaryFromStoredLedgerFields(record, businessToday, businessToday)
+      : null;
 
-
-  if (record && !record.closedAt) {
-
-    await refreshExpectedBalanceQuick(organizationId, businessToday);
-
-    record = (await getCashCountByDate(organizationId, businessToday)) ?? record;
-
-  }
-
-
-
-  const ledger = await getDailyLedgerSummary(organizationId, businessToday);
+  const ledger =
+    storedLedger ?? (await getDailyLedgerSummary(organizationId, businessToday));
 
   const expectedBalance = record?.closedAt ? record.expectedBalance : ledger.cash.closing;
 
-
-
   return {
-
     businessToday,
-
     record,
-
     expectedBalance,
-
     openingBalance: record?.openingBalance ?? ledger.cash.opening,
-
     isLocked: !!record?.closedAt,
-
     ledger,
-
   };
-
 }
 
 

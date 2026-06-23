@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -14,6 +15,7 @@
     "db:status": "tsx src/scripts/db-status.ts",
     "db:cleanup-test": "tsx src/scripts/cleanup-test-data.ts",
     "test:integration": "tsx src/scripts/integration-test.ts",
+    "test:close-edit": "tsx src/scripts/close-edit-cycle-test.ts",
     "test:readonly": "tsx src/scripts/readonly-smoke-test.ts",
     "bridge": "node hardware-bridge/server.mjs"
   },

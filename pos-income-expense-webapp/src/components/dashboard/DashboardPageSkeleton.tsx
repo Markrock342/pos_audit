@@ -51,32 +51,6 @@ export function DashboardPageSkeleton() {
           <Skeleton className="skeleton-soft min-h-[72px] rounded-2xl 2xl:min-h-[56px]" />
           <Skeleton className="skeleton-soft min-h-[72px] rounded-2xl 2xl:min-h-[56px]" />
         </div>
-
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 2xl:grid-cols-3 2xl:gap-4">
-          <Card className="flex min-h-0 flex-col 2xl:col-span-2">
-            <CardHeader className="flex shrink-0 flex-row items-center justify-between pb-2 2xl:py-3">
-              <Skeleton className="skeleton-soft h-6 w-36" rounded="md" />
-              <Skeleton className="skeleton-soft h-9 w-20" rounded="xl" />
-            </CardHeader>
-            <CardContent className="min-h-0 flex-1 space-y-2 pb-4">
-              {[0, 1, 2, 3].map((i) => (
-                <Skeleton key={i} className="skeleton-soft h-16 w-full" rounded="xl" />
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="flex min-h-0 flex-col">
-            <CardHeader className="flex shrink-0 flex-row items-center justify-between py-3">
-              <Skeleton className="skeleton-soft h-6 w-32" rounded="md" />
-              <Skeleton className="skeleton-soft h-9 w-20" rounded="xl" />
-            </CardHeader>
-            <CardContent className="min-h-0 flex-1 space-y-2 pb-4">
-              {[0, 1, 2].map((i) => (
-                <Skeleton key={i} className="skeleton-soft h-14 w-full" rounded="xl" />
-              ))}
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </AppLayout>
   );

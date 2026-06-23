@@ -135,45 +135,28 @@ export async function getDailyChart(
 export async function getDashboard(): Promise<DashboardData> {
   const today = getBusinessToday();
   const monthStart = `${today.slice(0, 7)}-01`;
-  const monthEnd = today;
 
-  // Active transactions for today
-  const todayTransactions = await getTransactions(DEFAULT_ORG_ID, {
-    startDate: today,
-    endDate: today,
-    status: "active",
-  });
+  const monthTransactions = await getTransactions(
+    DEFAULT_ORG_ID,
+    { startDate: monthStart, endDate: today, status: "active" },
+    { includeLineItems: false }
+  );
 
-  const todayIncome = todayTransactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const todayTransactions = monthTransactions.filter((t) => t.transactionDate === today);
 
-  const todayExpense = todayTransactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  // Active transactions for current month
-  const monthTransactions = await getTransactions(DEFAULT_ORG_ID, {
-    startDate: monthStart,
-    endDate: monthEnd,
-    status: "active",
-  });
-
-  const monthIncome = monthTransactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const monthExpense = monthTransactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const sum = (rows: typeof monthTransactions, type: "income" | "expense") =>
+    rows.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
 
   const dailyCloseStatus = await getDailyCloseStatus(DEFAULT_ORG_ID, {
     dayTransactions: todayTransactions,
   });
 
+  const monthIncome = sum(monthTransactions, "income");
+  const monthExpense = sum(monthTransactions, "expense");
+
   return {
-    todayIncome: activeTodayIncome(todayIncome, dailyCloseStatus),
-    todayExpense: activeTodayExpense(todayExpense, dailyCloseStatus),
+    todayIncome: activeTodayIncome(sum(todayTransactions, "income"), dailyCloseStatus),
+    todayExpense: activeTodayExpense(sum(todayTransactions, "expense"), dailyCloseStatus),
     monthIncome,
     monthExpense,
     netProfit: monthIncome - monthExpense,

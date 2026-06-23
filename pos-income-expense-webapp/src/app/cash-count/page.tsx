@@ -798,7 +798,7 @@ export default function CashCountPage() {
 
               <CardContent>
 
-                <CashMovementHistoryPanel refreshKey={movementRefreshKey} />
+                <CashMovementHistoryPanel refreshKey={movementRefreshKey} dayCleared={readOnly} />
 
               </CardContent>
 

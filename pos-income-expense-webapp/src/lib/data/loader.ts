@@ -1,8 +1,7 @@
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
-import { getActivityLogs } from "@/lib/services/db/auditLogs";
-import { getCashCounts } from "@/lib/services/db/cashCounts";
+import { getCashCountByDate } from "@/lib/services/db/cashCounts";
 import { getCategories } from "@/lib/services/db/categories";
-import { getDailyCloseStatus, getDailyLedgerSummary } from "@/lib/services/db/dailyLedger";
+import { getDailyLedgerSummary } from "@/lib/services/db/dailyLedger";
 import type { DashboardData } from "@/lib/services/db/reports";
 import { getTransactions } from "@/lib/services/db/transactions";
 import {
@@ -10,9 +9,9 @@ import {
   activeTodayExpense,
   activeTodayIncome,
 } from "@/lib/utils/activeDayDisplay";
+import { isInCloseEditMode } from "@/lib/utils/closeEditUtils";
 import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
-import type { AuditLog, CashCount, Category, Transaction, TransactionType } from "@/types";
-
+import type { Category, DailyCloseStatus, Transaction, TransactionType } from "@/types";
 type TransactionFilters = {
   type?: TransactionType;
   status?: "active" | "void";
@@ -57,41 +56,41 @@ export async function loadChartTransactions(days = 7): Promise<Transaction[]> {
 export type DashboardPageData = {
   dashboardData: DashboardData;
   todayLedger: Awaited<ReturnType<typeof getDailyLedgerSummary>> | null;
-  activityLogs: AuditLog[];
-  closeHistory: CashCount[];
 };
-
-const DASHBOARD_ACTIVITY_LIMIT = 8;
-const DASHBOARD_CLOSE_LIMIT = 8;
 
 /** โหลด dashboard ครั้งเดียว — ลด query ซ้ำไป Supabase */
 export async function loadDashboardPageData(): Promise<DashboardPageData> {
   const today = getBusinessToday();
   const monthStart = `${today.slice(0, 7)}-01`;
 
-  const [transactions, activityLogs, closeHistory] = await Promise.all([
-    getTransactions(
-      DEFAULT_ORG_ID,
-      { status: "active", startDate: monthStart, endDate: today },
-      { includeLineItems: false }
-    ),
-    getActivityLogs(DEFAULT_ORG_ID, { startDate: monthStart, endDate: today }),
-    getCashCounts(DEFAULT_ORG_ID, { limit: DASHBOARD_CLOSE_LIMIT }),
-  ]);
+  const transactions = await getTransactions(
+    DEFAULT_ORG_ID,
+    { status: "active", startDate: monthStart, endDate: today },
+    { includeLineItems: false }
+  );
 
   const todayTransactions = transactions.filter((t) => t.transactionDate === today);
   const monthTransactions = transactions.filter(
     (t) => t.transactionDate >= monthStart && t.transactionDate <= today
   );
 
-  const dailyCloseStatus = await getDailyCloseStatus(DEFAULT_ORG_ID, {
-    dayTransactions: todayTransactions,
-  });
+  const [todayLedger, cashCount] = await Promise.all([
+    getDailyLedgerSummary(DEFAULT_ORG_ID, today, { dayTransactions: todayTransactions }),
+    getCashCountByDate(DEFAULT_ORG_ID, today),
+  ]);
 
-  const todayLedger = await getDailyLedgerSummary(DEFAULT_ORG_ID, today, {
-    dayTransactions: todayTransactions,
-  });
-
+  const dailyCloseStatus: DailyCloseStatus = {
+    countDate: today,
+    isLocked: todayLedger.isLocked && !isInCloseEditMode(cashCount),
+    closedAt: todayLedger.closedAt,
+    autoClosed: todayLedger.autoClosed,
+    hasManualCount: !!cashCount?.hasManualCount,
+    cashClosing: todayLedger.cash.closing,
+    transferClosing: todayLedger.transfer.closing,
+    netTotal: todayLedger.business.netTotal,
+    inCloseEditMode: isInCloseEditMode(cashCount),
+    closeEditGeneration: cashCount?.closeEditGeneration,
+  };
   const sum = (rows: Transaction[], type: "income" | "expense") =>
     rows.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
 
@@ -112,7 +111,5 @@ export async function loadDashboardPageData(): Promise<DashboardPageData> {
   return {
     dashboardData,
     todayLedger,
-    activityLogs: activityLogs.slice(0, DASHBOARD_ACTIVITY_LIMIT),
-    closeHistory,
   };
 }
