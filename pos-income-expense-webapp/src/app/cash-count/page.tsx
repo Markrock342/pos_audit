@@ -2,13 +2,17 @@
 
 
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 
 import { CashCountHistory } from "@/components/cash-count/CashCountHistory";
 
 import { DailyLedgerSummaryPanel } from "@/components/cash-count/DailyLedgerSummaryPanel";
+
+import { CashMovementActionsPanel } from "@/components/cash-movement/CashMovementActionsPanel";
+
+import { CashMovementHistoryPanel } from "@/components/settings/CashMovementHistoryPanel";
 
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -22,21 +26,17 @@ import { SegmentTabs } from "@/components/ui/SegmentTabs";
 
 import { AmountDisplay, AmountNumpad } from "@/components/ui/AmountNumpad";
 
+import { PinPadDialog } from "@/components/settings/PinPadDialog";
+import { verifyDrawerPin } from "@/lib/hardware/drawerPinStorage";
 import {
-
   CASH_COUNT_PAGE_CACHE_KEY,
-
+  clearDrawerAndCloseDayApi,
   fetchCashCountPageData,
-
   invalidateCashCountPageCache,
-
-  saveCashCountApi,
-
-  updateCashCountApi,
-
+  reopenCloseForEditApi,
   type CashCountPageData,
-
 } from "@/lib/api/client";
+import { canReopenCloseForEdit, isInCloseEditMode } from "@/lib/utils/closeEditUtils";
 
 import {
 
@@ -58,16 +58,12 @@ import { Wallet, CheckCircle, AlertTriangle, Lock } from "lucide-react";
 
 
 
-type CashCountTab = "today" | "history";
-
-
+type CashCountTab = "today" | "movement" | "history";
 
 const CASH_COUNT_TABS = [
-
   { id: "today" as const, label: "วันนี้" },
-
-  { id: "history" as const, label: "ประวัติ" },
-
+  { id: "movement" as const, label: "ฝาก / ถอน" },
+  { id: "history" as const, label: "ประวัติปิดยอด" },
 ];
 
 
@@ -148,6 +144,8 @@ export default function CashCountPage() {
 
   const [historyKey, setHistoryKey] = useState(0);
 
+  const [movementRefreshKey, setMovementRefreshKey] = useState(0);
+
   const [actualTouched, setActualTouched] = useState(false);
 
   const [ledger, setLedger] = useState<DailyLedgerSummary | null>(null);
@@ -157,11 +155,17 @@ export default function CashCountPage() {
   const [history, setHistory] = useState<CashCount[]>([]);
 
   const [activeTab, setActiveTab] = useState<CashCountTab>("today");
+  const [reopenPinOpen, setReopenPinOpen] = useState(false);
+  const [reopenPinError, setReopenPinError] = useState<string | null>(null);
+  const [reopening, setReopening] = useState(false);
+  const reopenSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("tab") === "history") setActiveTab("history");
+    const tab = params.get("tab");
+    if (tab === "history") setActiveTab("history");
+    else if (tab === "movement") setActiveTab("movement");
   }, []);
 
 
@@ -180,7 +184,10 @@ export default function CashCountPage() {
 
     const pastDay = today.data && bizToday && today.data.countDate < bizToday;
 
-    setIsLocked(pastDay || (today.isLocked ?? !!today.data?.closedAt));
+    setIsLocked(
+      pastDay ||
+        ((today.isLocked ?? !!today.data?.closedAt) && !today.data?.closeEditReopenedAt)
+    );
 
 
 
@@ -300,7 +307,9 @@ export default function CashCountPage() {
 
 
 
-  const readOnly = isLocked && !isAdmin;
+  const inCloseEditMode = isInCloseEditMode(existing);
+  const canEditClose = canReopenCloseForEdit(existing, businessToday);
+  const readOnly = isLocked && !inCloseEditMode;
 
 
 
@@ -311,6 +320,39 @@ export default function CashCountPage() {
   };
 
 
+
+  const handleMovementSaved = useCallback(async () => {
+    setMovementRefreshKey((k) => k + 1);
+    clearPageCache();
+    await load({ skipCache: true });
+  }, [load]);
+
+
+
+  const handleReopenPinComplete = async (pin: string) => {
+    if (reopenSubmittingRef.current) return;
+    if (!verifyDrawerPin(pin)) {
+      setReopenPinError("รหัสไม่ถูกต้อง");
+      return;
+    }
+    reopenSubmittingRef.current = true;
+    setReopenPinOpen(false);
+    setReopenPinError(null);
+    setReopening(true);
+    setMessage(null);
+    try {
+      const result = await reopenCloseForEditApi({ updatedBy: session?.userId });
+      setMessage(result.message);
+      setHistoryKey((k) => k + 1);
+      clearPageCache();
+      await load({ skipCache: true });
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "เปิดแก้ไขปิดยอดไม่สำเร็จ");
+    } finally {
+      reopenSubmittingRef.current = false;
+      setReopening(false);
+    }
+  };
 
   const handleSave = async () => {
 
@@ -342,39 +384,19 @@ export default function CashCountPage() {
 
     try {
 
-      if (existing) {
+      const result = await clearDrawerAndCloseDayApi({
 
-        await updateCashCountApi(existing.id, {
+        actualBalance: actual,
 
-          openingBalance: 0,
+        note: note.trim() || undefined,
 
-          actualBalance: actual,
+        recordedBy: session?.userId,
 
-          note: note.trim() || undefined,
+        updatedBy: session?.userId,
 
-          updatedBy: session?.userId,
+      });
 
-        });
-
-      } else {
-
-        await saveCashCountApi({
-
-          countDate: businessToday || countDate,
-
-          openingBalance: 0,
-
-          actualBalance: actual,
-
-          note: note.trim() || undefined,
-
-          countedBy: session?.userId,
-
-        });
-
-      }
-
-      setMessage("บันทึกปิดยอดเงินสดแล้ว");
+      setMessage(result.message || "ปิดยอดแล้ว — ยอดใน POS เคลียร์เป็น 0");
 
       setHistoryKey((k) => k + 1);
 
@@ -412,9 +434,15 @@ export default function CashCountPage() {
 
   return (
 
-    <AppLayout title="สรุปปิดยอด" subtitle="เงินในลิ้นชักวันนี้ · โอนตามสมุด · ปิดอัตโนมัติเที่ยงคืน">
+    <AppLayout title="สรุปปิดยอด" subtitle="ฝาก/ถอน · สรุปวัน · ปิดยอดเมื่อจบวัน">
 
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6">
+
+        {inCloseEditMode && (
+          <p className="shrink-0 rounded-xl border-2 border-amber-400/60 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-800 dark:text-amber-200">
+            เปิดแก้ไขปิดยอดแล้ว — แก้ไขรายการ/ฝากถอนได้ แล้วกดปิดยอดใหม่เมื่อเสร็จ
+          </p>
+        )}
 
         {message && (
 
@@ -462,7 +490,7 @@ export default function CashCountPage() {
 
                 <p className="text-xs font-normal text-text-muted">
 
-                  เทียบเงินที่นับได้กับยอดคำนวณ — ฝาก/ถอนทำได้ที่ ตั้งค่า
+                  เทียบเงินที่นับได้กับยอดคำนวณ
 
                 </p>
 
@@ -502,7 +530,7 @@ export default function CashCountPage() {
 
                           <p className="text-xs text-text-muted">
 
-                            แก้ไขได้จนถึงเที่ยงคืน · ระบบตัดยอดอัตโนมัติทุก 00:00 น.
+                            กรอกยอดที่นับได้ แล้วกดปิดยอด — ระบบถอนเงินออกจาก POS และรีเซ็ตยอดหน้าหลัก
 
                           </p>
 
@@ -570,7 +598,7 @@ export default function CashCountPage() {
 
                         <p className="rounded-xl bg-surface-inset px-4 py-3 text-sm text-text-muted">
 
-                          กรอกยอดเงินสดที่นับได้จริง แล้วกดบันทึกปิดยอด
+                          กรอกยอดเงินสดที่นับได้จริง แล้วกดปิดยอด
 
                         </p>
 
@@ -660,15 +688,43 @@ export default function CashCountPage() {
 
                           : saving
 
-                            ? "กำลังบันทึก..."
+                            ? "กำลังปิดยอด..."
 
-                            : existing?.hasManualCount
+                            : inCloseEditMode
 
-                              ? "อัปเดตปิดยอด"
+                              ? "ปิดยอดใหม่"
 
-                              : "บันทึกปิดยอด"}
+                              : "ปิดยอด"}
 
                       </Button>
+
+                      {canEditClose && (
+
+                        <Button
+
+                          type="button"
+
+                          className="w-full border-2 border-amber-500 bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700"
+
+                          size="lg"
+
+                          disabled={reopening}
+
+                          onClick={() => {
+
+                            setReopenPinError(null);
+
+                            setReopenPinOpen(true);
+
+                          }}
+
+                        >
+
+                          {reopening ? "กำลังเปิดแก้ไข..." : "แก้ไขปิดยอด"}
+
+                        </Button>
+
+                      )}
 
                     </div>
 
@@ -686,6 +742,74 @@ export default function CashCountPage() {
 
 
 
+        {activeTab === "movement" && (
+
+          <div className="flex flex-col gap-4">
+
+            <Card className="shrink-0">
+
+              <CardHeader className="pb-2">
+
+                <CardTitle className="text-base">ฝาก / ถอนเงินสด</CardTitle>
+
+                <p className="text-xs font-normal text-text-muted">
+
+                  ไม่นับเป็นรายรับ–รายจ่ายธุรกิจ — ใส่รหัสเปิดลิ้นชักก่อนทำรายการ
+
+                </p>
+
+              </CardHeader>
+
+              <CardContent>
+
+                <CashMovementActionsPanel
+
+                  onMovementSaved={() => void handleMovementSaved()}
+
+                  disabled={isLocked}
+
+                  disabledReason={
+                    isLocked
+                      ? "ปิดยอดแล้ว — ไม่สามารถฝากหรือถอนเงินสดได้"
+                      : undefined
+                  }
+
+                />
+
+              </CardContent>
+
+            </Card>
+
+
+
+            <Card>
+
+              <CardHeader>
+
+                <CardTitle>ประวัติฝาก / ถอน</CardTitle>
+
+                <p className="text-sm font-normal text-text-muted">
+
+                  บันทึกฝากและถอนเงินสด — แยกจากประวัติรายรับ–รายจ่าย
+
+                </p>
+
+              </CardHeader>
+
+              <CardContent>
+
+                <CashMovementHistoryPanel refreshKey={movementRefreshKey} />
+
+              </CardContent>
+
+            </Card>
+
+          </div>
+
+        )}
+
+
+
         {activeTab === "history" && (
 
           <CashCountHistory refreshKey={historyKey} items={history} loading={loading} />
@@ -693,6 +817,19 @@ export default function CashCountPage() {
         )}
 
       </div>
+
+      <PinPadDialog
+        key={reopenPinOpen ? "reopen-edit" : "closed"}
+        open={reopenPinOpen}
+        title="ใส่รหัสเปิดลิ้นชัก"
+        subtitle="ยืนยันก่อนแก้ไขปิดยอด — รหัส 4 หลัก"
+        error={reopenPinError}
+        onComplete={(pin) => void handleReopenPinComplete(pin)}
+        onCancel={() => {
+          setReopenPinOpen(false);
+          setReopenPinError(null);
+        }}
+      />
 
     </AppLayout>
 

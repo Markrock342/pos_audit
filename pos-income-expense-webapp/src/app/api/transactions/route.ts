@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { AUDIT_CREATE_REASON } from "@/lib/services/db/auditLogs";
 import { safeCreateAuditLog } from "@/lib/services/db/safeAuditLog";
+import { withCloseEditAuditMeta } from "@/lib/services/db/closeEdit";
 import {
   getTransactions,
   createTransaction,
@@ -74,18 +75,20 @@ export async function POST(request: Request) {
     );
 
     after(async () => {
-      await safeCreateAuditLog({
-        organizationId: DEFAULT_ORG_ID,
-        userId,
-        entityType: "transaction",
-        entityId: newTransaction.id,
-        transactionType: newTransaction.type,
-        entityTitle: newTransaction.title,
-        action: "create",
-        reason: AUDIT_CREATE_REASON,
-        oldValue: null,
-        newValue: transactionAuditSnapshot(newTransaction),
-      });
+      await safeCreateAuditLog(
+        await withCloseEditAuditMeta(DEFAULT_ORG_ID, txDate, {
+          organizationId: DEFAULT_ORG_ID,
+          userId,
+          entityType: "transaction",
+          entityId: newTransaction.id,
+          transactionType: newTransaction.type,
+          entityTitle: newTransaction.title,
+          action: "create",
+          reason: AUDIT_CREATE_REASON,
+          oldValue: null,
+          newValue: transactionAuditSnapshot(newTransaction),
+        })
+      );
 
       await syncTodayLedgerAfterMutation(DEFAULT_ORG_ID, txDate, newTransaction, "apply");
     });

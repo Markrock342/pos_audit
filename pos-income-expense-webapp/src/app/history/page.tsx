@@ -250,16 +250,16 @@ export default function HistoryPage() {
   const summary = useMemo(() => presetSummary(datePreset), [datePreset]);
 
   return (
-    <AppLayout title="ประวัติรายการ" subtitle="รายรับและรายจ่ายธุรกิจ — ฝาก/ถอนเงินสดดูที่ตั้งค่า">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 pb-6">
+    <AppLayout title="ประวัติรายการ" subtitle="รายรับและรายจ่ายธุรกิจ — ฝาก/ถอนเงินสดดูที่ ปิดยอด → ฝาก / ถอน">
+      <div className="mx-auto w-full max-w-4xl">
         {error && (
-          <p className="rounded-xl border border-expense/20 bg-error-light px-4 py-3 text-sm font-bold text-error">
+          <p className="mb-4 rounded-xl border border-expense/20 bg-error-light px-4 py-3 text-sm font-bold text-error">
             {error}
           </p>
         )}
 
         {/* ── แถบกรอง ── */}
-        <div className="sticky top-0 z-10 -mx-1 rounded-2xl border border-border-default bg-surface-elevated/95 px-4 py-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] backdrop-blur sm:px-5">
+        <div className="rounded-2xl border border-border-default bg-surface-elevated px-4 py-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:px-5">
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-light text-brand">
               <History size={18} />
@@ -319,29 +319,27 @@ export default function HistoryPage() {
         </div>
 
         {/* ── รายการ ── */}
-        {loading ? (
-          <div className="space-y-3">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-28 animate-pulse rounded-2xl border border-border-default bg-surface-elevated"
+        <div className="mt-4 space-y-3">
+          {loading ? (
+            <>
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-28 animate-pulse rounded-2xl border border-border-default bg-surface-elevated"
+                />
+              ))}
+            </>
+          ) : logs.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border-default bg-surface-elevated py-4">
+              <EmptyState
+                title="ยังไม่มีประวัติรายรับ–รายจ่าย"
+                message="เมื่อมีการบันทึก แก้ไข หรือยกเลิกรายรับ/รายจ่าย จะแสดงที่นี่ — ฝาก/ถอนเงินสดดูที่ ปิดยอด → ฝาก / ถอน"
               />
-            ))}
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border-default bg-surface-elevated py-4">
-            <EmptyState
-              title="ยังไม่มีประวัติรายรับ–รายจ่าย"
-              message="เมื่อมีการบันทึก แก้ไข หรือยกเลิกรายรับ/รายจ่าย จะแสดงที่นี่ — ฝาก/ถอนเงินสดดูที่ ตั้งค่า"
-            />
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {logs.map((log) => (
-              <HistoryCard key={log.id} log={log} />
-            ))}
-          </div>
-        )}
+            </div>
+          ) : (
+            logs.map((log) => <HistoryCard key={log.id} log={log} />)
+          )}
+        </div>
       </div>
     </AppLayout>
   );

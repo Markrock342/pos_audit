@@ -11,6 +11,7 @@ import {
   formatWithdrawalAmount,
 } from "@/lib/utils/format";
 import type { CashDeposit, CashWithdrawal } from "@/types";
+import { CashMovementListScroll } from "@/components/cash-movement/CashMovementListScroll";
 
 type HistoryTab = "deposit" | "withdraw";
 
@@ -89,7 +90,7 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
           ) : deposits.length === 0 ? (
             <p className="py-4 text-center text-sm text-text-muted">ยังไม่มีรายการฝากในช่วงนี้</p>
           ) : (
-            <div className="space-y-2">
+            <CashMovementListScroll>
               {deposits.map((row) => (
                 <div
                   key={row.id}
@@ -105,7 +106,7 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
                   <p className="shrink-0 font-black text-income">+{formatCurrency(row.amount)}</p>
                 </div>
               ))}
-            </div>
+            </CashMovementListScroll>
           )}
         </div>
       )}
@@ -124,7 +125,7 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
           ) : withdrawals.length === 0 ? (
             <p className="py-4 text-center text-sm text-text-muted">ยังไม่มีรายการถอนในช่วงนี้</p>
           ) : (
-            <div className="space-y-2">
+            <CashMovementListScroll>
               {withdrawals.map((row) => (
                 <div
                   key={row.id}
@@ -142,7 +143,7 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
                   </p>
                 </div>
               ))}
-            </div>
+            </CashMovementListScroll>
           )}
         </div>
       )}

@@ -4,6 +4,7 @@ import { formatCurrency, formatWithdrawalAmount } from "@/lib/utils/format";
 import type { CashDeposit, CashWithdrawal } from "@/types";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { CashMovementListScroll } from "@/components/cash-movement/CashMovementListScroll";
 
 interface CashMovementDayPanelProps {
   deposits: CashDeposit[];
@@ -55,32 +56,36 @@ export function CashMovementDayPanel({
             {deposits.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-bold text-text-muted">รายการฝาก</p>
-                {deposits.map((row) => (
-                  <div
-                    key={row.id}
-                    className="tablet-touch-row flex items-center justify-between gap-4 rounded-2xl border-2 border-border-default px-4"
-                  >
-                    <span className="font-medium text-text-main">ฝากเงินสด</span>
-                    <span className="font-black text-income">+{formatCurrency(row.amount)}</span>
-                  </div>
-                ))}
+                <CashMovementListScroll>
+                  {deposits.map((row) => (
+                    <div
+                      key={row.id}
+                      className="tablet-touch-row flex items-center justify-between gap-4 rounded-2xl border-2 border-border-default px-4"
+                    >
+                      <span className="font-medium text-text-main">ฝากเงินสด</span>
+                      <span className="font-black text-income">+{formatCurrency(row.amount)}</span>
+                    </div>
+                  ))}
+                </CashMovementListScroll>
               </div>
             )}
 
             {withdrawals.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-bold text-text-muted">รายการถอน</p>
-                {withdrawals.map((row) => (
-                  <div
-                    key={row.id}
-                    className="tablet-touch-row flex items-center justify-between gap-4 rounded-2xl border-2 border-border-default px-4"
-                  >
-                    <span className="min-w-0 font-medium text-text-main">{row.note}</span>
-                    <span className="shrink-0 font-black text-expense">
-                      {formatWithdrawalAmount(row.amount)}
-                    </span>
-                  </div>
-                ))}
+                <CashMovementListScroll>
+                  {withdrawals.map((row) => (
+                    <div
+                      key={row.id}
+                      className="tablet-touch-row flex items-center justify-between gap-4 rounded-2xl border-2 border-border-default px-4"
+                    >
+                      <span className="min-w-0 font-medium text-text-main">{row.note}</span>
+                      <span className="shrink-0 font-black text-expense">
+                        {formatWithdrawalAmount(row.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </CashMovementListScroll>
               </div>
             )}
           </>

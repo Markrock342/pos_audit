@@ -5,6 +5,7 @@ import type {
   AuditLogAction,
   BalanceSummary,
   CashCount,
+  CashCountCloseEvent,
   CashDeposit,
   CashWithdrawal,
   CashWithdrawalsTodaySummary,
@@ -17,6 +18,12 @@ import type {
 } from "@/types";
 
 export const CASH_COUNT_PAGE_CACHE_KEY = "pos-cash-count-page-v1";
+export const DASHBOARD_REFRESH_EVENT = "pos-dashboard-refresh";
+
+export function notifyDashboardRefresh() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(DASHBOARD_REFRESH_EVENT));
+}
 
 export function invalidateCashCountPageCache() {
   if (typeof window === "undefined") return;
@@ -192,6 +199,8 @@ export async function createTransactionApi(
       body: JSON.stringify(body),
     })
   );
+  invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
 }
 
@@ -206,6 +215,8 @@ export async function updateTransactionApi(
       body: JSON.stringify(body),
     })
   );
+  invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
 }
 
@@ -221,6 +232,8 @@ export async function voidTransactionApi(
       body: JSON.stringify({ voidReason, voidedBy }),
     })
   );
+  invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
 }
 
@@ -409,6 +422,7 @@ export async function createCashWithdrawalApi(body: {
     })
   );
   invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
 }
 
@@ -442,6 +456,7 @@ export async function createCashDepositApi(body: {
     })
   );
   invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
 }
 
@@ -471,7 +486,54 @@ export async function clearDrawerAndCloseDayApi(body?: {
     })
   );
   invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
+}
+
+export async function reopenCloseForEditApi(body?: {
+  updatedBy?: string;
+}): Promise<{
+  reopened: boolean;
+  alreadyOpen?: boolean;
+  cashCount: CashCount | null;
+  restoredClosingCash?: number;
+  message: string;
+}> {
+  const { data } = await parseJson<{
+    data: {
+      reopened: boolean;
+      alreadyOpen?: boolean;
+      cashCount: CashCount | null;
+      restoredClosingCash?: number;
+      message: string;
+    };
+  }>(
+    await fetch("/api/cash-counts/today/reopen-for-edit", {
+      method: "POST",
+      headers: jsonAuthHeaders(),
+      body: JSON.stringify(body ?? {}),
+    })
+  );
+  invalidateCashCountPageCache();
+  notifyDashboardRefresh();
+  return data;
+}
+
+export async function fetchCloseHistoryForDate(date: string): Promise<import("@/lib/services/db/closeEdit").CloseHistoryForDate> {
+  const { data } = await parseJson<{
+    data: import("@/lib/services/db/closeEdit").CloseHistoryForDate;
+  }>(
+    await fetch(`/api/cash-counts/close-events?date=${encodeURIComponent(date)}`, {
+      cache: "no-store",
+    })
+  );
+  return data;
+}
+
+/** @deprecated ใช้ fetchCloseHistoryForDate */
+export async function fetchCloseEventsForDate(date: string): Promise<CashCountCloseEvent[]> {
+  const history = await fetchCloseHistoryForDate(date);
+  return history.events;
 }
 
 export async function fetchAuditLogs(filters?: {

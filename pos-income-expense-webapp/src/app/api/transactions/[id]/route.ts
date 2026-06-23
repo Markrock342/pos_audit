@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { safeCreateAuditLog } from "@/lib/services/db/safeAuditLog";
+import { withCloseEditAuditMeta } from "@/lib/services/db/closeEdit";
 import {
   getTransaction,
   updateTransaction,
@@ -95,18 +96,24 @@ export async function PUT(
       body.lineItems
     );
 
-    await safeCreateAuditLog({
-      organizationId: existing.organizationId ?? DEFAULT_ORG_ID,
-      userId,
-      entityType: "transaction",
-      entityId: id,
-      transactionType: existing.type,
-      entityTitle: updated.title,
-      action: "update",
-      reason: body.editReason,
-      oldValue: oldSnapshot,
-      newValue: transactionAuditSnapshot(updated),
-    });
+    await safeCreateAuditLog(
+      await withCloseEditAuditMeta(
+        existing.organizationId ?? DEFAULT_ORG_ID,
+        updated.transactionDate,
+        {
+          organizationId: existing.organizationId ?? DEFAULT_ORG_ID,
+          userId,
+          entityType: "transaction",
+          entityId: id,
+          transactionType: existing.type,
+          entityTitle: updated.title,
+          action: "update",
+          reason: body.editReason,
+          oldValue: oldSnapshot,
+          newValue: transactionAuditSnapshot(updated),
+        }
+      )
+    );
 
     return NextResponse.json({ data: updated });
   } catch (err) {

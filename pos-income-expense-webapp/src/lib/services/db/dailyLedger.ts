@@ -9,6 +9,7 @@ import { getTotalDepositedForDate } from "./cashDeposits";
 import { getOrganization } from "./organizations";
 import { getTransactions } from "./transactions";
 import { isFullDailyReset } from "@/lib/utils/dailyResetMode";
+import { isInCloseEditMode } from "@/lib/utils/closeEditUtils";
 import type { CashCount, DailyCloseStatus, DailyLedgerSummary, PaymentMethod, Transaction } from "@/types";
 
 /** เงินโอน/บัญชีในสมุด — ทุกช่องทางที่ไม่ใช่เงินสด */
@@ -262,12 +263,14 @@ export async function getDailyCloseStatus(
 
   return {
     countDate: businessToday,
-    isLocked: summary.isLocked,
+    isLocked: summary.isLocked && !isInCloseEditMode(cashCount),
     closedAt: summary.closedAt,
     autoClosed: summary.autoClosed,
     hasManualCount: !!cashCount?.hasManualCount,
     cashClosing: summary.cash.closing,
     transferClosing: summary.transfer.closing,
     netTotal: summary.business.netTotal,
+    inCloseEditMode: isInCloseEditMode(cashCount),
+    closeEditGeneration: cashCount?.closeEditGeneration,
   };
 }

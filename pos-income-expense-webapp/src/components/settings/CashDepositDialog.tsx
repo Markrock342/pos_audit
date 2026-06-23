@@ -86,7 +86,7 @@ export function CashDepositDialog({
           <AmountNumpad value={amount} onChange={setAmount} />
 
           <p className="rounded-xl bg-surface-inset px-4 py-3 text-sm text-text-secondary">
-            ยอดเงินสดใน POS จะเพิ่ม {formatCurrency(parseFloat(amount) || 0)} · ดูประวัติได้ที่การ์ดด้านล่าง
+            ยอดเงินสดใน POS จะเพิ่ม {formatCurrency(parseFloat(amount) || 0)} · ดูประวัติได้ที่แท็บ ฝาก / ถอน
           </p>
 
           {error && <p className="text-sm font-medium text-error">{error}</p>}

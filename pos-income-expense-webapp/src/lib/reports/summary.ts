@@ -1,8 +1,6 @@
-import type { DashboardSummary, Transaction } from "@/types";
-
-function dateKey(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
+import type { DailyCloseStatus, DashboardSummary, Transaction } from "@/types";
+import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
+import { isTodayBusinessClosed } from "@/lib/utils/activeDayDisplay";
 
 function sumByType(
   transactions: Transaction[],
@@ -22,8 +20,8 @@ function sumByType(
 }
 
 export function buildDashboardSummary(transactions: Transaction[]): DashboardSummary {
-  const today = dateKey(new Date());
-  const monthStart = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-01`;
+  const today = getBusinessToday();
+  const monthStart = `${today.slice(0, 7)}-01`;
   const active = transactions.filter((t) => t.status === "active");
 
   return {
@@ -36,19 +34,31 @@ export function buildDashboardSummary(transactions: Transaction[]): DashboardSum
   };
 }
 
-export function buildChartData(transactions: Transaction[], days = 6) {
+function formatChartLabel(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+export function buildChartData(
+  transactions: Transaction[],
+  days = 7,
+  dailyCloseStatus?: DailyCloseStatus
+) {
+  const today = getBusinessToday();
+  const todayClosed = dailyCloseStatus ? isTodayBusinessClosed(dailyCloseStatus) : false;
   const result: { date: string; income: number; expense: number }[] = [];
 
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const key = dateKey(d);
-    const label = d.toLocaleDateString("th-TH", { day: "numeric", month: "short" });
-
+    const key = shiftBusinessDate(today, -i);
+    const isToday = key === today;
     result.push({
-      date: label,
-      income: sumByType(transactions, "income", key, key),
-      expense: sumByType(transactions, "expense", key, key),
+      date: formatChartLabel(key),
+      income: isToday && todayClosed ? 0 : sumByType(transactions, "income", key, key),
+      expense: isToday && todayClosed ? 0 : sumByType(transactions, "expense", key, key),
     });
   }
 

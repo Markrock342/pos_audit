@@ -216,6 +216,10 @@ export function mapCashCount(row: Record<string, unknown>): CashCount {
     totalIncome: row.total_income != null ? Number(row.total_income) : undefined,
     totalExpense: row.total_expense != null ? Number(row.total_expense) : undefined,
     netTotal: row.net_total != null ? Number(row.net_total) : undefined,
+    closeEditGeneration:
+      row.close_edit_generation != null ? Number(row.close_edit_generation) : undefined,
+    closeEditReopenedAt: row.close_edit_reopened_at as string | undefined,
+    closeSnapshot: row.close_snapshot as CashCount["closeSnapshot"],
   };
 }
 
@@ -263,6 +267,8 @@ export function mapAuditLog(row: Record<string, unknown>): AuditLog {
     oldValue: row.old_value as Record<string, unknown> | null | undefined,
     newValue: row.new_value as Record<string, unknown> | null | undefined,
     createdAt: String(row.created_at),
+    closeEditGeneration:
+      row.close_edit_generation != null ? Number(row.close_edit_generation) : undefined,
   };
 }
 
@@ -277,6 +283,7 @@ export function toAuditLogInsert(input: {
   reason: string;
   oldValue?: Record<string, unknown> | null;
   newValue?: Record<string, unknown> | null;
+  closeEditGeneration?: number;
 }) {
   return {
     organization_id: input.organizationId,
@@ -289,6 +296,7 @@ export function toAuditLogInsert(input: {
     reason: input.reason.trim(),
     old_value: input.oldValue ?? null,
     new_value: input.newValue ?? null,
+    close_edit_generation: input.closeEditGeneration ?? null,
     created_at: new Date().toISOString(),
   };
 }

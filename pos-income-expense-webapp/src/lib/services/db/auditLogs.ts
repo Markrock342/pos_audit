@@ -35,6 +35,7 @@ export interface CreateAuditLogInput {
   reason: string;
   oldValue?: Record<string, unknown> | null;
   newValue?: Record<string, unknown> | null;
+  closeEditGeneration?: number;
 }
 
 export async function createAuditLog(input: CreateAuditLogInput): Promise<AuditLog> {
@@ -196,4 +197,21 @@ export async function getActivityLogs(
 
   const users = await getUsers(organizationId);
   return enrichWithUserNames(merged, organizationId, users);
+}
+
+/** รายการที่แก้ระหว่างเปิดแก้ไขปิดยอด (มี close_edit_generation) */
+export async function getCloseEditAuditLogsForDate(
+  organizationId: string,
+  countDate: string
+): Promise<AuditLog[]> {
+  const logs = await getAuditLogs(organizationId, {
+    startDate: countDate,
+    endDate: countDate,
+  });
+  const editLogs = logs
+    .filter((l) => l.closeEditGeneration != null)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  const users = await getUsers(organizationId);
+  return enrichWithUserNames(editLogs, organizationId, users);
 }

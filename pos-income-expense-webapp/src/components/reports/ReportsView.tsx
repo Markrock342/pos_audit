@@ -66,7 +66,7 @@ export function ReportsView({ initialTransactions }: ReportsViewProps) {
     void load();
   }, [load]);
 
-  const chartData = buildChartData(transactions);
+  const chartData = buildChartData(transactions, 7);
   const totalIncome = summary?.totalIncome ?? 0;
   const totalExpense = summary?.totalExpense ?? 0;
   const netProfit = summary?.netProfit ?? 0;
@@ -147,6 +147,7 @@ export function ReportsView({ initialTransactions }: ReportsViewProps) {
       <Card>
         <CardHeader>
           <CardTitle>กราฟรายรับ-รายจ่าย</CardTitle>
+          <p className="text-sm text-text-muted">7 วันล่าสุด (ครบ 1 สัปดาห์)</p>
         </CardHeader>
         <CardContent>
           <IncomeExpenseChart data={chartData} />

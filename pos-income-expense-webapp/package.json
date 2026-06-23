@@ -10,6 +10,7 @@
     "db:seed": "tsx src/scripts/seed.ts",
     "db:clear": "tsx src/scripts/clear-data.ts",
     "db:clear-daily-close": "tsx src/scripts/clear-daily-close.ts",
+    "db:reopen-day": "tsx src/scripts/reopen-business-day.ts",
     "db:status": "tsx src/scripts/db-status.ts",
     "db:cleanup-test": "tsx src/scripts/cleanup-test-data.ts",
     "test:integration": "tsx src/scripts/integration-test.ts",

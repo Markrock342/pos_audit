@@ -31,11 +31,11 @@ export function IncomeExpenseChart({ data, className = "" }: IncomeExpenseChartP
   }, []);
 
   if (!mounted) {
-    return <div className={`h-72 min-h-72 w-full min-w-0 ${className}`} />;
+    return <div className={`h-72 min-h-72 w-full min-w-0 ${className}`} aria-hidden />;
   }
 
   return (
-    <div className={`h-72 min-h-72 w-full min-w-0 ${className}`}>
+    <div className={`page-enter h-72 min-h-72 w-full min-w-0 ${className}`}>
       <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />

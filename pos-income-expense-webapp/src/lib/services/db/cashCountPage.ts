@@ -1,5 +1,3 @@
-import { getDb } from "@/lib/db/supabase";
-
 import { getBusinessToday } from "@/lib/utils/businessDate";
 
 import {
@@ -118,12 +116,6 @@ export async function loadCashCountPageData(organizationId: string): Promise<Cas
 
   const businessToday = getBusinessToday();
 
-
-
-  await getDb().rpc("fn_auto_close_cash_counts");
-
-
-
   const [todayRecord, withdrawals, history] = await Promise.all([
 
     getCashCountByDate(organizationId, businessToday),
@@ -205,12 +197,6 @@ export async function loadCashCountPageData(organizationId: string): Promise<Cas
 export async function getTodayCashCountView(organizationId: string) {
 
   const businessToday = getBusinessToday();
-
-
-
-  await getDb().rpc("fn_auto_close_cash_counts");
-
-
 
   let record = await getCashCountByDate(organizationId, businessToday);
 

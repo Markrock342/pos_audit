@@ -3,5 +3,12 @@ import { getDashboard } from "@/lib/services/db/reports";
 
 export async function GET() {
   const data = await getDashboard();
-  return NextResponse.json({ data });
+  return NextResponse.json(
+    { data },
+    {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    }
+  );
 }

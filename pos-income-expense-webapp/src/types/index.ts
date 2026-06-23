@@ -196,6 +196,47 @@ export interface DailyLedgerSummary {
   };
 }
 
+/** สnapshot ก่อนเคลียร์ลิ้นชัก — ใช้คืนยอดตอนแก้ไขปิดยอด */
+export interface CloseSnapshot {
+  expectedBalance: number;
+  actualBalance: number;
+  variance: number;
+  status: string;
+  closingCash: number;
+  cashIncome: number;
+  cashExpense: number;
+  cashWithdrawn: number;
+  cashDeposited?: number;
+  transferIncome: number;
+  transferExpense: number;
+  closingTransfer: number;
+  totalIncome: number;
+  totalExpense: number;
+  netTotal: number;
+  clearDrawerAmount: number;
+  clearDrawerWithdrawalId?: string | null;
+}
+
+export type CashCountCloseEventType = "close" | "reopen_edit" | "close_after_edit";
+
+export interface CashCountCloseEvent {
+  id: string;
+  organizationId: string;
+  cashCountId: string;
+  countDate: string;
+  eventType: CashCountCloseEventType;
+  closeEditGeneration: number;
+  expectedBalance?: number;
+  actualBalance?: number;
+  variance?: number;
+  closingCash?: number;
+  clearDrawerAmount?: number;
+  clearDrawerWithdrawalId?: string;
+  note?: string;
+  userId?: string;
+  createdAt: string;
+}
+
 export interface CashCount {
   id: string;
   organizationId?: string;
@@ -214,6 +255,11 @@ export interface CashCount {
   hasManualCount?: boolean;
   updatedAt?: string;
   updatedBy?: string;
+  /** รอบแก้ไขปิดยอด — 0 = ยังไม่เคยปิด, 1+ = จำนวนครั้งที่ปิดแล้ว */
+  closeEditGeneration?: number;
+  /** เปิดแก้ไขแล้ว — รอปิดยอดใหม่ */
+  closeEditReopenedAt?: string;
+  closeSnapshot?: CloseSnapshot;
   /** Phase 3 — snapshot สด + โอน + สรุปธุรกิจ */
   openingTransfer?: number;
   cashIncome?: number;
@@ -248,6 +294,9 @@ export interface DailyCloseStatus {
   cashClosing: number;
   transferClosing: number;
   netTotal: number;
+  /** เปิดแก้ไขปิดยอดแล้ว — ยังไม่ปิดยอดใหม่ */
+  inCloseEditMode?: boolean;
+  closeEditGeneration?: number;
 }
 
 export type AuditLogAction = "create" | "update" | "void";
@@ -271,6 +320,8 @@ export interface AuditLog {
   oldValue?: Record<string, unknown> | null;
   newValue?: Record<string, unknown> | null;
   createdAt: string;
+  /** รอบแก้ไขปิดยอด — แท็กรายการที่เพิ่มระหว่างเปิดแก้ไข */
+  closeEditGeneration?: number;
   /** ชื่อผู้ทำ — enrich จาก API */
   userName?: string;
 }

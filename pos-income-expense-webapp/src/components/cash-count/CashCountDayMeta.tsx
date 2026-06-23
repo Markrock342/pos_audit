@@ -13,11 +13,13 @@ import { AlertTriangle, CheckCircle, CircleDashed, Lock, Scale } from "lucide-re
 
 interface CashCountDayMetaProps {
   cashCount: CashCount | null;
+  /** เงินในลิ้นชักตามสูตร — ก่อนปิดวันใช้ยอด live, หลังปิดใช้ snapshot ตอนนับ */
   expectedBalance: number;
 }
 
 export function CashCountDayMeta({ cashCount, expectedBalance }: CashCountDayMetaProps) {
   const pending = !cashCount || isCashCountPending(cashCount);
+  const closed = !!cashCount?.closedAt;
   const displayRow =
     cashCount ??
     ({
@@ -33,19 +35,32 @@ export function CashCountDayMeta({ cashCount, expectedBalance }: CashCountDayMet
           <Scale size={20} className="text-text-muted" />
           การนับเงินสด
         </CardTitle>
-        <p className="text-xs text-text-muted">ไม่บังคับ — ระบบปิดอัตโนมัติใช้ยอดคำนวณ</p>
+        <p className="text-xs text-text-muted">
+          เทียบเงินที่นับได้กับยอดที่ระบบคำนวณจากรายการในวันนั้น
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl bg-surface-inset p-4">
-            <p className="text-xs text-text-muted">ยอดคาดหวัง (สด)</p>
+            <p className="text-xs text-text-muted">
+              {closed ? "เงินในลิ้นชัก (ก่อนนับ)" : "เงินในลิ้นชัก (คำนวณ)"}
+            </p>
             <p className="text-xl font-black text-brand">{formatCurrency(expectedBalance)}</p>
+            <p className="mt-1 text-xs text-text-muted">ฝาก + รายรับ(สด) − รายจ่าย(สด) − ถอน</p>
+            {closed && (
+              <p className="mt-2 text-xs text-text-muted">
+                หลังปิดยอด เงินถูกถอนออก — ยอดใน POS วันนี้เป็น 0
+              </p>
+            )}
           </div>
           <div className="rounded-xl bg-surface-inset p-4">
             <p className="text-xs text-text-muted">ยอดที่นับได้</p>
             <p className="text-xl font-black text-text-main">
               {pending ? "—" : formatCurrency(cashCount!.actualBalance)}
             </p>
+            {!pending && (
+              <p className="mt-1 text-xs text-text-muted">เงินสดจริงในลิ้นชักตอนปิดวัน</p>
+            )}
           </div>
         </div>
 

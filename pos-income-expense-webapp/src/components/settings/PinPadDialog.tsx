@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Delete } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
@@ -27,35 +27,39 @@ export function PinPadDialog({
 }: PinPadDialogProps) {
   const [pin, setPin] = useState("");
   const [shake, setShake] = useState(false);
+  const submittedRef = useRef(false);
 
   useEffect(() => {
-    if (open) setPin("");
+    if (open) {
+      setPin("");
+      submittedRef.current = false;
+    }
   }, [open, title]);
 
   useEffect(() => {
     if (error) {
       setShake(true);
       setPin("");
+      submittedRef.current = false;
       const t = setTimeout(() => setShake(false), 500);
       return () => clearTimeout(t);
     }
   }, [error]);
 
-  const handleKey = useCallback(
-    (key: (typeof PIN_KEYS)[number]) => {
-      setPin((prev) => {
-        if (key === "clear") return "";
-        if (key === "backspace") return prev.slice(0, -1);
-        if (prev.length >= MAX_PIN) return prev;
-        const next = prev + key;
-        if (next.length === MAX_PIN) {
-          queueMicrotask(() => onComplete(next));
-        }
-        return next;
-      });
-    },
-    [onComplete]
-  );
+  useEffect(() => {
+    if (!open || pin.length < MAX_PIN || submittedRef.current) return;
+    submittedRef.current = true;
+    onComplete(pin);
+  }, [open, pin, onComplete]);
+
+  const handleKey = useCallback((key: (typeof PIN_KEYS)[number]) => {
+    setPin((prev) => {
+      if (key === "clear") return "";
+      if (key === "backspace") return prev.slice(0, -1);
+      if (prev.length >= MAX_PIN) return prev;
+      return prev + key;
+    });
+  }, []);
 
   if (!open) return null;
 

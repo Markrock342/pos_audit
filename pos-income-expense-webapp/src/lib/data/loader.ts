@@ -1,10 +1,17 @@
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
+import { getActivityLogs } from "@/lib/services/db/auditLogs";
+import { getCashCounts } from "@/lib/services/db/cashCounts";
 import { getCategories } from "@/lib/services/db/categories";
-import { getDailyCloseStatus } from "@/lib/services/db/dailyLedger";
+import { getDailyCloseStatus, getDailyLedgerSummary } from "@/lib/services/db/dailyLedger";
 import type { DashboardData } from "@/lib/services/db/reports";
 import { getTransactions } from "@/lib/services/db/transactions";
+import {
+  activeCashClosing,
+  activeTodayExpense,
+  activeTodayIncome,
+} from "@/lib/utils/activeDayDisplay";
 import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
-import type { Category, Transaction, TransactionType } from "@/types";
+import type { AuditLog, CashCount, Category, Transaction, TransactionType } from "@/types";
 
 type TransactionFilters = {
   type?: TransactionType;
@@ -37,7 +44,7 @@ export async function loadRecentTransactions(limit = 5): Promise<Transaction[]> 
   );
 }
 
-export async function loadChartTransactions(days = 6): Promise<Transaction[]> {
+export async function loadChartTransactions(days = 7): Promise<Transaction[]> {
   const startDate = shiftBusinessDate(getBusinessToday(), -(days - 1));
 
   return getTransactions(
@@ -49,25 +56,27 @@ export async function loadChartTransactions(days = 6): Promise<Transaction[]> {
 
 export type DashboardPageData = {
   dashboardData: DashboardData;
-  categories: Category[];
-  chartTransactions: Transaction[];
-  recentTransactions: Transaction[];
+  todayLedger: Awaited<ReturnType<typeof getDailyLedgerSummary>> | null;
+  activityLogs: AuditLog[];
+  closeHistory: CashCount[];
 };
+
+const DASHBOARD_ACTIVITY_LIMIT = 8;
+const DASHBOARD_CLOSE_LIMIT = 8;
 
 /** โหลด dashboard ครั้งเดียว — ลด query ซ้ำไป Supabase */
 export async function loadDashboardPageData(): Promise<DashboardPageData> {
   const today = getBusinessToday();
   const monthStart = `${today.slice(0, 7)}-01`;
-  const chartStart = shiftBusinessDate(today, -5);
-  const queryStart = chartStart < monthStart ? chartStart : monthStart;
 
-  const [transactions, categories] = await Promise.all([
+  const [transactions, activityLogs, closeHistory] = await Promise.all([
     getTransactions(
       DEFAULT_ORG_ID,
-      { status: "active", startDate: queryStart, endDate: today },
+      { status: "active", startDate: monthStart, endDate: today },
       { includeLineItems: false }
     ),
-    getCategories(DEFAULT_ORG_ID),
+    getActivityLogs(DEFAULT_ORG_ID, { startDate: monthStart, endDate: today }),
+    getCashCounts(DEFAULT_ORG_ID, { limit: DASHBOARD_CLOSE_LIMIT }),
   ]);
 
   const todayTransactions = transactions.filter((t) => t.transactionDate === today);
@@ -79,24 +88,31 @@ export async function loadDashboardPageData(): Promise<DashboardPageData> {
     dayTransactions: todayTransactions,
   });
 
+  const todayLedger = await getDailyLedgerSummary(DEFAULT_ORG_ID, today, {
+    dayTransactions: todayTransactions,
+  });
+
   const sum = (rows: Transaction[], type: "income" | "expense") =>
     rows.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
 
+  const rawTodayIncome = sum(todayTransactions, "income");
+  const rawTodayExpense = sum(todayTransactions, "expense");
+
   const dashboardData: DashboardData = {
-    todayIncome: sum(todayTransactions, "income"),
-    todayExpense: sum(todayTransactions, "expense"),
+    todayIncome: activeTodayIncome(rawTodayIncome, dailyCloseStatus),
+    todayExpense: activeTodayExpense(rawTodayExpense, dailyCloseStatus),
     monthIncome: sum(monthTransactions, "income"),
     monthExpense: sum(monthTransactions, "expense"),
     netProfit: sum(monthTransactions, "income") - sum(monthTransactions, "expense"),
-    expectedCashBalance: dailyCloseStatus.cashClosing,
+    expectedCashBalance: activeCashClosing(dailyCloseStatus.cashClosing, dailyCloseStatus),
     transactionCount: monthTransactions.length,
     dailyCloseStatus,
   };
 
   return {
     dashboardData,
-    categories,
-    chartTransactions: transactions.filter((t) => t.transactionDate >= chartStart),
-    recentTransactions: transactions.slice(0, 5),
+    todayLedger,
+    activityLogs: activityLogs.slice(0, DASHBOARD_ACTIVITY_LIMIT),
+    closeHistory,
   };
 }

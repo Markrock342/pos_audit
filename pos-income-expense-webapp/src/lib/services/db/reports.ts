@@ -1,7 +1,11 @@
 import { getTransactions } from "./transactions";
 import { getOrganization } from "./organizations";
-import { calculateExpectedBalance } from "./cashCounts";
 import { getDailyCloseStatus } from "./dailyLedger";
+import {
+  activeCashClosing,
+  activeTodayExpense,
+  activeTodayIncome,
+} from "@/lib/utils/activeDayDisplay";
 import { getDb } from "@/lib/db/supabase";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getBusinessToday } from "@/lib/utils/businessDate";
@@ -163,21 +167,17 @@ export async function getDashboard(): Promise<DashboardData> {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const expectedCashBalance = await calculateExpectedBalance(
-    DEFAULT_ORG_ID,
-    today,
-    0
-  );
-
-  const dailyCloseStatus = await getDailyCloseStatus(DEFAULT_ORG_ID);
+  const dailyCloseStatus = await getDailyCloseStatus(DEFAULT_ORG_ID, {
+    dayTransactions: todayTransactions,
+  });
 
   return {
-    todayIncome,
-    todayExpense,
+    todayIncome: activeTodayIncome(todayIncome, dailyCloseStatus),
+    todayExpense: activeTodayExpense(todayExpense, dailyCloseStatus),
     monthIncome,
     monthExpense,
     netProfit: monthIncome - monthExpense,
-    expectedCashBalance,
+    expectedCashBalance: activeCashClosing(dailyCloseStatus.cashClosing, dailyCloseStatus),
     transactionCount: monthTransactions.length,
     dailyCloseStatus,
   };

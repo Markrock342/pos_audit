@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       data: {
         ...result,
         businessToday,
-        message: "เคลียร์ลิ้นชักและปิดวันแล้ว — พรุ่งนี้ใส่เงินทอนใหม่",
+        message: "ปิดยอดแล้ว — ยอดใน POS เคลียร์เป็น 0",
       },
     });
   } catch (e) {

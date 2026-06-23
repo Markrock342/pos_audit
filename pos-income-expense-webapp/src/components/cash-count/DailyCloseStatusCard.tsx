@@ -1,4 +1,9 @@
 import Link from "next/link";
+import {
+  activeCashClosing,
+  activeNetTotal,
+  isTodayBusinessClosed,
+} from "@/lib/utils/activeDayDisplay";
 import { formatCurrency } from "@/lib/utils/format";
 import { Card, CardContent } from "@/components/ui/Card";
 import type { DailyCloseStatus } from "@/types";
@@ -10,15 +15,16 @@ interface DailyCloseStatusCardProps {
 }
 
 export function DailyCloseStatusCard({ status }: DailyCloseStatusCardProps) {
-  const statusLabel = status.isLocked
-    ? status.autoClosed
-      ? "ปิดอัตโนมัติแล้ว"
-      : "ปิดยอดแล้ว"
+  const dayClosed = isTodayBusinessClosed(status);
+  const statusLabel = dayClosed
+    ? "ปิดยอดแล้ว"
     : status.hasManualCount
       ? "เปิดอยู่ · นับแล้ว"
       : "เปิดอยู่ · ยังไม่นับ";
 
-  const StatusIcon = status.isLocked ? Lock : status.hasManualCount ? CheckCircle : CircleDashed;
+  const StatusIcon = dayClosed ? Lock : status.hasManualCount ? CheckCircle : CircleDashed;
+  const cashDisplay = activeCashClosing(status.cashClosing, status);
+  const netDisplay = activeNetTotal(status.netTotal, status);
 
   return (
     <Link href="/cash-count" className="block h-full active:scale-[0.98] transition-transform">
@@ -30,7 +36,7 @@ export function DailyCloseStatusCard({ status }: DailyCloseStatusCardProps) {
               <p
                 className={cn(
                   "mt-1 flex items-center gap-1.5 text-sm font-bold",
-                  status.isLocked ? "text-text-muted" : "text-brand"
+                  dayClosed ? "text-text-muted" : "text-brand"
                 )}
               >
                 <StatusIcon size={16} className="shrink-0" />
@@ -45,7 +51,7 @@ export function DailyCloseStatusCard({ status }: DailyCloseStatusCardProps) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs text-text-muted">เงินสดใน POS</p>
-              <p className="text-lg font-black text-brand">{formatCurrency(status.cashClosing)}</p>
+              <p className="text-lg font-black text-brand">{formatCurrency(cashDisplay)}</p>
             </div>
             <div>
               <p className="flex items-center gap-1 text-xs text-text-muted">
@@ -58,9 +64,9 @@ export function DailyCloseStatusCard({ status }: DailyCloseStatusCardProps) {
 
           <p className="text-sm font-bold text-text-muted">
             สุทธิธุรกิจวันนี้{" "}
-            <span className={status.netTotal >= 0 ? "text-income" : "text-expense"}>
-              {status.netTotal >= 0 ? "+" : ""}
-              {formatCurrency(status.netTotal)}
+            <span className={netDisplay >= 0 ? "text-income" : "text-expense"}>
+              {netDisplay >= 0 ? "+" : ""}
+              {formatCurrency(netDisplay)}
             </span>
             <span className="font-normal"> · แตะเพื่อดูรายละเอียด</span>
           </p>
