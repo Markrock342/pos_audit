@@ -3,6 +3,11 @@ import { getCategories } from "@/lib/services/db/categories";
 import { getDailyCloseStatus } from "@/lib/services/db/dailyLedger";
 import type { DashboardData } from "@/lib/services/db/reports";
 import { getTransactions } from "@/lib/services/db/transactions";
+import {
+  activeCashClosing,
+  activeTodayExpense,
+  activeTodayIncome,
+} from "@/lib/utils/activeDayDisplay";
 import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
 import type { Category, Transaction, TransactionType } from "@/types";
 
@@ -82,13 +87,16 @@ export async function loadDashboardPageData(): Promise<DashboardPageData> {
   const sum = (rows: Transaction[], type: "income" | "expense") =>
     rows.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
 
+  const rawTodayIncome = sum(todayTransactions, "income");
+  const rawTodayExpense = sum(todayTransactions, "expense");
+
   const dashboardData: DashboardData = {
-    todayIncome: sum(todayTransactions, "income"),
-    todayExpense: sum(todayTransactions, "expense"),
+    todayIncome: activeTodayIncome(rawTodayIncome, dailyCloseStatus),
+    todayExpense: activeTodayExpense(rawTodayExpense, dailyCloseStatus),
     monthIncome: sum(monthTransactions, "income"),
     monthExpense: sum(monthTransactions, "expense"),
     netProfit: sum(monthTransactions, "income") - sum(monthTransactions, "expense"),
-    expectedCashBalance: dailyCloseStatus.cashClosing,
+    expectedCashBalance: activeCashClosing(dailyCloseStatus.cashClosing, dailyCloseStatus),
     transactionCount: monthTransactions.length,
     dailyCloseStatus,
   };

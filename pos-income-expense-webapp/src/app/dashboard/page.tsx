@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DailyCloseStatusCard } from "@/components/cash-count/DailyCloseStatusCard";
+import { DashboardLiveRefresh } from "@/components/dashboard/DashboardLiveRefresh";
 import { SummaryCards } from "@/components/SummaryCards";
 import { RecentTransactionList } from "@/components/RecentTransactionList";
 import { IncomeExpenseChart } from "@/components/charts/IncomeExpenseChartLazy";
@@ -10,8 +11,8 @@ import { ArrowUpCircle, ArrowDownCircle, TrendingUp } from "lucide-react";
 import { loadDashboardPageData } from "@/lib/data/loader";
 import { buildChartData } from "@/lib/reports/summary";
 
-/** cache สั้นๆ — ลด round-trip ซ้ำเวลาเปลี่ยนหน้าแล้วกลับมา */
-export const revalidate = 15;
+/** อัปเดตบ่อยขึ้น + รีเฟรชเมื่อบันทึกรายการ */
+export const revalidate = 0;
 
 export default async function DashboardPage() {
   const { dashboardData, categories, chartTransactions, recentTransactions } =
@@ -30,9 +31,10 @@ export default async function DashboardPage() {
 
   return (
     <AppLayout title="ภาพรวม">
+      <DashboardLiveRefresh />
       <div className="pos-page gap-3 2xl:gap-4">
         <div className="pos-stat-compact shrink-0">
-          <SummaryCards summary={summary} />
+          <SummaryCards summary={summary} dailyCloseStatus={dashboardData.dailyCloseStatus} />
         </div>
 
         <div className="shrink-0">

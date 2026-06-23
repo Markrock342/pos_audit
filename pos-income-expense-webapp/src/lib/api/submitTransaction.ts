@@ -1,5 +1,9 @@
 import { getBusinessToday } from "@/lib/utils/businessDate";
-import { createTransactionApi, invalidateCashCountPageCache } from "@/lib/api/client";
+import {
+  createTransactionApi,
+  invalidateCashCountPageCache,
+  notifyDashboardRefresh,
+} from "@/lib/api/client";
 import { KIOSK_ACCOUNTS, KIOSK_SESSION_KEY, type KioskSession } from "@/constants/kioskUsers";
 import {
   resolveBillTitle,
@@ -19,7 +23,7 @@ function getCreatedBy(): string {
 
 export async function submitTransaction(data: TransactionFormValues) {
   invalidateCashCountPageCache();
-  return createTransactionApi({
+  const created = await createTransactionApi({
     type: data.type,
     title: resolveBillTitle(data.type, data.title, data.lineItems),
     note: data.note?.trim() || undefined,
@@ -34,4 +38,6 @@ export async function submitTransaction(data: TransactionFormValues) {
     })),
     createdBy: getCreatedBy(),
   });
+  notifyDashboardRefresh();
+  return created;
 }

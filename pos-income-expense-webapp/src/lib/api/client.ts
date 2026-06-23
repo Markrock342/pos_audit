@@ -17,6 +17,12 @@ import type {
 } from "@/types";
 
 export const CASH_COUNT_PAGE_CACHE_KEY = "pos-cash-count-page-v1";
+export const DASHBOARD_REFRESH_EVENT = "pos-dashboard-refresh";
+
+export function notifyDashboardRefresh() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(DASHBOARD_REFRESH_EVENT));
+}
 
 export function invalidateCashCountPageCache() {
   if (typeof window === "undefined") return;
@@ -409,6 +415,7 @@ export async function createCashWithdrawalApi(body: {
     })
   );
   invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
 }
 
@@ -442,6 +449,7 @@ export async function createCashDepositApi(body: {
     })
   );
   invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
 }
 
@@ -471,6 +479,7 @@ export async function clearDrawerAndCloseDayApi(body?: {
     })
   );
   invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
 }
 
