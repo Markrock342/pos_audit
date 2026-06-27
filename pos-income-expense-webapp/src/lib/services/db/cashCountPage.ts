@@ -8,8 +8,6 @@ import {
 
   getCashCounts,
 
-  refreshExpectedBalanceQuick,
-
   refreshOpenDailyCloseRecord,
 
 } from "@/lib/services/db/cashCounts";
@@ -140,29 +138,19 @@ export async function loadCashCountPageData(organizationId: string): Promise<Cas
 
 
 
-  if (record && !record.closedAt) {
+  let ledger: DailyLedgerSummary;
 
-    await refreshExpectedBalanceQuick(organizationId, businessToday);
-
-    record = (await getCashCountByDate(organizationId, businessToday)) ?? record;
-
+  if (record?.closedAt) {
+    ledger =
+      summaryFromStoredLedgerFields(record, businessToday, businessToday) ??
+      (await getDailyLedgerSummary(organizationId, businessToday));
+  } else {
+    ledger = await getDailyLedgerSummary(organizationId, businessToday, { forceRecalc: true });
+    if (record) {
+      await refreshOpenDailyCloseRecord(organizationId, businessToday, ledger);
+      record = (await getCashCountByDate(organizationId, businessToday)) ?? record;
+    }
   }
-
-
-
-  const storedLedger =
-
-    record?.closedAt
-
-      ? summaryFromStoredLedgerFields(record, businessToday, businessToday)
-
-      : null;
-
-
-
-  const ledger =
-
-    storedLedger ?? (await getDailyLedgerSummary(organizationId, businessToday));
 
 
 
@@ -202,8 +190,7 @@ export async function getTodayCashCountView(organizationId: string) {
   }
 
   const storedLedger =
-    record &&
-    (record.closedAt || record.cashIncome != null || record.totalIncome != null)
+    record?.closedAt
       ? summaryFromStoredLedgerFields(record, businessToday, businessToday)
       : null;
 

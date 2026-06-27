@@ -51,6 +51,8 @@ export interface Transaction {
   updatedAt?: string;
   /** รายการย่อย — โหลดจาก API */
   lineItems?: TransactionLineItem[];
+  /** รอบการทำงานในวันเดียว */
+  sessionRound?: number;
 }
 
 export interface Category {
@@ -149,6 +151,7 @@ export interface CashWithdrawal {
   note: string;
   recordedBy?: string;
   createdAt?: string;
+  sessionRound?: number;
 }
 
 export interface CashWithdrawalsTodaySummary {
@@ -166,6 +169,7 @@ export interface CashDeposit {
   amount: number;
   recordedBy?: string;
   createdAt?: string;
+  sessionRound?: number;
 }
 
 export interface DailyLedgerWallet {
@@ -217,7 +221,7 @@ export interface CloseSnapshot {
   clearDrawerWithdrawalId?: string | null;
 }
 
-export type CashCountCloseEventType = "close" | "reopen_edit" | "close_after_edit";
+export type CashCountCloseEventType = "close" | "reopen_edit" | "close_after_edit" | "new_round";
 
 export interface CashCountCloseEvent {
   id: string;
@@ -226,6 +230,7 @@ export interface CashCountCloseEvent {
   countDate: string;
   eventType: CashCountCloseEventType;
   closeEditGeneration: number;
+  sessionRound?: number;
   expectedBalance?: number;
   actualBalance?: number;
   variance?: number;
@@ -255,6 +260,8 @@ export interface CashCount {
   hasManualCount?: boolean;
   updatedAt?: string;
   updatedBy?: string;
+  /** รอบการทำงานในวันเดียว — เพิ่มเมื่อกดปิดยอดใหม่ */
+  sessionRound?: number;
   /** รอบแก้ไขปิดยอด — 0 = ยังไม่เคยปิด, 1+ = จำนวนครั้งที่ปิดแล้ว */
   closeEditGeneration?: number;
   /** เปิดแก้ไขแล้ว — รอปิดยอดใหม่ */

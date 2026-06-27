@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getCategories } from "@/lib/services/db/categories";
-import { getTodayWorkspaceClosed } from "@/lib/services/db/workspaceStatus";
+import { getCashCountByDate } from "@/lib/services/db/cashCounts";
+import { isTodayWorkspaceClosedFromCashCount } from "@/lib/services/db/workspaceStatus";
 import { getTransactions } from "@/lib/services/db/transactions";
 import { getBusinessToday } from "@/lib/utils/businessDate";
 import type { TransactionType } from "@/types";
@@ -22,14 +23,23 @@ export async function GET(request: Request) {
 
   try {
     const today = getBusinessToday();
-    const [transactions, categories, dayCleared] = await Promise.all([
+    const cashCount = await getCashCountByDate(DEFAULT_ORG_ID, today);
+    const dayCleared = isTodayWorkspaceClosedFromCashCount(cashCount, today);
+    const sessionRound = dayCleared ? undefined : (cashCount?.sessionRound ?? 1);
+
+    const [transactions, categories] = await Promise.all([
       getTransactions(
         DEFAULT_ORG_ID,
-        { type: type as TransactionType, status: "active", startDate: today, endDate: today },
+        {
+          type: type as TransactionType,
+          status: "active",
+          startDate: today,
+          endDate: today,
+          ...(sessionRound != null ? { sessionRound } : {}),
+        },
         { includeLineItems: false }
       ),
       getCategories(DEFAULT_ORG_ID, type as TransactionType),
-      getTodayWorkspaceClosed(DEFAULT_ORG_ID, today),
     ]);
 
     return NextResponse.json(

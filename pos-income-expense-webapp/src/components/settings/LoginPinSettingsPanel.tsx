@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { PinPadDialog } from "@/components/settings/PinPadDialog";
+import { PinPadDialog, type PinCompleteResult } from "@/components/settings/PinPadDialog";
 import { useAuth } from "@/components/providers/AuthProvider";
 import {
   findKioskAccountWithPin,
@@ -53,13 +53,13 @@ export function LoginPinSettingsPanel() {
     setPinMode("current");
   };
 
-  const handlePinComplete = (pin: string) => {
-    if (!selected) return;
+  const handlePinComplete = (pin: string): PinCompleteResult => {
+    if (!selected) return false;
 
     if (pinMode === "current") {
       if (!findKioskAccountWithPin(selected.username, pin)) {
         setError("PIN ปัจจุบันไม่ถูกต้อง");
-        return;
+        return false;
       }
       setPendingNewPin("");
       setError(null);
@@ -79,7 +79,7 @@ export function LoginPinSettingsPanel() {
         setError("PIN ใหม่ไม่ตรงกัน — ลองใหม่");
         setPinMode("new");
         setPendingNewPin("");
-        return;
+        return false;
       }
       try {
         setLoginPin(selected.username, pin);

@@ -24,7 +24,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
         trend="down"
       />
       <Link
-        href="/cash-count"
+        href="/pos-cash"
         className="col-span-2 block active:scale-[0.98] transition-transform 2xl:col-span-1"
       >
         <StatCard

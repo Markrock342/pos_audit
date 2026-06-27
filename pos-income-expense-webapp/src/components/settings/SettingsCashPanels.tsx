@@ -9,7 +9,7 @@ export function SettingsCashPanels() {
       <CardHeader>
         <CardTitle>ลิ้นชักและเครื่องพิมพ์</CardTitle>
         <p className="text-sm font-normal text-text-muted">
-          เปิดลิ้นชัก · เปลี่ยนรหัส · ทดสอบพิมพ์ — ฝาก/ถอนเงินสดอยู่ที่หน้าปิดยอด
+          เปิดลิ้นชัก · เปลี่ยนรหัส · ทดสอบพิมพ์ — ฝาก/ถอนเงินสดอยู่ที่หน้า เงินสดใน POS
         </p>
       </CardHeader>
       <CardContent>

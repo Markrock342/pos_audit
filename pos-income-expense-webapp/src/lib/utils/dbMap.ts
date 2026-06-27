@@ -37,6 +37,7 @@ export function mapTransaction(row: Record<string, unknown>): Transaction {
     updatedBy: row.updated_by as string | undefined,
     updatedAt: row.updated_at as string | undefined,
     lineItems: row.line_items as TransactionLineItem[] | undefined,
+    sessionRound: row.session_round != null ? Number(row.session_round) : undefined,
   };
 }
 
@@ -144,9 +145,11 @@ export function toTransactionUpdate(
 }
 
 export function toTransactionInsert(
-  data: Omit<Transaction, "id" | "createdAt" | "status" | "isPrinted">
+  data: Omit<Transaction, "id" | "createdAt" | "status" | "isPrinted"> & {
+    sessionRound?: number;
+  }
 ) {
-  return {
+  const row: Record<string, unknown> = {
     organization_id: data.organizationId,
     type: data.type,
     category_id: data.categoryId,
@@ -161,6 +164,8 @@ export function toTransactionInsert(
     created_by: data.createdBy || null,
     created_at: new Date().toISOString(),
   };
+  if (data.sessionRound != null) row.session_round = data.sessionRound;
+  return row;
 }
 
 export function mapCashWithdrawal(row: Record<string, unknown>): CashWithdrawal {
@@ -172,6 +177,7 @@ export function mapCashWithdrawal(row: Record<string, unknown>): CashWithdrawal 
     note: String(row.note ?? ""),
     recordedBy: row.recorded_by as string | undefined,
     createdAt: row.created_at as string | undefined,
+    sessionRound: row.session_round != null ? Number(row.session_round) : undefined,
   };
 }
 
@@ -183,6 +189,7 @@ export function mapCashDeposit(row: Record<string, unknown>): CashDeposit {
     amount: Number(row.amount ?? 0),
     recordedBy: row.recorded_by as string | undefined,
     createdAt: row.created_at as string | undefined,
+    sessionRound: row.session_round != null ? Number(row.session_round) : undefined,
   };
 }
 
@@ -220,6 +227,7 @@ export function mapCashCount(row: Record<string, unknown>): CashCount {
       row.close_edit_generation != null ? Number(row.close_edit_generation) : undefined,
     closeEditReopenedAt: row.close_edit_reopened_at as string | undefined,
     closeSnapshot: row.close_snapshot as CashCount["closeSnapshot"],
+    sessionRound: row.session_round != null ? Number(row.session_round) : undefined,
   };
 }
 

@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { LoginPinSettingsPanel } from "@/components/settings/LoginPinSettingsPanel";
+import { ClearTodayDataPanel } from "@/components/settings/ClearTodayDataPanel";
 import { SettingsCashPanels } from "@/components/settings/SettingsCashPanels";
 import { ShopSettingsForm } from "@/components/settings/ShopSettingsForm";
 
@@ -25,6 +26,17 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
         <SettingsCashPanels />
+        <Card className="border-expense/20">
+          <CardHeader>
+            <CardTitle>ล้างข้อมูลวันนี้</CardTitle>
+            <p className="text-sm font-normal text-text-muted">
+              เริ่มวันใหม่ — ต้องใส่รหัสเปิดลิ้นชัก (0000 หรือที่ตั้งไว้)
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ClearTodayDataPanel />
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );

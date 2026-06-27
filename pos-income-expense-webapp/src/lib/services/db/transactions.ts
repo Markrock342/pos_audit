@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db/supabase";
 import { mapTransaction, toTransactionInsert, toTransactionUpdate } from "@/lib/utils/dbMap";
+import { getSessionRoundForNewEntry } from "@/lib/utils/sessionRound";
 import {
   createLineItems,
   getLineItemsByTransactionIds,
@@ -41,6 +42,7 @@ export async function getTransactions(
     status?: "active" | "void";
     startDate?: string;
     endDate?: string;
+    sessionRound?: number;
   },
   options?: {
     includeLineItems?: boolean;
@@ -65,6 +67,9 @@ export async function getTransactions(
   }
   if (filters?.endDate) {
     q = q.lte("transaction_date", filters.endDate);
+  }
+  if (filters?.sessionRound != null) {
+    q = q.eq("session_round", filters.sessionRound);
   }
   if (options?.limit) {
     q = q.limit(options.limit);
@@ -91,6 +96,10 @@ export async function createTransaction(
     normalized.map((item) => Math.round(item.quantity * item.unitPrice * 100) / 100)
   );
   const firstCategoryId = normalized[0]?.categoryId ?? data.categoryId;
+  const sessionRound = await getSessionRoundForNewEntry(
+    data.organizationId ?? "",
+    data.transactionDate
+  );
 
   const { data: inserted, error } = await getDb()
     .from(TABLE)
@@ -99,6 +108,7 @@ export async function createTransaction(
         ...data,
         amount: totalAmount,
         categoryId: firstCategoryId,
+        sessionRound,
       })
     )
     .select()

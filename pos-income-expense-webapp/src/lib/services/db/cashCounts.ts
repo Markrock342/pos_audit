@@ -10,7 +10,7 @@ import { getTotalWithdrawnForDate, createCashWithdrawal } from "./cashWithdrawal
 import { getTotalDepositedForDate } from "./cashDeposits";
 import { buildCloseSnapshot, recordCloseEvent } from "./closeEdit";
 import { getOrganization } from "./organizations";
-import { getDailyLedgerSummary, ledgerPatchFromSummary, summaryFromStoredLedgerFields } from "./dailyLedger";
+import { getDailyLedgerSummary, ledgerAfterDrawerClear, ledgerPatchFromSummary, summaryFromStoredLedgerFields } from "./dailyLedger";
 import { isFullDailyReset } from "@/lib/utils/dailyResetMode";
 import type { CashCount, CashCountStatus, CashWithdrawal, DailyLedgerSummary } from "@/types";
 
@@ -24,12 +24,16 @@ export async function calculateExpectedBalance(
   countDate: string,
   openingBalance: number
 ): Promise<number> {
+  const cashCount = await getCashCountByDate(organizationId, countDate);
+  const sessionRound = cashCount?.sessionRound ?? 1;
+
   const transactions = await getTransactions(
     organizationId,
     {
       status: "active",
       startDate: countDate,
       endDate: countDate,
+      sessionRound,
     },
     { includeLineItems: false }
   );
@@ -42,8 +46,8 @@ export async function calculateExpectedBalance(
     .filter((t) => t.type === "expense" && t.paymentMethod === "cash")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const withdrawn = await getTotalWithdrawnForDate(organizationId, countDate);
-  const deposited = await getTotalDepositedForDate(organizationId, countDate);
+  const withdrawn = await getTotalWithdrawnForDate(organizationId, countDate, sessionRound);
+  const deposited = await getTotalDepositedForDate(organizationId, countDate, sessionRound);
 
   return openingBalance + income - expense - withdrawn + deposited;
 }
@@ -141,9 +145,12 @@ export async function clearDrawerAndCloseDay(
   ledger: DailyLedgerSummary;
 }> {
   const businessToday = getBusinessToday();
-  await ensureDailyCashCountCycle(organizationId, { syncLedger: true });
 
-  const record = await getCashCountByDate(organizationId, businessToday);
+  let record = await getCashCountByDate(organizationId, businessToday);
+  if (!record) {
+    const cycle = await ensureDailyCashCountCycle(organizationId, { syncLedger: true });
+    record = cycle.todayRecord;
+  }
   if (!record) throw new Error("ไม่พบข้อมูลวันนี้ — ลอง refresh หน้าใหม่");
   if (record.closedAt) throw new Error("วันนี้ปิดยอดแล้ว — ไม่สามารถเคลียร์ซ้ำได้");
 
@@ -178,9 +185,7 @@ export async function clearDrawerAndCloseDay(
     });
   }
 
-  const ledgerAfter = await getDailyLedgerSummary(organizationId, businessToday, {
-    forceRecalc: true,
-  });
+  const ledgerAfter = ledgerAfterDrawerClear(ledgerBefore, withdrawal?.amount ?? 0);
 
   const note = options?.note?.trim()
     ? appendNote(record.note, options.note.trim())

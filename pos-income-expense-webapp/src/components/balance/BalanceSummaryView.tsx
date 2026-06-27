@@ -5,23 +5,18 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { fetchBalanceSummary } from "@/lib/api/client";
+import { fetchBalanceSummary, DASHBOARD_REFRESH_EVENT } from "@/lib/api/client";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
+import {
+  getReportDefaultEndDate,
+  getReportDefaultStartDate,
+} from "@/lib/utils/reportDateRange";
 import type { BalanceSummary } from "@/types";
 import { ArrowDownCircle, ArrowUpCircle, Banknote, PiggyBank, Settings, Wallet } from "lucide-react";
 
-function getFirstDayOfMonth() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-}
-
-function getToday() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function BalanceSummaryView() {
-  const [start, setStart] = useState(getFirstDayOfMonth());
-  const [end, setEnd] = useState(getToday());
+  const [start, setStart] = useState(getReportDefaultStartDate());
+  const [end, setEnd] = useState(getReportDefaultEndDate());
   const [data, setData] = useState<BalanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +36,12 @@ export function BalanceSummaryView() {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  useEffect(() => {
+    const refresh = () => void load();
+    window.addEventListener(DASHBOARD_REFRESH_EVENT, refresh);
+    return () => window.removeEventListener(DASHBOARD_REFRESH_EVENT, refresh);
   }, [load]);
 
   const hasOpening = (data?.openingCash ?? 0) > 0 || (data?.openingSavings ?? 0) > 0;

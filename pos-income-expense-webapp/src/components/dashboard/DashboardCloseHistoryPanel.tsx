@@ -30,7 +30,7 @@ export function DashboardCloseHistoryPanel({ items }: DashboardCloseHistoryPanel
           <Wallet size={20} className="text-text-muted 2xl:h-5 2xl:w-5" />
           ประวัติปิดยอด
         </CardTitle>
-        <Link href="/cash-count?tab=history" prefetch>
+        <Link href="/history?tab=close" prefetch>
           <Button variant="ghost" className="font-bold text-brand">
             ดูทั้งหมด
           </Button>

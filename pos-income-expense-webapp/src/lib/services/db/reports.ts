@@ -1,4 +1,5 @@
 import { getTransactions } from "./transactions";
+import { getCashCountByDate } from "./cashCounts";
 import { getOrganization } from "./organizations";
 import { getDailyCloseStatus } from "./dailyLedger";
 import {
@@ -6,6 +7,7 @@ import {
   activeTodayExpense,
   activeTodayIncome,
 } from "@/lib/utils/activeDayDisplay";
+import { filterTodayTransactionsForSession } from "@/lib/utils/sessionRound";
 import { getDb } from "@/lib/db/supabase";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getBusinessToday } from "@/lib/utils/businessDate";
@@ -136,13 +138,21 @@ export async function getDashboard(): Promise<DashboardData> {
   const today = getBusinessToday();
   const monthStart = `${today.slice(0, 7)}-01`;
 
-  const monthTransactions = await getTransactions(
-    DEFAULT_ORG_ID,
-    { startDate: monthStart, endDate: today, status: "active" },
-    { includeLineItems: false }
-  );
+  const [monthTransactions, cashCount] = await Promise.all([
+    getTransactions(
+      DEFAULT_ORG_ID,
+      { startDate: monthStart, endDate: today, status: "active" },
+      { includeLineItems: false }
+    ),
+    getCashCountByDate(DEFAULT_ORG_ID, today),
+  ]);
 
-  const todayTransactions = monthTransactions.filter((t) => t.transactionDate === today);
+  const sessionRound = cashCount?.sessionRound ?? 1;
+  const todayTransactions = filterTodayTransactionsForSession(
+    monthTransactions,
+    today,
+    sessionRound
+  );
 
   const sum = (rows: typeof monthTransactions, type: "income" | "expense") =>
     rows.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);

@@ -4,15 +4,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
 import { AppLayout } from "@/components/layout/AppLayout";
 
-import { CashCountHistory } from "@/components/cash-count/CashCountHistory";
-
 import { DailyLedgerSummaryPanel } from "@/components/cash-count/DailyLedgerSummaryPanel";
-
-import { CashMovementActionsPanel } from "@/components/cash-movement/CashMovementActionsPanel";
-
-import { CashMovementHistoryPanel } from "@/components/settings/CashMovementHistoryPanel";
 
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -22,11 +19,9 @@ import { Button } from "@/components/ui/Button";
 
 import { Input } from "@/components/ui/Input";
 
-import { SegmentTabs } from "@/components/ui/SegmentTabs";
-
 import { AmountDisplay, AmountNumpad } from "@/components/ui/AmountNumpad";
 
-import { PinPadDialog } from "@/components/settings/PinPadDialog";
+import { PinPadDialog, type PinCompleteResult } from "@/components/settings/PinPadDialog";
 import { verifyDrawerPin } from "@/lib/hardware/drawerPinStorage";
 import {
   CASH_COUNT_PAGE_CACHE_KEY,
@@ -34,9 +29,11 @@ import {
   fetchCashCountPageData,
   invalidateCashCountPageCache,
   reopenCloseForEditApi,
+  startNewCloseRoundApi,
   type CashCountPageData,
 } from "@/lib/api/client";
 import { canReopenCloseForEdit, isInCloseEditMode } from "@/lib/utils/closeEditUtils";
+import { canStartNewCloseRound } from "@/lib/utils/sessionRound";
 
 import {
 
@@ -55,18 +52,6 @@ import { formatCurrency, formatDateShort } from "@/lib/utils/format";
 import type { CashCount, DailyLedgerSummary } from "@/types";
 
 import { Wallet, CheckCircle, AlertTriangle, Lock } from "lucide-react";
-
-
-
-type CashCountTab = "today" | "movement" | "history";
-
-const CASH_COUNT_TABS = [
-  { id: "today" as const, label: "วันนี้" },
-  { id: "movement" as const, label: "ฝาก / ถอน" },
-  { id: "history" as const, label: "ประวัติปิดยอด" },
-];
-
-
 
 const PAGE_CACHE_KEY = CASH_COUNT_PAGE_CACHE_KEY;
 
@@ -118,6 +103,7 @@ function clearPageCache() {
 
 export default function CashCountPage() {
 
+  const router = useRouter();
   const { session } = useAuth();
 
   const isAdmin = session?.role === "admin";
@@ -142,31 +128,33 @@ export default function CashCountPage() {
 
   const [message, setMessage] = useState<string | null>(null);
 
-  const [historyKey, setHistoryKey] = useState(0);
-
-  const [movementRefreshKey, setMovementRefreshKey] = useState(0);
-
   const [actualTouched, setActualTouched] = useState(false);
 
   const [ledger, setLedger] = useState<DailyLedgerSummary | null>(null);
 
   const [ledgerLoading, setLedgerLoading] = useState(true);
 
-  const [history, setHistory] = useState<CashCount[]>([]);
-
-  const [activeTab, setActiveTab] = useState<CashCountTab>("today");
   const [reopenPinOpen, setReopenPinOpen] = useState(false);
   const [reopenPinError, setReopenPinError] = useState<string | null>(null);
   const [reopening, setReopening] = useState(false);
+  const [newRoundPinOpen, setNewRoundPinOpen] = useState(false);
+  const [newRoundPinError, setNewRoundPinError] = useState<string | null>(null);
+  const [startingNewRound, setStartingNewRound] = useState(false);
   const reopenSubmittingRef = useRef(false);
+  const newRoundSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab === "history") setActiveTab("history");
-    else if (tab === "movement") setActiveTab("movement");
-  }, []);
+    if (tab === "movement") {
+      router.replace("/pos-cash");
+      return;
+    }
+    if (tab === "history") {
+      router.replace("/history?tab=close");
+    }
+  }, [router]);
 
 
 
@@ -218,8 +206,6 @@ export default function CashCountPage() {
 
 
     setLedger(page.ledger);
-
-    setHistory(page.history);
 
   }, []);
 
@@ -309,6 +295,7 @@ export default function CashCountPage() {
 
   const inCloseEditMode = isInCloseEditMode(existing);
   const canEditClose = canReopenCloseForEdit(existing, businessToday);
+  const canNewRound = canStartNewCloseRound(existing, businessToday);
   const readOnly = isLocked && !inCloseEditMode;
 
 
@@ -321,19 +308,11 @@ export default function CashCountPage() {
 
 
 
-  const handleMovementSaved = useCallback(async () => {
-    setMovementRefreshKey((k) => k + 1);
-    clearPageCache();
-    await load({ skipCache: true });
-  }, [load]);
-
-
-
-  const handleReopenPinComplete = async (pin: string) => {
-    if (reopenSubmittingRef.current) return;
+  const handleReopenPinComplete = async (pin: string): Promise<PinCompleteResult> => {
+    if (reopenSubmittingRef.current) return false;
     if (!verifyDrawerPin(pin)) {
       setReopenPinError("รหัสไม่ถูกต้อง");
-      return;
+      return false;
     }
     reopenSubmittingRef.current = true;
     setReopenPinOpen(false);
@@ -343,7 +322,6 @@ export default function CashCountPage() {
     try {
       const result = await reopenCloseForEditApi({ updatedBy: session?.userId });
       setMessage(result.message);
-      setHistoryKey((k) => k + 1);
       clearPageCache();
       await load({ skipCache: true });
     } catch (e) {
@@ -351,6 +329,30 @@ export default function CashCountPage() {
     } finally {
       reopenSubmittingRef.current = false;
       setReopening(false);
+    }
+  };
+
+  const handleNewRoundPinComplete = async (pin: string): Promise<PinCompleteResult> => {
+    if (newRoundSubmittingRef.current) return false;
+    if (!verifyDrawerPin(pin)) {
+      setNewRoundPinError("รหัสไม่ถูกต้อง");
+      return false;
+    }
+    newRoundSubmittingRef.current = true;
+    setNewRoundPinOpen(false);
+    setNewRoundPinError(null);
+    setStartingNewRound(true);
+    setMessage(null);
+    try {
+      const result = await startNewCloseRoundApi({ updatedBy: session?.userId });
+      setMessage(result.message);
+      clearPageCache();
+      await load({ skipCache: true });
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "เริ่มรอบใหม่ไม่สำเร็จ");
+    } finally {
+      newRoundSubmittingRef.current = false;
+      setStartingNewRound(false);
     }
   };
 
@@ -398,8 +400,6 @@ export default function CashCountPage() {
 
       setMessage(result.message || "ปิดยอดแล้ว — ยอดใน POS เคลียร์เป็น 0");
 
-      setHistoryKey((k) => k + 1);
-
       clearPageCache();
 
       await load({ skipCache: true });
@@ -434,13 +434,17 @@ export default function CashCountPage() {
 
   return (
 
-    <AppLayout title="สรุปปิดยอด" subtitle="ฝาก/ถอน · สรุปวัน · ปิดยอดเมื่อจบวัน">
+    <AppLayout title="สรุปปิดยอด" subtitle="สรุปวัน · นับเงินในลิ้นชัก · ปิดยอดเมื่อจบวัน">
 
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6">
 
         {inCloseEditMode && (
           <p className="shrink-0 rounded-xl border-2 border-amber-400/60 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-800 dark:text-amber-200">
-            เปิดแก้ไขปิดยอดแล้ว — แก้ไขรายการ/ฝากถอนได้ แล้วกดปิดยอดใหม่เมื่อเสร็จ
+            เปิดแก้ไขปิดยอดแล้ว — แก้ไขรายการได้ · ฝาก/ถอนที่{" "}
+            <Link href="/pos-cash" className="underline">
+              เงินสดใน POS
+            </Link>{" "}
+            · กดปิดยอดใหม่เมื่อเสร็จ
           </p>
         )}
 
@@ -464,15 +468,7 @@ export default function CashCountPage() {
 
 
 
-        <SegmentTabs tabs={CASH_COUNT_TABS} active={activeTab} onChange={(id) => setActiveTab(id as CashCountTab)} />
-
-
-
-        {activeTab === "today" && (
-
-          <>
-
-            <DailyLedgerSummaryPanel data={ledger} loading={ledgerLoading} />
+        <DailyLedgerSummaryPanel data={ledger} loading={ledgerLoading} />
 
 
 
@@ -670,33 +666,34 @@ export default function CashCountPage() {
 
                       )}
 
-                      <Button
-
-                        className="w-full"
-
-                        size="lg"
-
-                        onClick={handleSave}
-
-                        disabled={saving || readOnly}
-
-                      >
-
-                        {readOnly
-
-                          ? "ปิดยอดแล้ว"
-
-                          : saving
-
-                            ? "กำลังปิดยอด..."
-
-                            : inCloseEditMode
-
-                              ? "ปิดยอดใหม่"
-
-                              : "ปิดยอด"}
-
-                      </Button>
+                      {readOnly && canNewRound ? (
+                        <Button
+                          className="w-full"
+                          size="lg"
+                          disabled={startingNewRound}
+                          onClick={() => {
+                            setNewRoundPinError(null);
+                            setNewRoundPinOpen(true);
+                          }}
+                        >
+                          {startingNewRound ? "กำลังเริ่มรอบใหม่..." : "ปิดยอดใหม่"}
+                        </Button>
+                      ) : (
+                        <Button
+                          className="w-full"
+                          size="lg"
+                          onClick={handleSave}
+                          disabled={saving || readOnly}
+                        >
+                          {readOnly
+                            ? "ปิดยอดแล้ว"
+                            : saving
+                              ? "กำลังปิดยอด..."
+                              : inCloseEditMode
+                                ? "ปิดยอดใหม่"
+                                : "ปิดยอด"}
+                        </Button>
+                      )}
 
                       {canEditClose && (
 
@@ -736,98 +733,31 @@ export default function CashCountPage() {
 
             </Card>
 
-          </>
-
-        )}
-
-
-
-        {activeTab === "movement" && (
-
-          <div className="flex flex-col gap-4">
-
-            <Card className="shrink-0">
-
-              <CardHeader className="pb-2">
-
-                <CardTitle className="text-base">ฝาก / ถอนเงินสด</CardTitle>
-
-                <p className="text-xs font-normal text-text-muted">
-
-                  ไม่นับเป็นรายรับ–รายจ่ายธุรกิจ — ใส่รหัสเปิดลิ้นชักก่อนทำรายการ
-
-                </p>
-
-              </CardHeader>
-
-              <CardContent>
-
-                <CashMovementActionsPanel
-
-                  onMovementSaved={() => void handleMovementSaved()}
-
-                  disabled={isLocked}
-
-                  disabledReason={
-                    isLocked
-                      ? "ปิดยอดแล้ว — ไม่สามารถฝากหรือถอนเงินสดได้"
-                      : undefined
-                  }
-
-                />
-
-              </CardContent>
-
-            </Card>
-
-
-
-            <Card>
-
-              <CardHeader>
-
-                <CardTitle>ประวัติฝาก / ถอน</CardTitle>
-
-                <p className="text-sm font-normal text-text-muted">
-
-                  บันทึกฝากและถอนเงินสด — แยกจากประวัติรายรับ–รายจ่าย
-
-                </p>
-
-              </CardHeader>
-
-              <CardContent>
-
-                <CashMovementHistoryPanel refreshKey={movementRefreshKey} dayCleared={readOnly} />
-
-              </CardContent>
-
-            </Card>
-
-          </div>
-
-        )}
-
-
-
-        {activeTab === "history" && (
-
-          <CashCountHistory refreshKey={historyKey} items={history} loading={loading} />
-
-        )}
-
       </div>
 
       <PinPadDialog
-        key={reopenPinOpen ? "reopen-edit" : "closed"}
+        key={reopenPinOpen ? "reopen-edit" : "reopen-closed"}
         open={reopenPinOpen}
         title="ใส่รหัสเปิดลิ้นชัก"
         subtitle="ยืนยันก่อนแก้ไขปิดยอด — รหัส 4 หลัก"
         error={reopenPinError}
-        onComplete={(pin) => void handleReopenPinComplete(pin)}
+        onComplete={handleReopenPinComplete}
         onCancel={() => {
           setReopenPinOpen(false);
           setReopenPinError(null);
+        }}
+      />
+
+      <PinPadDialog
+        key={newRoundPinOpen ? "new-round" : "new-round-closed"}
+        open={newRoundPinOpen}
+        title="ใส่รหัสเปิดลิ้นชัก"
+        subtitle="ยืนยันก่อนเริ่มรอบใหม่ — ยอดเริ่ม 0 ฝากเงินเข้า POS ก่อนทำงาน"
+        error={newRoundPinError}
+        onComplete={handleNewRoundPinComplete}
+        onCancel={() => {
+          setNewRoundPinOpen(false);
+          setNewRoundPinError(null);
         }}
       />
 

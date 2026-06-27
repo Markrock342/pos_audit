@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { PinPadDialog } from "@/components/settings/PinPadDialog";
+import { PinPadDialog, type PinCompleteResult } from "@/components/settings/PinPadDialog";
 import {
   DRAWER_PIN_STORAGE_KEY,
   setDrawerPin,
@@ -56,11 +56,11 @@ export function HardwareSettingsPanel() {
     setPinMode("change-current");
   };
 
-  const handlePinComplete = async (pin: string) => {
+  const handlePinComplete = async (pin: string): Promise<PinCompleteResult> => {
     if (pinMode === "open-drawer") {
       if (!verifyDrawerPin(pin)) {
         setError("รหัสไม่ถูกต้อง");
-        return;
+        return false;
       }
       closePin();
       setOpeningDrawer(true);
@@ -77,7 +77,7 @@ export function HardwareSettingsPanel() {
     if (pinMode === "change-current") {
       if (!verifyDrawerPin(pin)) {
         setError("รหัสเดิมไม่ถูกต้อง");
-        return;
+        return false;
       }
       setError(null);
       setPendingNewPin("");
@@ -103,7 +103,7 @@ export function HardwareSettingsPanel() {
         setPinSubtitle("รหัส 4 หลัก");
         setPinMode("change-new");
         setPendingNewPin("");
-        return;
+        return false;
       }
       try {
         setDrawerPin(pin);

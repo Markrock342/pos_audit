@@ -107,6 +107,7 @@ export async function POST(request: Request) {
         newValue: {
           amount: created.amount,
           depositDate: created.depositDate,
+          sessionRound: created.sessionRound,
         },
       })
     );

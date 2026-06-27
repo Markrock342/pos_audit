@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
 import { getTransactions } from "@/lib/services/db/transactions";
+import {
+  getReportDefaultEndDate,
+  getReportDefaultStartDate,
+} from "@/lib/utils/reportDateRange";
 import type { ReportSummary } from "@/types";
 
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 
+export const dynamic = "force-dynamic";
+
+const NO_STORE = { "Cache-Control": "no-store, no-cache, must-revalidate" };
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const start = searchParams.get("start") ?? getFirstDayOfMonth();
-  const end = searchParams.get("end") ?? getToday();
+  const start = searchParams.get("start") ?? getReportDefaultStartDate();
+  const end = searchParams.get("end") ?? getReportDefaultEndDate();
 
   const transactions = await getTransactions(DEFAULT_ORG_ID, {
     startDate: start,
@@ -30,14 +38,5 @@ export async function GET(request: Request) {
     dateRange: { start, end },
   };
 
-  return NextResponse.json({ data: summary });
-}
-
-function getToday(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getFirstDayOfMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  return NextResponse.json({ data: summary }, { headers: NO_STORE });
 }

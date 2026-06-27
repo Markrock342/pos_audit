@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db/supabase";
-import { businessDayEndIso, businessDayStartIso } from "@/lib/utils/businessDate";
+import { businessDayEndIso, businessDayStartIso, shiftBusinessDate } from "@/lib/utils/businessDate";
+import { filterAuditLogsByBusinessDate } from "@/lib/utils/auditLogDate";
 import { mapAuditLog, toAuditLogInsert } from "@/lib/utils/dbMap";
 import { transactionAuditSnapshot } from "@/lib/utils/auditSnapshot";
 import { getTransactions } from "@/lib/services/db/transactions";
@@ -68,10 +69,10 @@ export async function getAuditLogs(
     q = q.eq("transaction_type", filters.transactionType);
   }
   if (filters?.startDate) {
-    q = q.gte("created_at", businessDayStartIso(filters.startDate));
+    q = q.gte("created_at", businessDayStartIso(shiftBusinessDate(filters.startDate, -2)));
   }
   if (filters?.endDate) {
-    q = q.lte("created_at", businessDayEndIso(filters.endDate));
+    q = q.lte("created_at", businessDayEndIso(shiftBusinessDate(filters.endDate, 2)));
   }
 
   const { data, error } = await q;
@@ -80,16 +81,7 @@ export async function getAuditLogs(
 }
 
 function applyDateFilters(logs: AuditLog[], filters?: AuditLogFilters): AuditLog[] {
-  let result = logs;
-  if (filters?.startDate) {
-    const start = businessDayStartIso(filters.startDate);
-    result = result.filter((l) => l.createdAt >= start);
-  }
-  if (filters?.endDate) {
-    const end = businessDayEndIso(filters.endDate);
-    result = result.filter((l) => l.createdAt <= end);
-  }
-  return result;
+  return filterAuditLogsByBusinessDate(logs, filters?.startDate, filters?.endDate);
 }
 
 function buildUserNameMap(organizationId: string, users: Awaited<ReturnType<typeof getUsers>>) {
@@ -150,7 +142,7 @@ export async function getActivityLogs(
     filters?.entityType === "cash_withdrawal"
   ) {
     const users = await getUsers(organizationId);
-    return enrichWithUserNames(filteredLogs, organizationId, users);
+    return enrichWithUserNames(applyDateFilters(filteredLogs, filters), organizationId, users);
   }
 
   const createEntityIds = new Set(
@@ -159,6 +151,8 @@ export async function getActivityLogs(
 
   const transactions = await getTransactions(organizationId, {
     type: filters?.transactionType,
+    startDate: filters?.startDate,
+    endDate: filters?.endDate,
   });
 
   const legacyCreates: AuditLog[] = transactions

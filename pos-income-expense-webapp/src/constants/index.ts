@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Settings,
   Wallet,
+  Banknote,
   History,
   Scale,
 } from "lucide-react";
@@ -64,7 +65,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/dashboard", label: "ภาพรวม", hint: "ยอดวันนี้", icon: LayoutDashboard },
       { href: "/income", label: "รายรับ", hint: "บันทึกเงินเข้า", icon: DollarSign },
       { href: "/expense", label: "รายจ่าย", hint: "บันทึกเงินออก", icon: ArrowDownCircle },
-      { href: "/cash-count", label: "สรุปปิดยอด", hint: "สด + โอน + ถอน", icon: Wallet },
+      { href: "/cash-count", label: "สรุปปิดยอด", hint: "สรุปวัน · ปิดยอด", icon: Wallet },
+      { href: "/pos-cash", label: "เงินสดใน POS", hint: "ฝาก / ถอน", icon: Banknote },
     ],
   },
   {
@@ -97,6 +99,7 @@ export const BOTTOM_NAV_PRIMARY = [
 
 /** เมนูเพิ่มเติมใน tablet (sheet) */
 export const TABLET_MORE_NAV = [
+  { href: "/pos-cash", label: "เงินสด", icon: Banknote, match: "/pos-cash" },
   { href: "/income", label: "รายการรายรับ", icon: DollarSign },
   { href: "/expense", label: "รายการรายจ่าย", icon: ArrowDownCircle },
   { href: "/balance", label: "สรุปเงินทั้งเดือน", icon: Scale },

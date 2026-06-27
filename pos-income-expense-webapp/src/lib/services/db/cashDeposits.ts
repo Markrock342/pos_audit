@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db/supabase";
 import { mapCashDeposit } from "@/lib/utils/dbMap";
+import { getSessionRoundForNewEntry } from "@/lib/utils/sessionRound";
 import type { CashDeposit } from "@/types";
 
 const TABLE = "cash_deposits";
@@ -8,6 +9,7 @@ export interface CashDepositFilters {
   startDate?: string;
   endDate?: string;
   depositDate?: string;
+  sessionRound?: number;
 }
 
 export async function getCashDeposits(
@@ -29,6 +31,9 @@ export async function getCashDeposits(
   if (filters?.endDate) {
     query = query.lte("deposit_date", filters.endDate);
   }
+  if (filters?.sessionRound != null) {
+    query = query.eq("session_round", filters.sessionRound);
+  }
 
   const { data, error } = await query;
   if (error || !data) return [];
@@ -37,13 +42,20 @@ export async function getCashDeposits(
 
 export async function getTotalDepositedForDate(
   organizationId: string,
-  depositDate: string
+  depositDate: string,
+  sessionRound?: number
 ): Promise<number> {
-  const { data, error } = await getDb()
+  let query = getDb()
     .from(TABLE)
     .select("amount")
     .eq("organization_id", organizationId)
     .eq("deposit_date", depositDate);
+
+  if (sessionRound != null) {
+    query = query.eq("session_round", sessionRound);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data) return 0;
   return (data as { amount: number }[]).reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
@@ -55,6 +67,8 @@ export async function createCashDeposit(data: {
   amount: number;
   recordedBy?: string;
 }): Promise<CashDeposit> {
+  const sessionRound = await getSessionRoundForNewEntry(data.organizationId, data.depositDate);
+
   const { data: inserted, error } = await getDb()
     .from(TABLE)
     .insert({
@@ -62,6 +76,7 @@ export async function createCashDeposit(data: {
       deposit_date: data.depositDate,
       amount: data.amount,
       recorded_by: data.recordedBy ?? null,
+      session_round: sessionRound,
       created_at: new Date().toISOString(),
     })
     .select()

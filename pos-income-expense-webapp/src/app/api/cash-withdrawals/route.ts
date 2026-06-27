@@ -116,6 +116,7 @@ export async function POST(request: Request) {
           amount: created.amount,
           withdrawalDate: created.withdrawalDate,
           note: created.note,
+          sessionRound: created.sessionRound,
         },
       })
     );

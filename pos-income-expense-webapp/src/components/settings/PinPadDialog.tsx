@@ -8,12 +8,15 @@ import { cn } from "@/lib/utils/cn";
 const MAX_PIN = 4;
 const PIN_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "backspace"] as const;
 
+/** คืน false เมื่อรหัสผิด — dialog จะรีเซ็ตให้กรอกใหม่ทันที */
+export type PinCompleteResult = boolean | void;
+
 interface PinPadDialogProps {
   open: boolean;
   title: string;
   subtitle?: string;
   error?: string | null;
-  onComplete: (pin: string) => void;
+  onComplete: (pin: string) => PinCompleteResult | Promise<PinCompleteResult>;
   onCancel: () => void;
 }
 
@@ -28,29 +31,66 @@ export function PinPadDialog({
   const [pin, setPin] = useState("");
   const [shake, setShake] = useState(false);
   const submittedRef = useRef(false);
+  const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const prevErrorRef = useRef<string | null>(null);
+
+  const resetForRetry = useCallback(() => {
+    setPin("");
+    submittedRef.current = false;
+    setShake(true);
+    if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
+    shakeTimerRef.current = setTimeout(() => setShake(false), 500);
+  }, []);
 
   useEffect(() => {
     if (open) {
       setPin("");
       submittedRef.current = false;
+      setShake(false);
     }
   }, [open, title]);
 
   useEffect(() => {
-    if (error) {
-      setShake(true);
-      setPin("");
-      submittedRef.current = false;
-      const t = setTimeout(() => setShake(false), 500);
-      return () => clearTimeout(t);
-    }
-  }, [error]);
+    return () => {
+      if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!open || pin.length < MAX_PIN || submittedRef.current) return;
+
     submittedRef.current = true;
-    onComplete(pin);
-  }, [open, pin, onComplete]);
+    const pinValue = pin;
+
+    void (async () => {
+      try {
+        const result = await Promise.resolve(onCompleteRef.current(pinValue));
+        if (result === false) {
+          resetForRetry();
+        }
+      } catch {
+        resetForRetry();
+      }
+    })();
+  }, [open, pin, resetForRetry]);
+
+  /** สำรองเมื่อ parent ตั้ง error ใหม่ขณะกรอกครบ 4 หลัก (เช่น ใช้ void handler) */
+  useEffect(() => {
+    if (!open) {
+      prevErrorRef.current = null;
+      return;
+    }
+    if (!error) {
+      prevErrorRef.current = null;
+      return;
+    }
+    if (error !== prevErrorRef.current && pin.length === MAX_PIN) {
+      prevErrorRef.current = error;
+      resetForRetry();
+    }
+  }, [open, error, pin, resetForRetry]);
 
   const handleKey = useCallback((key: (typeof PIN_KEYS)[number]) => {
     setPin((prev) => {

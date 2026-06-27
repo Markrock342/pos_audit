@@ -11,6 +11,7 @@ import {
 } from "@/lib/utils/activeDayDisplay";
 import { isInCloseEditMode } from "@/lib/utils/closeEditUtils";
 import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
+import { filterTodayTransactionsForSession } from "@/lib/utils/sessionRound";
 import type { Category, DailyCloseStatus, Transaction, TransactionType } from "@/types";
 type TransactionFilters = {
   type?: TransactionType;
@@ -63,21 +64,28 @@ export async function loadDashboardPageData(): Promise<DashboardPageData> {
   const today = getBusinessToday();
   const monthStart = `${today.slice(0, 7)}-01`;
 
-  const transactions = await getTransactions(
-    DEFAULT_ORG_ID,
-    { status: "active", startDate: monthStart, endDate: today },
-    { includeLineItems: false }
-  );
+  const [transactions, cashCount] = await Promise.all([
+    getTransactions(
+      DEFAULT_ORG_ID,
+      { status: "active", startDate: monthStart, endDate: today },
+      { includeLineItems: false }
+    ),
+    getCashCountByDate(DEFAULT_ORG_ID, today),
+  ]);
 
-  const todayTransactions = transactions.filter((t) => t.transactionDate === today);
+  const sessionRound = cashCount?.sessionRound ?? 1;
+  const todayTransactions = filterTodayTransactionsForSession(
+    transactions,
+    today,
+    sessionRound
+  );
   const monthTransactions = transactions.filter(
     (t) => t.transactionDate >= monthStart && t.transactionDate <= today
   );
 
-  const [todayLedger, cashCount] = await Promise.all([
-    getDailyLedgerSummary(DEFAULT_ORG_ID, today, { dayTransactions: todayTransactions }),
-    getCashCountByDate(DEFAULT_ORG_ID, today),
-  ]);
+  const todayLedger = await getDailyLedgerSummary(DEFAULT_ORG_ID, today, {
+    dayTransactions: todayTransactions,
+  });
 
   const dailyCloseStatus: DailyCloseStatus = {
     countDate: today,

@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { CashDepositDialog } from "@/components/settings/CashDepositDialog";
 import { CashWithdrawDialog } from "@/components/settings/CashWithdrawDialog";
-import { PinPadDialog } from "@/components/settings/PinPadDialog";
+import { PinPadDialog, type PinCompleteResult } from "@/components/settings/PinPadDialog";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { verifyDrawerPin } from "@/lib/hardware/drawerPinStorage";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
@@ -55,10 +55,10 @@ export function CashMovementActionsPanel({
     setPinMode("cash-withdraw");
   };
 
-  const handlePinComplete = (pin: string) => {
+  const handlePinComplete = (pin: string): PinCompleteResult => {
     if (!verifyDrawerPin(pin)) {
       setError("รหัสไม่ถูกต้อง");
-      return;
+      return false;
     }
     closePin();
     if (pinMode === "cash-deposit") {

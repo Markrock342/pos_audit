@@ -2,343 +2,517 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { DateTimeDisplay } from "@/components/ui/DateTimeDisplay";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { fetchAuditLogs } from "@/lib/api/client";
-import { describeAuditChanges } from "@/lib/utils/auditChanges";
-import { formatCurrency, formatDateShort } from "@/lib/utils/format";
-import { cn } from "@/lib/utils/cn";
-import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
-import type { AuditLog, AuditLogAction, TransactionType } from "@/types";
 import {
-  ArrowDownCircle,
-  ArrowUpCircle,
-  FilePlus2,
-  History,
-  PencilLine,
-  Ban,
-  User,
-} from "lucide-react";
+  HistoryAuditCard,
+  HistoryCloseCard,
+  HistoryCloseRoundCard,
+  HistoryPosDayCard,
+  type PosDaySummary,
+} from "@/components/history/HistoryCards";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Input } from "@/components/ui/Input";
+import { SegmentTabs } from "@/components/ui/SegmentTabs";
+import { fetchAuditLogs, fetchCashCounts, fetchCloseEventsInRange } from "@/lib/api/client";
+import { getAuditLogBusinessDate, getAuditLogSessionRound } from "@/lib/utils/auditLogDate";
+import { cn } from "@/lib/utils/cn";
+import { isCashCountPending } from "@/lib/utils/cashCountVariance";
+import { formatDateShort } from "@/lib/utils/format";
+import { getBusinessToday } from "@/lib/utils/businessDate";
+import {
+  dedupeCloseEventsForDisplay,
+  isCloseSummaryEvent,
+  pickCloseEventForRound,
+} from "@/lib/utils/closeEventDisplay";
+import type { AuditLog, AuditLogAction, CashCount, CashCountCloseEvent } from "@/types";
+import { CalendarRange, History, RotateCcw } from "lucide-react";
 
-const ACTION_LABELS: Record<AuditLogAction, string> = {
-  create: "บันทึกใหม่",
-  update: "แก้ไข",
-  void: "ยกเลิก",
-};
+type SessionRoundFilter = "all" | number;
 
-const TYPE_LABELS = {
-  income: "รายรับ",
-  expense: "รายจ่าย",
-} as const;
+type HistoryCategory = "income" | "expense" | "pos" | "close";
 
-type DatePreset = "today" | "week" | "month" | "all";
+const CATEGORY_TABS = [
+  { id: "income" as const, label: "รายรับ" },
+  { id: "expense" as const, label: "รายจ่าย" },
+  { id: "pos" as const, label: "ยอดเงินใน POS" },
+  { id: "close" as const, label: "ปิดยอด" },
+];
 
-const PRESET_LABELS: Record<DatePreset, string> = {
-  today: "วันนี้",
-  week: "7 วัน",
-  month: "เดือนนี้",
-  all: "ทั้งหมด",
-};
+function clampDateRange(start: string, end: string): { start: string; end: string } {
+  if (!start || !end) return { start, end };
+  if (start <= end) return { start, end };
+  return { start: end, end: start };
+}
 
-/** สี/ไอคอนของแต่ละการกระทำ — ใช้โทนอ่อนเป็น accent ไม่ฉูดฉาด */
-const ACTION_STYLES: Record<
-  AuditLogAction,
-  { label: string; chip: string; icon: typeof FilePlus2 }
-> = {
-  create: {
-    label: ACTION_LABELS.create,
-    chip: "border-income/25 bg-income-light text-income",
-    icon: FilePlus2,
-  },
-  update: {
-    label: ACTION_LABELS.update,
-    chip: "border-brand/25 bg-brand-light text-brand",
-    icon: PencilLine,
-  },
-  void: {
-    label: ACTION_LABELS.void,
-    chip: "border-expense/25 bg-expense-light text-expense",
-    icon: Ban,
-  },
-};
+function isDateInRange(date: string, startDate?: string, endDate?: string): boolean {
+  if (startDate && date < startDate) return false;
+  if (endDate && date > endDate) return false;
+  return true;
+}
 
-function getPresetRange(preset: DatePreset): { startDate?: string; endDate?: string } {
-  const today = getBusinessToday();
-  switch (preset) {
-    case "today":
-      return { startDate: today, endDate: today };
-    case "week":
-      return { startDate: shiftBusinessDate(today, -6), endDate: today };
-    case "month":
-      return { startDate: `${today.slice(0, 7)}-01`, endDate: today };
-    case "all":
-      return {};
+function rangeSummary(startDate: string, endDate: string): string {
+  if (!startDate && !endDate) return "ทุกช่วงเวลา";
+  if (startDate === endDate) return formatDateShort(startDate);
+  return `${formatDateShort(startDate)} — ${formatDateShort(endDate)}`;
+}
+
+function sumMovement(logs: AuditLog[], kind: "cash_deposit" | "cash_withdrawal"): number {
+  return logs
+    .filter((log) => log.entityType === kind)
+    .reduce((sum, log) => sum + Number(log.newValue?.amount ?? 0), 0);
+}
+
+function movementSessionRound(log: AuditLog): number {
+  return getAuditLogSessionRound(log);
+}
+
+function discoverTransactionRoundsForDate(date: string, logs: AuditLog[]): number[] {
+  const rounds = new Set<number>();
+  for (const log of logs) {
+    if (log.entityType !== "transaction") continue;
+    if (getAuditLogBusinessDate(log) !== date) continue;
+    rounds.add(getAuditLogSessionRound(log));
   }
+  return [...rounds].sort((a, b) => a - b);
 }
 
-function presetSummary(preset: DatePreset): string {
-  const { startDate, endDate } = getPresetRange(preset);
-  switch (preset) {
-    case "today":
-      return "ประวัติวันนี้";
-    case "week":
-      return "ประวัติ 7 วันล่าสุด";
-    case "month":
-      return startDate && endDate
-        ? `${formatDateShort(startDate)} — ${formatDateShort(endDate)}`
-        : "ประวัติเดือนนี้";
-    case "all":
-      return "ประวัติทั้งหมด";
+function auditLogMatchesRound(log: AuditLog, filter: SessionRoundFilter): boolean {
+  if (filter === "all") return true;
+  return getAuditLogSessionRound(log) === filter;
+}
+
+function buildPosDaySummaries(
+  start: string,
+  end: string,
+  cashCounts: CashCount[],
+  movements: AuditLog[],
+  closeEvents: CashCountCloseEvent[]
+): PosDaySummary[] {
+  const countByDate = new Map<string, CashCount>();
+  for (const row of cashCounts) {
+    if (isDateInRange(row.countDate, start, end)) {
+      countByDate.set(row.countDate, row);
+    }
   }
-}
 
-function logAmount(log: AuditLog): { text: string; type: TransactionType } | null {
-  const amount = log.newValue?.amount ?? log.oldValue?.amount;
-  if (amount == null) return null;
-  const num = Number(amount);
-  if (Number.isNaN(num)) return null;
-  const type: TransactionType = log.transactionType ?? "income";
-  const prefix = type === "expense" ? "-" : "+";
-  return { text: `${prefix}${formatCurrency(num)}`, type };
-}
+  const closes = closeEvents.filter(isCloseSummaryEvent);
 
-function TypeBadge({ type }: { type?: TransactionType }) {
-  if (!type) return null;
-  const isIncome = type === "income";
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold",
-        isIncome
-          ? "border-income/25 bg-income-light text-income"
-          : "border-expense/25 bg-expense-light text-expense"
-      )}
-    >
-      {isIncome ? <ArrowUpCircle size={13} strokeWidth={2.5} /> : <ArrowDownCircle size={13} strokeWidth={2.5} />}
-      {TYPE_LABELS[type]}
-    </span>
-  );
-}
-
-/** ตัดบรรทัดที่ซ้ำกับส่วนหัวการ์ด (ชื่อ/ยอด/หัวข้อ) ออก เหลือรายละเอียดที่มีประโยชน์ */
-function detailLines(log: AuditLog): string[] {
-  const lines = describeAuditChanges(log);
-  if (log.action === "create") {
-    return lines.filter(
-      (l) =>
-        l !== "บันทึกรายการใหม่" &&
-        !l.startsWith("ชื่อหัวใบ:") &&
-        !l.startsWith("ยอดรวม:")
-    );
+  const roundKeys = new Set<string>();
+  for (const event of closes) {
+    roundKeys.add(`${event.countDate}:${event.sessionRound ?? 1}`);
   }
-  return lines;
+  for (const log of movements) {
+    const date = getAuditLogBusinessDate(log);
+    if (!isDateInRange(date, start, end)) continue;
+    roundKeys.add(`${date}:${movementSessionRound(log)}`);
+  }
+
+  return [...roundKeys]
+    .sort((a, b) => {
+      const [dateA, roundA] = a.split(":");
+      const [dateB, roundB] = b.split(":");
+      if (dateA !== dateB) return dateB.localeCompare(dateA);
+      return Number(roundB) - Number(roundA);
+    })
+    .map((key) => {
+      const [date, roundStr] = key.split(":");
+      const sessionRound = Number(roundStr);
+      const cashCount = countByDate.get(date) ?? null;
+      const closeEvent = pickCloseEventForRound(closes, date, sessionRound);
+      const dayMovements = movements
+        .filter((log) => {
+          const logDate = getAuditLogBusinessDate(log);
+          return logDate === date && movementSessionRound(log) === sessionRound;
+        })
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+      const deposited = sumMovement(dayMovements, "cash_deposit");
+      const withdrawn = sumMovement(dayMovements, "cash_withdrawal");
+      const pending = closeEvent ? false : cashCount ? isCashCountPending(cashCount) : true;
+
+      return {
+        date,
+        sessionRound,
+        deposited,
+        withdrawn,
+        expectedBalance: closeEvent?.expectedBalance ?? cashCount?.expectedBalance ?? 0,
+        actualBalance:
+          closeEvent?.actualBalance ??
+          (pending || !cashCount ? null : cashCount.actualBalance),
+        variance:
+          closeEvent?.variance ?? (pending || !cashCount ? null : cashCount.variance),
+        cashCount,
+        movements: dayMovements,
+      };
+    });
 }
 
-function HistoryCard({ log }: { log: AuditLog }) {
-  const amount = logAmount(log);
-  const action = ACTION_STYLES[log.action];
-  const ActionIcon = action.icon;
-  const changeLines = detailLines(log);
-
-  return (
-    <article className="rounded-2xl border border-border-default bg-surface-elevated p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_4px_16px_rgba(15,23,42,0.08)] sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <span
-            className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
-              action.chip
-            )}
-          >
-            <ActionIcon size={20} strokeWidth={2} />
-          </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold",
-                  action.chip
-                )}
-              >
-                {action.label}
-              </span>
-              <TypeBadge type={log.transactionType} />
-            </div>
-            <p className="mt-1.5 truncate text-base font-bold text-text-main">
-              {log.entityTitle ?? "ไม่มีชื่อรายการ"}
-            </p>
-            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-text-muted">
-              <DateTimeDisplay iso={log.createdAt} showRelative={false} className="inline!" />
-              {log.userName && (
-                <span className="inline-flex items-center gap-1">
-                  <User size={12} />
-                  {log.userName}
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-
-        {amount && (
-          <p
-            className={cn(
-              "shrink-0 text-lg font-black tabular-nums",
-              amount.type === "income" ? "text-income" : "text-expense"
-            )}
-          >
-            {amount.text}
-          </p>
-        )}
-      </div>
-
-      {changeLines.length > 0 && (
-        <ul className="mt-3 space-y-0.5 rounded-xl bg-surface-inset px-3.5 py-2.5 text-sm leading-relaxed text-text-secondary">
-          {changeLines.map((line, index) => (
-            <li key={`${index}-${line}`}>{line}</li>
-          ))}
-        </ul>
-      )}
-
-      {log.action !== "create" && log.reason && (
-        <p className="mt-2 text-sm text-text-secondary">
-          <span className="font-semibold text-text-main">เหตุผล:</span> {log.reason}
-        </p>
-      )}
-    </article>
-  );
-}
+const EMPTY_MESSAGES: Record<HistoryCategory, { title: string; message: string }> = {
+  income: {
+    title: "ยังไม่มีประวัติรายรับ",
+    message: "รายการบันทึก แก้ไข หรือยกเลิกรายรับจะแสดงในช่วงวันที่ที่เลือก",
+  },
+  expense: {
+    title: "ยังไม่มีประวัติรายจ่าย",
+    message: "รายการบันทึก แก้ไข หรือยกเลิกรายจ่ายจะแสดงในช่วงวันที่ที่เลือก",
+  },
+  pos: {
+    title: "ยังไม่มีประวัติเงินสดใน POS",
+    message: "ฝาก/ถอน หรือผลนับเงิน (ขาด/เกิน) จะแสดงตามวันที่ที่เลือก",
+  },
+  close: {
+    title: "ยังไม่มีประวัติปิดยอด",
+    message: "วันที่มีการปิดยอดหรือนับเงินจะแสดงในช่วงวันที่ที่เลือก",
+  },
+};
 
 export default function HistoryPage() {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const today = getBusinessToday();
+
+  const [category, setCategory] = useState<HistoryCategory>("income");
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
+  const [actionFilter, setActionFilter] = useState<"" | AuditLogAction>("");
+
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [closeRows, setCloseRows] = useState<CashCount[]>([]);
+  const [closeEvents, setCloseEvents] = useState<CashCountCloseEvent[]>([]);
+  const [posDays, setPosDays] = useState<PosDaySummary[]>([]);
+  const [sessionRoundFilter, setSessionRoundFilter] = useState<SessionRoundFilter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionFilter, setActionFilter] = useState<"" | AuditLogAction>("");
-  const [typeFilter, setTypeFilter] = useState<"" | "income" | "expense">("");
-  const [datePreset, setDatePreset] = useState<DatePreset>("month");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "income" || tab === "expense" || tab === "pos" || tab === "close") {
+      setCategory(tab);
+    }
+  }, []);
+
+  const dateRange = useMemo(() => clampDateRange(startDate, endDate), [endDate, startDate]);
+  const isSingleDay = dateRange.start === dateRange.end && !!dateRange.start;
+
+  const isTransactionCategory = category === "income" || category === "expense";
+
+  useEffect(() => {
+    setSessionRoundFilter("all");
+  }, [dateRange.start, dateRange.end, category]);
+
+  const setStartDateSafe = (value: string) => {
+    setStartDate(value);
+    if (value && endDate && value > endDate) setEndDate(value);
+  };
+
+  const setEndDateSafe = (value: string) => {
+    setEndDate(value);
+    if (value && startDate && value < startDate) setStartDate(value);
+  };
+
+  const applyToday = () => {
+    const bizToday = getBusinessToday();
+    setStartDate(bizToday);
+    setEndDate(bizToday);
+  };
 
   const load = useCallback(async () => {
     setError(null);
-    const { startDate, endDate } = getPresetRange(datePreset);
+    const { start, end } = dateRange;
+
     try {
+      if (category === "close") {
+        const events = await fetchCloseEventsInRange(start, end);
+        const closes = dedupeCloseEventsForDisplay(events);
+        if (closes.length > 0) {
+          setCloseEvents(closes);
+          setCloseRows([]);
+          return;
+        }
+
+        const rows = await fetchCashCounts(120);
+        const filtered = rows
+          .filter((row) => isDateInRange(row.countDate, start, end))
+          .filter((row) => row.closedAt || row.hasManualCount || row.actualBalance > 0)
+          .sort((a, b) => b.countDate.localeCompare(a.countDate));
+        setCloseEvents([]);
+        setCloseRows(filtered);
+        return;
+      }
+
+      if (category === "pos") {
+        const [cashCounts, deposits, withdrawals, closeEventsInRange] = await Promise.all([
+          fetchCashCounts(120),
+          fetchAuditLogs({ startDate: start, endDate: end, entityType: "cash_deposit" }),
+          fetchAuditLogs({ startDate: start, endDate: end, entityType: "cash_withdrawal" }),
+          fetchCloseEventsInRange(start, end),
+        ]);
+        const movements = [...deposits, ...withdrawals];
+        setPosDays(buildPosDaySummaries(start, end, cashCounts, movements, closeEventsInRange));
+        return;
+      }
+
       const data = await fetchAuditLogs({
+        startDate: start,
+        endDate: end,
         action: actionFilter || undefined,
-        transactionType: typeFilter || undefined,
-        startDate,
-        endDate,
+        transactionType: category,
       });
-      setLogs(data);
+      setAuditLogs(
+        data
+          .filter((log) => log.entityType === "transaction")
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "โหลดประวัติไม่สำเร็จ");
+      setAuditLogs([]);
+      setCloseRows([]);
+      setCloseEvents([]);
+      setPosDays([]);
     } finally {
       setLoading(false);
     }
-  }, [actionFilter, typeFilter, datePreset]);
+  }, [actionFilter, category, dateRange]);
 
   useEffect(() => {
     setLoading(true);
-    load();
+    void load();
   }, [load]);
 
   useEffect(() => {
-    const id = setInterval(load, 60_000);
+    const id = setInterval(() => void load(), 60_000);
     return () => clearInterval(id);
   }, [load]);
 
-  const selectClass =
-    "tablet-touch-select min-w-0 flex-1 rounded-xl border border-border-default bg-surface-elevated px-3 py-2 text-sm font-medium text-text-main transition-colors focus:border-brand focus:outline-none sm:flex-none";
+  const filteredAuditLogs = useMemo(() => {
+    if (!isTransactionCategory || !isSingleDay || sessionRoundFilter === "all") {
+      return auditLogs;
+    }
+    return auditLogs.filter((log) => auditLogMatchesRound(log, sessionRoundFilter));
+  }, [auditLogs, isSingleDay, isTransactionCategory, sessionRoundFilter]);
 
-  const summary = useMemo(() => presetSummary(datePreset), [datePreset]);
+  const sessionRoundOptions = useMemo(() => {
+    if (!isSingleDay || !isTransactionCategory) return [];
+    return discoverTransactionRoundsForDate(dateRange.start, auditLogs);
+  }, [auditLogs, dateRange.start, isSingleDay, isTransactionCategory]);
+
+  const showRoundFilter =
+    isTransactionCategory && isSingleDay && sessionRoundOptions.length > 1;
+
+  const countItemsForRound = useCallback(
+    (round: SessionRoundFilter) => {
+      if (round === "all") return auditLogs.length;
+      return auditLogs.filter((log) => auditLogMatchesRound(log, round)).length;
+    },
+    [auditLogs]
+  );
+
+  const itemCount =
+    category === "close"
+      ? closeEvents.length || closeRows.length
+      : category === "pos"
+        ? posDays.length
+        : filteredAuditLogs.length;
+  const rangeLabel = rangeSummary(dateRange.start, dateRange.end);
+  const isViewingToday = dateRange.start === today && dateRange.end === today;
+
+  const selectClass =
+    "tablet-touch-select w-full rounded-xl border border-border-default bg-surface-elevated px-3 py-2 text-sm font-medium text-text-main transition-colors focus:border-brand focus:outline-none lg:max-w-xs";
 
   return (
-    <AppLayout title="ประวัติรายการ" subtitle="รายรับและรายจ่ายธุรกิจ — ฝาก/ถอนเงินสดดูที่ ปิดยอด → ฝาก / ถอน">
-      <div className="mx-auto w-full max-w-4xl">
+    <AppLayout title="ประวัติรายการ" subtitle="ดูย้อนหลังแยกตามหมวด — รายรับ · รายจ่าย · เงินสดใน POS · ปิดยอด">
+      <div className="mx-auto w-full max-w-6xl">
         {error && (
           <p className="mb-4 rounded-xl border border-expense/20 bg-error-light px-4 py-3 text-sm font-bold text-error">
             {error}
           </p>
         )}
 
-        {/* ── แถบกรอง ── */}
-        <div className="rounded-2xl border border-border-default bg-surface-elevated px-4 py-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:px-5">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-light text-brand">
-              <History size={18} />
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-base font-black text-text-main">ประวัติการเคลื่อนไหว</h2>
-              <p className="text-xs text-text-muted">
-                {summary}
-                {!loading && ` · ${logs.length} รายการ`}
-                {loading && " · กำลังโหลด..."}
+        <div className="grid gap-4 lg:grid-cols-[minmax(240px,280px)_1fr] lg:items-start">
+          <aside className="rounded-2xl border border-border-default bg-surface-elevated p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] lg:sticky lg:top-4">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-light text-brand">
+                <CalendarRange size={18} />
+              </span>
+              <div>
+                <h2 className="text-base font-black text-text-main">ช่วงวันที่</h2>
+                <p className="text-xs text-text-muted">เลือกจากปฏิทิน</p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <label className="block space-y-1">
+                <span className="text-xs font-bold text-text-secondary">ตั้งแต่</span>
+                <Input type="date" value={startDate} onChange={(e) => setStartDateSafe(e.target.value)} />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-bold text-text-secondary">ถึง</span>
+                <Input type="date" value={endDate} onChange={(e) => setEndDateSafe(e.target.value)} />
+              </label>
+              <button
+                type="button"
+                onClick={applyToday}
+                className={cn(
+                  "flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors",
+                  isViewingToday
+                    ? "border-brand/40 bg-brand/15 text-brand"
+                    : "border-border-default bg-surface-inset text-text-main hover:border-brand/30 hover:bg-brand/10 hover:text-brand"
+                )}
+              >
+                <RotateCcw size={16} />
+                ดูวันนี้
+              </button>
+              <p className="text-center text-xs text-text-muted">
+                ตั้งทั้งสองช่องเป็น {formatDateShort(today)}
               </p>
             </div>
-          </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(Object.keys(PRESET_LABELS) as DatePreset[]).map((preset) => {
-              const active = datePreset === preset;
-              return (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setDatePreset(preset)}
-                  className={cn(
-                    "tablet-touch-chip rounded-full px-4 py-1.5 text-sm font-bold transition-colors",
-                    active
-                      ? "bg-brand text-text-inverse shadow-[0_2px_8px_rgba(255,107,53,0.3)]"
-                      : "border border-border-default bg-surface text-text-secondary active:bg-surface-hover"
-                  )}
-                >
-                  {PRESET_LABELS[preset]}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-2.5 flex flex-col gap-2 sm:flex-row">
-            <select
-              className={selectClass}
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as "" | "income" | "expense")}
-            >
-              <option value="">ทุกประเภทรายการ</option>
-              <option value="income">รายรับ</option>
-              <option value="expense">รายจ่าย</option>
-            </select>
-            <select
-              className={selectClass}
-              value={actionFilter}
-              onChange={(e) => setActionFilter(e.target.value as "" | AuditLogAction)}
-            >
-              <option value="">ทุกการกระทำ</option>
-              <option value="create">บันทึกใหม่</option>
-              <option value="update">แก้ไข</option>
-              <option value="void">ยกเลิก</option>
-            </select>
-          </div>
-        </div>
-
-        {/* ── รายการ ── */}
-        <div className="mt-4 space-y-3">
-          {loading ? (
-            <>
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="h-28 animate-pulse rounded-2xl border border-border-default bg-surface-elevated"
-                />
-              ))}
-            </>
-          ) : logs.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border-default bg-surface-elevated py-4">
-              <EmptyState
-                title="ยังไม่มีประวัติรายรับ–รายจ่าย"
-                message="เมื่อมีการบันทึก แก้ไข หรือยกเลิกรายรับ/รายจ่าย จะแสดงที่นี่ — ฝาก/ถอนเงินสดดูที่ ปิดยอด → ฝาก / ถอน"
-              />
+            <div className="mt-4 rounded-xl bg-surface-inset px-3 py-3 text-sm">
+              <p className="font-bold text-text-main">{rangeLabel}</p>
+              <p className="mt-1 text-xs text-text-muted">
+                {loading ? "กำลังโหลด..." : `${itemCount} รายการ`}
+                {showRoundFilter && sessionRoundFilter !== "all" && (
+                  <span> · รอบที่ {sessionRoundFilter}</span>
+                )}
+              </p>
             </div>
-          ) : (
-            logs.map((log) => <HistoryCard key={log.id} log={log} />)
-          )}
+
+            {showRoundFilter ? (
+              <div className="mt-4 space-y-2">
+                <p className="text-xs font-bold text-text-secondary">รอบรายรับ/รายจ่าย</p>
+                <div className="flex flex-col gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setSessionRoundFilter("all")}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-left text-sm font-bold transition-colors",
+                      sessionRoundFilter === "all"
+                        ? "border-brand bg-brand/10 text-brand"
+                        : "border-border-default bg-surface-elevated text-text-secondary hover:border-brand/30"
+                    )}
+                  >
+                    ทุกรอบ
+                    <span className="ml-1 font-medium text-text-muted">
+                      ({countItemsForRound("all")})
+                    </span>
+                  </button>
+                  {sessionRoundOptions.map((round) => (
+                    <button
+                      key={round}
+                      type="button"
+                      onClick={() => setSessionRoundFilter(round)}
+                      className={cn(
+                        "rounded-xl border px-3 py-2 text-left text-sm font-bold transition-colors",
+                        sessionRoundFilter === round
+                          ? "border-brand bg-brand/10 text-brand"
+                          : "border-border-default bg-surface-elevated text-text-secondary hover:border-brand/30"
+                      )}
+                    >
+                      รอบที่ {round}
+                      <span className="ml-1 font-medium text-text-muted">
+                        ({countItemsForRound(round)})
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs leading-relaxed text-text-muted">
+                  แยกรายรับ/รายจ่ายตามรอบหลังปิดยอดใหม่ — ไม่ให้รายการปนกัน
+                </p>
+              </div>
+            ) : isTransactionCategory && !isSingleDay ? (
+              <p className="mt-4 text-xs text-text-muted">
+                เลือกวันเดียว (ตั้งแต่ = ถึง) เพื่อแยกรายรับ/รายจ่ายตามรอบ
+              </p>
+            ) : category === "pos" || category === "close" ? (
+              <p className="mt-4 text-xs text-text-muted">
+                แต่ละการ์ดแยกตามรอบอยู่แล้ว — ไม่ต้องเลือกรอบเพิ่ม
+              </p>
+            ) : null}
+          </aside>
+
+          <section className="min-w-0 space-y-4">
+            <div className="rounded-2xl border border-border-default bg-surface-elevated p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:p-5">
+              <div className="mb-4 flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-inset text-text-muted">
+                  <History size={18} />
+                </span>
+                <div>
+                  <h2 className="text-base font-black text-text-main">หมวดประวัติ</h2>
+                  <p className="text-xs text-text-muted">เลือกดูตามประเภทรายการ</p>
+                </div>
+              </div>
+
+              <SegmentTabs
+                tabs={CATEGORY_TABS}
+                active={category}
+                onChange={(id) => setCategory(id as HistoryCategory)}
+                className="grid grid-cols-2 gap-1 sm:grid-cols-4"
+              />
+
+              {category === "income" || category === "expense" ? (
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-text-muted">
+                    {category === "income"
+                      ? "ประวัติรายรับ — บันทึก แก้ไข ยกเลิก · เลือกรอบได้เมื่อดูวันเดียว"
+                      : "ประวัติรายจ่าย — บันทึก แก้ไข ยกเลิก · เลือกรอบได้เมื่อดูวันเดียว"}
+                  </p>
+                  <select
+                    className={selectClass}
+                    value={actionFilter}
+                    onChange={(e) => setActionFilter(e.target.value as "" | AuditLogAction)}
+                  >
+                    <option value="">ทุกการกระทำ</option>
+                    <option value="create">บันทึกใหม่</option>
+                    <option value="update">แก้ไข</option>
+                    <option value="void">ยกเลิก</option>
+                  </select>
+                </div>
+              ) : category === "pos" ? (
+                <p className="mt-4 text-xs text-text-muted">
+                  สรุปเงินสดใน POS รายวัน — แยกการ์ดตามรอบ · ฝาก/ถอน · นับเงิน · ขาด/เกิน
+                </p>
+              ) : (
+                <p className="mt-4 text-xs text-text-muted">
+                  ประวัติปิดยอด — แยกการ์ดตามรอบ · กดรายการเพื่อดูรายละเอียดวันนั้น
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {loading ? (
+                <>
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="h-28 animate-pulse rounded-2xl border border-border-default bg-surface-elevated"
+                    />
+                  ))}
+                </>
+              ) : itemCount === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border-default bg-surface-elevated py-4">
+                  <EmptyState
+                    title={EMPTY_MESSAGES[category].title}
+                    message={EMPTY_MESSAGES[category].message}
+                  />
+                </div>
+              ) : category === "close" ? (
+                closeEvents.length > 0 ? (
+                  closeEvents.map((event) => (
+                    <HistoryCloseRoundCard
+                      key={event.id}
+                      event={event}
+                    />
+                  ))
+                ) : (
+                  closeRows.map((row) => <HistoryCloseCard key={row.id} row={row} />)
+                )
+              ) : category === "pos" ? (
+                posDays.map((day) => (
+                  <HistoryPosDayCard key={`${day.date}-${day.sessionRound}`} day={day} />
+                ))
+              ) : (
+                filteredAuditLogs.map((log) => <HistoryAuditCard key={log.id} log={log} />)
+              )}
+            </div>
+          </section>
         </div>
       </div>
     </AppLayout>

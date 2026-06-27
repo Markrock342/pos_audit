@@ -22,6 +22,7 @@ function syntheticCloseEvent(cashCount: CashCount): CashCountCloseEvent | null {
     countDate: cashCount.countDate,
     eventType: "close",
     closeEditGeneration: cashCount.closeEditGeneration ?? 1,
+    sessionRound: cashCount.sessionRound ?? 1,
     expectedBalance: cashCount.expectedBalance,
     actualBalance: cashCount.actualBalance,
     variance: cashCount.variance,
@@ -32,6 +33,7 @@ function syntheticCloseEvent(cashCount: CashCount): CashCountCloseEvent | null {
 }
 
 export { canReopenCloseForEdit, isInCloseEditMode } from "@/lib/utils/closeEditUtils";
+export { canStartNewCloseRound } from "@/lib/utils/sessionRound";
 
 export function buildCloseSnapshot(input: {
   ledger: DailyLedgerSummary;
@@ -172,6 +174,7 @@ function mapCloseEvent(row: Record<string, unknown>): CashCountCloseEvent {
     countDate: String(row.count_date),
     eventType: row.event_type as CashCountCloseEvent["eventType"],
     closeEditGeneration: Number(row.close_edit_generation ?? 0),
+    sessionRound: row.session_round != null ? Number(row.session_round) : undefined,
     expectedBalance: row.expected_balance != null ? Number(row.expected_balance) : undefined,
     actualBalance: row.actual_balance != null ? Number(row.actual_balance) : undefined,
     variance: row.variance != null ? Number(row.variance) : undefined,
@@ -204,6 +207,69 @@ export async function getCloseEventsForDate(
   }
 
   return (data as Record<string, unknown>[]).map(mapCloseEvent);
+}
+
+export async function getCloseEventsInRange(
+  organizationId: string,
+  startDate: string,
+  endDate: string
+): Promise<CashCountCloseEvent[]> {
+  const { data, error } = await getDb()
+    .from("cash_count_close_events")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .gte("count_date", startDate)
+    .lte("count_date", endDate)
+    .order("count_date", { ascending: false })
+    .order("session_round", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    if (error.message.includes("does not exist") || error.code === "42P01") {
+      return [];
+    }
+    throw error;
+  }
+
+  return (data as Record<string, unknown>[]).map(mapCloseEvent);
+}
+
+export async function startNewCloseRound(
+  organizationId: string,
+  options?: { userId?: string; countDate?: string }
+): Promise<{
+  started: boolean;
+  sessionRound: number;
+  cashCount: CashCount | null;
+}> {
+  const countDate = options?.countDate ?? getBusinessToday();
+
+  const { data, error } = await getDb().rpc("fn_start_new_close_round", {
+    p_organization_id: organizationId,
+    p_count_date: countDate,
+    p_user_id: options?.userId ?? null,
+  });
+
+  if (error) {
+    if (
+      error.message.includes("Could not find the function") ||
+      error.message.includes("schema cache")
+    ) {
+      throw new Error(
+        "ยังไม่ได้รัน SQL ปิดยอดหลายรอบ — รัน docs/supabase-multi-round-close.sql ใน Supabase"
+      );
+    }
+    throw new Error(error.message);
+  }
+
+  const payload = data as { started_new_round?: boolean; session_round?: number };
+  const cashCount = await getCashCountByDate(organizationId, countDate);
+
+  return {
+    started: !!payload.started_new_round,
+    sessionRound: payload.session_round ?? cashCount?.sessionRound ?? 1,
+    cashCount,
+  };
 }
 
 export async function getCloseHistoryForDate(

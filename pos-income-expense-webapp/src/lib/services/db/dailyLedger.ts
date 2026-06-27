@@ -166,6 +166,22 @@ export function applyTransactionToLedgerSummary(
   return { ...summary, cash, transfer, business };
 }
 
+/** หลังถอนเคลียร์ลิ้นชัก — อัปเดต snapshot โดยไม่ query ทั้งวันใหม่ */
+export function ledgerAfterDrawerClear(
+  summary: DailyLedgerSummary,
+  clearedAmount: number
+): DailyLedgerSummary {
+  if (clearedAmount <= 0) return summary;
+  return {
+    ...summary,
+    cash: {
+      ...summary.cash,
+      withdrawn: summary.cash.withdrawn + clearedAmount,
+      closing: 0,
+    },
+  };
+}
+
 export async function getDailyLedgerSummary(
   organizationId: string,
   countDate: string,
@@ -179,6 +195,10 @@ export async function getDailyLedgerSummary(
     if (stored) return stored;
   }
 
+  const useSessionRound =
+    !cashCount?.closedAt || isInCloseEditMode(cashCount) || options?.forceRecalc;
+  const sessionRound = useSessionRound ? (cashCount?.sessionRound ?? 1) : undefined;
+
   const transactions =
     options?.dayTransactions ??
     (await getTransactions(
@@ -187,6 +207,7 @@ export async function getDailyLedgerSummary(
         status: "active",
         startDate: countDate,
         endDate: countDate,
+        ...(sessionRound != null ? { sessionRound } : {}),
       },
       { includeLineItems: false }
     ));
@@ -213,8 +234,8 @@ export async function getDailyLedgerSummary(
   const [cashOpening, transferOpening, cashWithdrawn, cashDeposited] = await Promise.all([
     getCashOpeningForDate(organizationId, countDate),
     getTransferOpeningForDate(organizationId, countDate),
-    getTotalWithdrawnForDate(organizationId, countDate),
-    getTotalDepositedForDate(organizationId, countDate),
+    getTotalWithdrawnForDate(organizationId, countDate, sessionRound),
+    getTotalDepositedForDate(organizationId, countDate, sessionRound),
   ]);
 
   const cashClosing = cashOpening + cashIncome - cashExpense - cashWithdrawn + cashDeposited;

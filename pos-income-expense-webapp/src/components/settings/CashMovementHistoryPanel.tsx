@@ -1,9 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { SegmentTabs } from "@/components/ui/SegmentTabs";
-import { DASHBOARD_REFRESH_EVENT, fetchCashDeposits, fetchCashWithdrawals } from "@/lib/api/client";
-import { getBusinessToday } from "@/lib/utils/businessDate";
 import {
   formatCurrency,
   formatDateShort,
@@ -21,76 +19,24 @@ const TABS = [
 ];
 
 interface CashMovementHistoryPanelProps {
-  refreshKey?: number;
   /** ปิดยอดแล้ว — ซ่อนรายการวันนี้ (โชว์กลับเมื่อเปิดแก้ไขปิดยอด) */
   dayCleared?: boolean;
+  deposits: CashDeposit[];
+  withdrawals: CashWithdrawal[];
+  depositTotal: number;
+  withdrawTotal: number;
+  loading?: boolean;
 }
 
 export function CashMovementHistoryPanel({
-  refreshKey = 0,
   dayCleared = false,
+  deposits,
+  withdrawals,
+  depositTotal,
+  withdrawTotal,
+  loading = false,
 }: CashMovementHistoryPanelProps) {
-  const businessToday = getBusinessToday();
   const [activeTab, setActiveTab] = useState<HistoryTab>("deposit");
-  const [deposits, setDeposits] = useState<CashDeposit[]>([]);
-  const [withdrawals, setWithdrawals] = useState<CashWithdrawal[]>([]);
-  const [depositTotal, setDepositTotal] = useState(0);
-  const [withdrawTotal, setWithdrawTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const hasLoadedRef = useRef(false);
-
-  const load = useCallback(
-    async (options?: { silent?: boolean }) => {
-      const silent = options?.silent && hasLoadedRef.current;
-      if (!silent) setLoading(true);
-      setError(null);
-
-      if (dayCleared) {
-        setDeposits([]);
-        setWithdrawals([]);
-        setDepositTotal(0);
-        setWithdrawTotal(0);
-        hasLoadedRef.current = true;
-        if (!silent) setLoading(false);
-        return;
-      }
-
-      try {
-        const [depositResult, withdrawResult] = await Promise.all([
-          fetchCashDeposits({ depositDate: businessToday }),
-          fetchCashWithdrawals({ withdrawalDate: businessToday }),
-        ]);
-        setDeposits(depositResult.data);
-        setDepositTotal(depositResult.totalDeposited);
-        setWithdrawals(withdrawResult.data);
-        setWithdrawTotal(withdrawResult.totalWithdrawn);
-        hasLoadedRef.current = true;
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "โหลดประวัติไม่สำเร็จ");
-        if (!silent) {
-          setDeposits([]);
-          setWithdrawals([]);
-          setDepositTotal(0);
-          setWithdrawTotal(0);
-        }
-      } finally {
-        if (!silent) setLoading(false);
-      }
-    },
-    [businessToday, dayCleared]
-  );
-
-  useEffect(() => {
-    hasLoadedRef.current = false;
-    void load();
-  }, [load, refreshKey]);
-
-  useEffect(() => {
-    const refresh = () => void load({ silent: true });
-    window.addEventListener(DASHBOARD_REFRESH_EVENT, refresh);
-    return () => window.removeEventListener(DASHBOARD_REFRESH_EVENT, refresh);
-  }, [load]);
 
   const emptyMessage = dayCleared
     ? "ปิดยอดแล้ว — รายการฝาก/ถอนวันนี้ถูกเคลียร์ · เปิดแก้ไขปิดยอดเพื่อดู/แก้ไข"
@@ -113,10 +59,6 @@ export function CashMovementHistoryPanel({
         active={activeTab}
         onChange={(id) => setActiveTab(id as HistoryTab)}
       />
-
-      {error && (
-        <p className="rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">{error}</p>
-      )}
 
       {activeTab === "deposit" && (
         <div className="space-y-3">
