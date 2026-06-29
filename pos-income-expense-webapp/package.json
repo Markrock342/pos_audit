@@ -17,6 +17,7 @@
     "test:integration": "tsx src/scripts/integration-test.ts",
     "test:close-edit": "tsx src/scripts/close-edit-cycle-test.ts",
     "test:full-system": "tsx src/scripts/full-system-test.ts",
+    "test:history-pos": "tsx src/scripts/history-pos-status-test.ts",
     "test:readonly": "tsx src/scripts/readonly-smoke-test.ts",
     "bridge": "node hardware-bridge/server.mjs"
   },

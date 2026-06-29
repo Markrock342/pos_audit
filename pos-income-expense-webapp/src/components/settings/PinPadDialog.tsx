@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Delete } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
@@ -30,6 +31,7 @@ export function PinPadDialog({
 }: PinPadDialogProps) {
   const [pin, setPin] = useState("");
   const [shake, setShake] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const submittedRef = useRef(false);
   const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onCompleteRef = useRef(onComplete);
@@ -42,6 +44,10 @@ export function PinPadDialog({
     setShake(true);
     if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
     shakeTimerRef.current = setTimeout(() => setShake(false), 500);
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
   }, []);
 
   useEffect(() => {
@@ -101,10 +107,10 @@ export function PinPadDialog({
     });
   }, []);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/60" onClick={onCancel} aria-hidden />
       <div className="relative z-10 w-full max-w-md rounded-t-3xl border-2 border-border-default bg-surface-elevated p-6 shadow-2xl sm:rounded-3xl sm:mx-4">
         <h3 className="text-xl font-bold text-text-main">{title}</h3>
@@ -149,6 +155,7 @@ export function PinPadDialog({
           ยกเลิก
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

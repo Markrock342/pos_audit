@@ -48,9 +48,11 @@ export function AddIncomePageClient({ categories }: AddIncomePageClientProps) {
           categories={items}
           onCancel={() => router.back()}
           successRedirect="/income"
-          onSubmit={async (data) => {
+          onSubmit={async (data, { print }) => {
             const transaction = await submitTransaction(data);
-            void printTransactionDocument(transaction).catch(() => {});
+            if (print) {
+              void printTransactionDocument(transaction).catch(() => {});
+            }
           }}
         />
       </div>

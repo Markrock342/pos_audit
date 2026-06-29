@@ -6,10 +6,12 @@ import { DateTimeDisplay } from "@/components/ui/DateTimeDisplay";
 import { describeAuditChanges } from "@/lib/utils/auditChanges";
 import { getAuditLogSessionRound } from "@/lib/utils/auditLogDate";
 import {
+  CASH_COUNT_PENDING_LABEL,
   CASH_COUNT_STATUS_LABEL,
   cashCountDisplayBadgeClass,
   cashCountStatusBadgeClass,
   getCashCountDisplayLabel,
+  getCashCountStatusFromVariance,
   isCashCountPending,
 } from "@/lib/utils/cashCountVariance";
 import { formatCurrency, formatDateShort, formatWithdrawalAmount } from "@/lib/utils/format";
@@ -230,12 +232,16 @@ const MOVEMENT_LIST_COLLAPSE_LIMIT = 5;
 
 export function HistoryPosDayCard({ day }: { day: PosDaySummary }) {
   const [movementsExpanded, setMovementsExpanded] = useState(false);
-  const pending = day.cashCount ? isCashCountPending(day.cashCount) : true;
-  const status = day.cashCount?.status;
-  const badgeClass = day.cashCount
-    ? cashCountDisplayBadgeClass(day.cashCount)
+  const counted = day.actualBalance != null;
+  const status =
+    day.variance != null
+      ? getCashCountStatusFromVariance(day.variance)
+      : day.cashCount?.status;
+  const badgeClass = counted && status
+    ? cashCountStatusBadgeClass(status)
     : "bg-surface-inset text-text-muted";
-  const statusLabel = day.cashCount ? getCashCountDisplayLabel(day.cashCount) : "ยังไม่ได้นับ";
+  const statusLabel =
+    counted && status ? CASH_COUNT_STATUS_LABEL[status] : CASH_COUNT_PENDING_LABEL;
 
   const movementCount = day.movements.length;
   const shouldCollapseMovements = movementCount > MOVEMENT_LIST_COLLAPSE_LIMIT;
@@ -289,12 +295,12 @@ export function HistoryPosDayCard({ day }: { day: PosDaySummary }) {
         <div>
           <p className="text-xs text-text-muted">นับได้</p>
           <p className="font-bold text-text-main">
-            {pending || day.actualBalance == null ? "—" : formatCurrency(day.actualBalance)}
+            {counted ? formatCurrency(day.actualBalance!) : "—"}
           </p>
         </div>
       </div>
 
-      {!pending && day.variance != null && status && (
+      {counted && day.variance != null && status && (
         <div
           className={cn(
             "mt-3 flex items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-sm",

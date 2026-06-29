@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/Input";
 import { AmountDisplay, AmountNumpad } from "@/components/ui/AmountNumpad";
 
 import { PinPadDialog, type PinCompleteResult } from "@/components/settings/PinPadDialog";
+import { openCashDrawer } from "@/lib/hardware/cashDrawer";
 import { verifyDrawerPin } from "@/lib/hardware/drawerPinStorage";
 import {
   CASH_COUNT_PAGE_CACHE_KEY,
@@ -54,6 +55,8 @@ import type { CashCount, DailyLedgerSummary } from "@/types";
 import { Wallet, CheckCircle, AlertTriangle, Lock } from "lucide-react";
 
 const PAGE_CACHE_KEY = CASH_COUNT_PAGE_CACHE_KEY;
+
+type ClosePagePinMode = "close" | "reopen" | "new-round" | null;
 
 
 
@@ -134,14 +137,19 @@ export default function CashCountPage() {
 
   const [ledgerLoading, setLedgerLoading] = useState(true);
 
-  const [reopenPinOpen, setReopenPinOpen] = useState(false);
-  const [reopenPinError, setReopenPinError] = useState<string | null>(null);
   const [reopening, setReopening] = useState(false);
-  const [newRoundPinOpen, setNewRoundPinOpen] = useState(false);
-  const [newRoundPinError, setNewRoundPinError] = useState<string | null>(null);
   const [startingNewRound, setStartingNewRound] = useState(false);
+  const [pinMode, setPinMode] = useState<ClosePagePinMode>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [countingPhase, setCountingPhase] = useState(false);
   const reopenSubmittingRef = useRef(false);
   const newRoundSubmittingRef = useRef(false);
+  const closeSubmittingRef = useRef(false);
+
+  const closePin = useCallback(() => {
+    setPinMode(null);
+    setPinError(null);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -211,7 +219,7 @@ export default function CashCountPage() {
 
 
 
-  const load = useCallback(async (options?: { skipCache?: boolean }) => {
+  const load = useCallback(async (options?: { skipCache?: boolean; keepMessage?: boolean }) => {
 
     const cached = options?.skipCache ? null : readPageCache();
 
@@ -231,7 +239,9 @@ export default function CashCountPage() {
 
     }
 
-    setMessage(null);
+    if (!options?.keepMessage) {
+      setMessage(null);
+    }
 
     try {
 
@@ -298,12 +308,21 @@ export default function CashCountPage() {
   const canNewRound = canStartNewCloseRound(existing, businessToday);
   const readOnly = isLocked && !inCloseEditMode;
 
-
+  useEffect(() => {
+    if (readOnly) setCountingPhase(false);
+  }, [readOnly]);
 
   const handleNumpadChange = (val: string) => {
-    if (readOnly) return;
+    if (readOnly || !countingPhase) return;
     setActualBalance(val);
     setActualTouched(true);
+  };
+
+  const cancelCounting = () => {
+    setCountingPhase(false);
+    setActualBalance("0");
+    setActualTouched(false);
+    setMessage(null);
   };
 
 
@@ -311,54 +330,104 @@ export default function CashCountPage() {
   const handleReopenPinComplete = async (pin: string): Promise<PinCompleteResult> => {
     if (reopenSubmittingRef.current) return false;
     if (!verifyDrawerPin(pin)) {
-      setReopenPinError("รหัสไม่ถูกต้อง");
+      setPinError("รหัสไม่ถูกต้อง");
       return false;
     }
     reopenSubmittingRef.current = true;
-    setReopenPinOpen(false);
-    setReopenPinError(null);
+    closePin();
     setReopening(true);
-    setMessage(null);
     try {
       const result = await reopenCloseForEditApi({ updatedBy: session?.userId });
-      setMessage(result.message);
+      setCountingPhase(false);
       clearPageCache();
-      await load({ skipCache: true });
+      await load({ skipCache: true, keepMessage: true });
+      setMessage(result.message);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "เปิดแก้ไขปิดยอดไม่สำเร็จ");
     } finally {
       reopenSubmittingRef.current = false;
       setReopening(false);
     }
+    return true;
   };
 
   const handleNewRoundPinComplete = async (pin: string): Promise<PinCompleteResult> => {
     if (newRoundSubmittingRef.current) return false;
     if (!verifyDrawerPin(pin)) {
-      setNewRoundPinError("รหัสไม่ถูกต้อง");
+      setPinError("รหัสไม่ถูกต้อง");
       return false;
     }
     newRoundSubmittingRef.current = true;
-    setNewRoundPinOpen(false);
-    setNewRoundPinError(null);
+    closePin();
     setStartingNewRound(true);
-    setMessage(null);
     try {
       const result = await startNewCloseRoundApi({ updatedBy: session?.userId });
-      setMessage(result.message);
+      setCountingPhase(false);
       clearPageCache();
-      await load({ skipCache: true });
+      await load({ skipCache: true, keepMessage: true });
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "เริ่มรอบใหม่ไม่สำเร็จ");
     } finally {
       newRoundSubmittingRef.current = false;
       setStartingNewRound(false);
     }
+    return true;
+  };
+
+  const handleClosePinComplete = async (pin: string): Promise<PinCompleteResult> => {
+    if (closeSubmittingRef.current) return false;
+    if (!verifyDrawerPin(pin)) {
+      setPinError("รหัสไม่ถูกต้อง");
+      return false;
+    }
+    closeSubmittingRef.current = true;
+    closePin();
+    setCountingPhase(true);
+    setActualBalance("0");
+    setActualTouched(false);
+    setMessage("ลิ้นชักกำลังเปิด — นับเงินได้เลย แล้วกรอกยอด");
+    closeSubmittingRef.current = false;
+
+    void openCashDrawer().then((result) => {
+      if (result.success) {
+        setMessage("ลิ้นชักเปิดแล้ว — กรอกยอดที่นับได้ แล้วกดปิดยอดเพื่อยืนยัน");
+      } else {
+        setMessage(result.message);
+      }
+    });
+    return true;
+  };
+
+  const handlePinComplete = async (pin: string): Promise<PinCompleteResult> => {
+    if (pinMode === "close") return handleClosePinComplete(pin);
+    if (pinMode === "reopen") return handleReopenPinComplete(pin);
+    if (pinMode === "new-round") return handleNewRoundPinComplete(pin);
+    return false;
+  };
+
+  const pinDialogTitle =
+    pinMode === "reopen"
+      ? "ใส่รหัสเปิดลิ้นชัก"
+      : pinMode === "new-round"
+        ? "ใส่รหัสเปิดลิ้นชัก"
+        : "ใส่รหัสเปิดลิ้นชัก";
+
+  const pinDialogSubtitle =
+    pinMode === "reopen"
+      ? "ยืนยันก่อนแก้ไขปิดยอด — รหัส 4 หลัก"
+      : pinMode === "new-round"
+        ? "ยืนยันก่อนเริ่มรอบใหม่ — ยอดเริ่ม 0 ฝากเงินเข้า POS ก่อนทำงาน"
+        : "ยืนยันก่อนเปิดลิ้นชักนับเงิน — รหัส 4 หลัก";
+
+  const handleStartClose = () => {
+    if (readOnly) return;
+    setPinError(null);
+    setPinMode("close");
   };
 
   const handleSave = async () => {
 
-    if (readOnly) return;
+    if (readOnly || !countingPhase) return;
 
     if (existing && businessToday && existing.countDate !== businessToday) {
 
@@ -398,11 +467,22 @@ export default function CashCountPage() {
 
       });
 
-      setMessage(result.message || "ปิดยอดแล้ว — ยอดใน POS เคลียร์เป็น 0");
-
+      setCountingPhase(false);
+      const savedVariance = actual - expectedBalance;
+      const savedStatus = getCashCountStatusFromVariance(savedVariance);
+      const varianceMsg =
+        savedStatus === "balanced"
+          ? "ตรงยอด"
+          : savedStatus === "short"
+            ? `เงินขาด ${formatCurrency(Math.abs(savedVariance))}`
+            : `เงินเกิน ${formatCurrency(savedVariance)}`;
       clearPageCache();
 
-      await load({ skipCache: true });
+      await load({ skipCache: true, keepMessage: true });
+
+      setMessage(
+        `${result.message || "ปิดยอดแล้ว — ยอดใน POS เคลียร์เป็น 0"} · ${varianceMsg}`
+      );
 
     } catch (e) {
 
@@ -420,7 +500,8 @@ export default function CashCountPage() {
 
   const actualNum = parseFloat(actualBalance);
 
-  const showVariance = actualTouched && !Number.isNaN(actualNum) && actualBalance !== "";
+  const showVariance =
+    countingPhase && actualTouched && !Number.isNaN(actualNum) && actualBalance !== "";
 
   const variance = showVariance ? actualNum - expectedBalance : 0;
 
@@ -428,7 +509,15 @@ export default function CashCountPage() {
 
   const statusLabel = CASH_COUNT_STATUS_LABEL[varianceStatus];
 
-  const isPendingCount = !readOnly && !showVariance;
+  const isPendingCount = !readOnly && countingPhase && !showVariance;
+
+  const closeButtonLabel = readOnly
+    ? "ปิดยอดแล้ว"
+    : saving
+      ? "กำลังปิดยอด..."
+      : inCloseEditMode
+        ? "ปิดยอดใหม่"
+        : "ปิดยอด";
 
 
 
@@ -522,11 +611,19 @@ export default function CashCountPage() {
 
                           </p>
 
+                        ) : countingPhase ? (
+
+                          <p className="text-xs text-text-muted">
+
+                            นับเงินในลิ้นชัก กรอกยอดที่นับได้ แล้วกดปิดยอดเพื่อยืนยัน — ระบบจะแสดงเงินขาด/เกิน
+
+                          </p>
+
                         ) : (
 
                           <p className="text-xs text-text-muted">
 
-                            กรอกยอดที่นับได้ แล้วกดปิดยอด — ระบบถอนเงินออกจาก POS และรีเซ็ตยอดหน้าหลัก
+                            กดปิดยอดเพื่อเปิดลิ้นชัก — นับเงินแล้วกดปิดยอดอีกครั้งเพื่อยืนยัน
 
                           </p>
 
@@ -566,9 +663,9 @@ export default function CashCountPage() {
 
                         label="ยอดเงินที่นับได้ (รวมทั้งหมด)"
 
-                        value={actualBalance}
+                        value={countingPhase ? actualBalance : "—"}
 
-                        active={!readOnly}
+                        active={!readOnly && countingPhase}
 
                       />
 
@@ -580,11 +677,11 @@ export default function CashCountPage() {
 
                         value={note}
 
-                        onChange={(e) => !readOnly && setNote(e.target.value)}
+                        onChange={(e) => !readOnly && countingPhase && setNote(e.target.value)}
 
                         placeholder="เช่น ทอนไม่พอ, เงินหาย"
 
-                        disabled={readOnly}
+                        disabled={readOnly || !countingPhase}
 
                       />
 
@@ -594,7 +691,7 @@ export default function CashCountPage() {
 
                         <p className="rounded-xl bg-surface-inset px-4 py-3 text-sm text-text-muted">
 
-                          กรอกยอดเงินสดที่นับได้จริง แล้วกดปิดยอด
+                          กรอกยอดเงินสดที่นับได้จริง แล้วกดปิดยอดเพื่อยืนยัน
 
                         </p>
 
@@ -650,7 +747,7 @@ export default function CashCountPage() {
 
                     <div className="flex flex-col gap-4 2xl:sticky 2xl:top-4 2xl:self-start">
 
-                      {!readOnly && (
+                      {!readOnly && countingPhase && (
 
                         <>
 
@@ -672,27 +769,35 @@ export default function CashCountPage() {
                           size="lg"
                           disabled={startingNewRound}
                           onClick={() => {
-                            setNewRoundPinError(null);
-                            setNewRoundPinOpen(true);
+                            setPinError(null);
+                            setPinMode("new-round");
                           }}
                         >
-                          {startingNewRound ? "กำลังเริ่มรอบใหม่..." : "ปิดยอดใหม่"}
+                          {startingNewRound ? "กำลังเริ่มรอบใหม่..." : "เริ่มรอบใหม่"}
                         </Button>
                       ) : (
-                        <Button
-                          className="w-full"
-                          size="lg"
-                          onClick={handleSave}
-                          disabled={saving || readOnly}
-                        >
-                          {readOnly
-                            ? "ปิดยอดแล้ว"
-                            : saving
-                              ? "กำลังปิดยอด..."
-                              : inCloseEditMode
-                                ? "ปิดยอดใหม่"
-                                : "ปิดยอด"}
-                        </Button>
+                        <>
+                          <Button
+                            className="w-full"
+                            size="lg"
+                            onClick={countingPhase ? handleSave : handleStartClose}
+                            disabled={saving || readOnly}
+                          >
+                            {closeButtonLabel}
+                          </Button>
+                          {!readOnly && countingPhase && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full"
+                              size="lg"
+                              disabled={saving}
+                              onClick={cancelCounting}
+                            >
+                              ยกเลิกการนับ
+                            </Button>
+                          )}
+                        </>
                       )}
 
                       {canEditClose && (
@@ -708,11 +813,8 @@ export default function CashCountPage() {
                           disabled={reopening}
 
                           onClick={() => {
-
-                            setReopenPinError(null);
-
-                            setReopenPinOpen(true);
-
+                            setPinError(null);
+                            setPinMode("reopen");
                           }}
 
                         >
@@ -736,29 +838,13 @@ export default function CashCountPage() {
       </div>
 
       <PinPadDialog
-        key={reopenPinOpen ? "reopen-edit" : "reopen-closed"}
-        open={reopenPinOpen}
-        title="ใส่รหัสเปิดลิ้นชัก"
-        subtitle="ยืนยันก่อนแก้ไขปิดยอด — รหัส 4 หลัก"
-        error={reopenPinError}
-        onComplete={handleReopenPinComplete}
-        onCancel={() => {
-          setReopenPinOpen(false);
-          setReopenPinError(null);
-        }}
-      />
-
-      <PinPadDialog
-        key={newRoundPinOpen ? "new-round" : "new-round-closed"}
-        open={newRoundPinOpen}
-        title="ใส่รหัสเปิดลิ้นชัก"
-        subtitle="ยืนยันก่อนเริ่มรอบใหม่ — ยอดเริ่ม 0 ฝากเงินเข้า POS ก่อนทำงาน"
-        error={newRoundPinError}
-        onComplete={handleNewRoundPinComplete}
-        onCancel={() => {
-          setNewRoundPinOpen(false);
-          setNewRoundPinError(null);
-        }}
+        key={pinMode ?? "pin-closed"}
+        open={pinMode !== null}
+        title={pinDialogTitle}
+        subtitle={pinDialogSubtitle}
+        error={pinError}
+        onComplete={handlePinComplete}
+        onCancel={closePin}
       />
 
     </AppLayout>

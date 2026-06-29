@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     const kick = buildDrawerKickCommand({ pin: pin ?? hw.drawerPin ?? "pin2" });
-    const result = await dispatchPrintJob(hw, kick);
+    const result = await dispatchPrintJob(hw, kick, 3000);
 
     return NextResponse.json({
       data: {
