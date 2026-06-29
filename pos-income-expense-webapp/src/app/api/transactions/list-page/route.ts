@@ -4,6 +4,7 @@ import { getCategories } from "@/lib/services/db/categories";
 import { getCashCountByDate } from "@/lib/services/db/cashCounts";
 import { isTodayWorkspaceClosedFromCashCount } from "@/lib/services/db/workspaceStatus";
 import { getTransactions } from "@/lib/services/db/transactions";
+import { isInCloseEditMode } from "@/lib/utils/closeEditUtils";
 import { getBusinessToday } from "@/lib/utils/businessDate";
 import type { TransactionType } from "@/types";
 
@@ -23,11 +24,8 @@ export async function GET(request: Request) {
 
   try {
     const today = getBusinessToday();
-    const cashCount = await getCashCountByDate(DEFAULT_ORG_ID, today);
-    const dayCleared = isTodayWorkspaceClosedFromCashCount(cashCount, today);
-    const sessionRound = dayCleared ? undefined : (cashCount?.sessionRound ?? 1);
-
-    const [transactions, categories] = await Promise.all([
+    const [cashCount, transactions, categories] = await Promise.all([
+      getCashCountByDate(DEFAULT_ORG_ID, today),
       getTransactions(
         DEFAULT_ORG_ID,
         {
@@ -35,19 +33,28 @@ export async function GET(request: Request) {
           status: "active",
           startDate: today,
           endDate: today,
-          ...(sessionRound != null ? { sessionRound } : {}),
         },
         { includeLineItems: false }
       ),
       getCategories(DEFAULT_ORG_ID, type as TransactionType),
     ]);
 
+    const dayCleared = isTodayWorkspaceClosedFromCashCount(cashCount, today);
+    const inCloseEditMode = isInCloseEditMode(cashCount);
+    const sessionRound = dayCleared ? undefined : (cashCount?.sessionRound ?? 1);
+
+    const filteredTransactions =
+      sessionRound != null
+        ? transactions.filter((t) => (t.sessionRound ?? 1) === sessionRound)
+        : transactions;
+
     return NextResponse.json(
       {
         data: {
-          transactions: dayCleared ? [] : transactions,
+          transactions: dayCleared ? [] : filteredTransactions,
           categories,
           dayCleared,
+          inCloseEditMode,
         },
       },
       {

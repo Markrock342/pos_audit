@@ -2,10 +2,9 @@
 
 
 
-import Link from "next/link";
-
 import { AppLayout } from "@/components/layout/AppLayout";
 
+import { CloseEditModeBanner } from "@/components/cash-count/CloseEditModeBanner";
 import { CashMovementActionsPanel } from "@/components/cash-movement/CashMovementActionsPanel";
 
 import { CashMovementHistoryPanel } from "@/components/settings/CashMovementHistoryPanel";
@@ -64,41 +63,7 @@ export default function PosCashPage() {
 
 
 
-        {inCloseEditMode && (
-
-          <p className="shrink-0 rounded-xl border-2 border-amber-400/60 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-800 dark:text-amber-200">
-
-            เปิดแก้ไขปิดยอดแล้ว — ฝาก/ถอนได้ · ปิดยอดใหม่ได้ที่{" "}
-
-            <Link href="/cash-count" className="underline">
-
-              สรุปปิดยอด
-
-            </Link>
-
-          </p>
-
-        )}
-
-
-
-        {readOnly && !inCloseEditMode && (
-
-          <p className="shrink-0 rounded-xl border-2 border-amber-400/60 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-800 dark:text-amber-200">
-
-            ปิดยอดแล้ว — ไม่สามารถฝากหรือถอนได้ · แก้ไขได้ที่{" "}
-
-            <Link href="/cash-count" className="underline">
-
-              สรุปปิดยอด → แก้ไขปิดยอด (PIN)
-
-            </Link>
-
-          </p>
-
-        )}
-
-
+        {inCloseEditMode && <CloseEditModeBanner context="pos-cash" />}
 
         <Card className="shrink-0">
 

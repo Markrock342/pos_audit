@@ -87,9 +87,11 @@ async function getCashOpeningForDate(
 
 async function getTransferOpeningForDate(
   organizationId: string,
-  countDate: string
+  countDate: string,
+  existingRow?: CashCount | null
 ): Promise<number> {
-  const row = await getCashCountByDate(organizationId, countDate);
+  const row =
+    existingRow !== undefined ? existingRow : await getCashCountByDate(organizationId, countDate);
   if (row) return row.openingTransfer ?? 0;
 
   const org = await getOrganization(organizationId);
@@ -185,10 +187,13 @@ export function ledgerAfterDrawerClear(
 export async function getDailyLedgerSummary(
   organizationId: string,
   countDate: string,
-  options?: { dayTransactions?: Transaction[]; forceRecalc?: boolean }
+  options?: { dayTransactions?: Transaction[]; forceRecalc?: boolean; cashCount?: CashCount | null }
 ): Promise<DailyLedgerSummary> {
   const businessToday = getBusinessToday();
-  const cashCount = await getCashCountByDate(organizationId, countDate);
+  const cashCount =
+    options?.cashCount !== undefined
+      ? options.cashCount
+      : await getCashCountByDate(organizationId, countDate);
 
   if (!options?.forceRecalc && cashCount?.closedAt) {
     const stored = summaryFromStoredLedgerFields(cashCount, countDate, businessToday);
@@ -233,7 +238,7 @@ export async function getDailyLedgerSummary(
 
   const [cashOpening, transferOpening, cashWithdrawn, cashDeposited] = await Promise.all([
     getCashOpeningForDate(organizationId, countDate),
-    getTransferOpeningForDate(organizationId, countDate),
+    getTransferOpeningForDate(organizationId, countDate, cashCount),
     getTotalWithdrawnForDate(organizationId, countDate, sessionRound),
     getTotalDepositedForDate(organizationId, countDate, sessionRound),
   ]);
@@ -276,11 +281,17 @@ export async function getDailyLedgerSummary(
 
 export async function getDailyCloseStatus(
   organizationId: string,
-  options?: { dayTransactions?: Transaction[] }
+  options?: { dayTransactions?: Transaction[]; cashCount?: CashCount | null }
 ): Promise<DailyCloseStatus> {
   const businessToday = getBusinessToday();
-  const summary = await getDailyLedgerSummary(organizationId, businessToday, options);
-  const cashCount = await getCashCountByDate(organizationId, businessToday);
+  const cashCount =
+    options?.cashCount !== undefined
+      ? options.cashCount
+      : await getCashCountByDate(organizationId, businessToday);
+  const summary = await getDailyLedgerSummary(organizationId, businessToday, {
+    dayTransactions: options?.dayTransactions,
+    cashCount,
+  });
 
   return {
     countDate: businessToday,

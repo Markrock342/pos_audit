@@ -1,7 +1,8 @@
 import { getTransactions } from "./transactions";
 import { getCashCountByDate } from "./cashCounts";
 import { getOrganization } from "./organizations";
-import { getDailyCloseStatus } from "./dailyLedger";
+import { getDailyLedgerSummary } from "./dailyLedger";
+import { isInCloseEditMode } from "@/lib/utils/closeEditUtils";
 import {
   activeCashClosing,
   activeTodayExpense,
@@ -11,7 +12,7 @@ import { filterTodayTransactionsForSession } from "@/lib/utils/sessionRound";
 import { getDb } from "@/lib/db/supabase";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getBusinessToday } from "@/lib/utils/businessDate";
-import type { BalanceSummary, DailyCloseStatus } from "@/types";
+import type { BalanceSummary, DailyCloseStatus, DailyLedgerSummary } from "@/types";
 
 export interface DashboardData {
   todayIncome: number;
@@ -22,6 +23,7 @@ export interface DashboardData {
   expectedCashBalance: number;
   transactionCount: number;
   dailyCloseStatus: DailyCloseStatus;
+  ledger: DailyLedgerSummary;
 }
 
 export interface CategoryReportItem {
@@ -157,9 +159,23 @@ export async function getDashboard(): Promise<DashboardData> {
   const sum = (rows: typeof monthTransactions, type: "income" | "expense") =>
     rows.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
 
-  const dailyCloseStatus = await getDailyCloseStatus(DEFAULT_ORG_ID, {
+  const ledger = await getDailyLedgerSummary(DEFAULT_ORG_ID, today, {
     dayTransactions: todayTransactions,
+    cashCount,
   });
+
+  const dailyCloseStatus: DailyCloseStatus = {
+    countDate: today,
+    isLocked: ledger.isLocked && !isInCloseEditMode(cashCount),
+    closedAt: ledger.closedAt,
+    autoClosed: ledger.autoClosed,
+    hasManualCount: !!cashCount?.hasManualCount,
+    cashClosing: ledger.cash.closing,
+    transferClosing: ledger.transfer.closing,
+    netTotal: ledger.business.netTotal,
+    inCloseEditMode: isInCloseEditMode(cashCount),
+    closeEditGeneration: cashCount?.closeEditGeneration,
+  };
 
   const monthIncome = sum(monthTransactions, "income");
   const monthExpense = sum(monthTransactions, "expense");
@@ -173,6 +189,7 @@ export async function getDashboard(): Promise<DashboardData> {
     expectedCashBalance: activeCashClosing(dailyCloseStatus.cashClosing, dailyCloseStatus),
     transactionCount: monthTransactions.length,
     dailyCloseStatus,
+    ledger,
   };
 }
 

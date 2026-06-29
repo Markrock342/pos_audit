@@ -19,7 +19,27 @@ import type {
 
 export const CASH_COUNT_PAGE_CACHE_KEY = "pos-cash-count-page-v1";
 export const POS_CASH_PAGE_CACHE_KEY = "pos-cash-page-v1";
+export const ORG_CACHE_KEY = "pos-org-cache-v1";
+export const HISTORY_PAGE_CACHE_PREFIX = "pos-history-page-v1";
 export const DASHBOARD_REFRESH_EVENT = "pos-dashboard-refresh";
+
+function listPageCacheKey(type: "income" | "expense") {
+  return `pos-list-page-v1-${type}`;
+}
+
+export interface ActiveDayListPageData {
+  transactions: Transaction[];
+  categories: Category[];
+  dayCleared: boolean;
+  inCloseEditMode: boolean;
+}
+
+export type HistoryPageTab = "income" | "expense" | "pos" | "close";
+
+export type HistoryPageApiData =
+  | { tab: "income" | "expense"; auditLogs: AuditLog[] }
+  | { tab: "pos"; posDays: import("@/lib/utils/historyPosSummaries").PosDaySummary[] }
+  | { tab: "close"; closeEvents: CashCountCloseEvent[]; closeRows: CashCount[] };
 
 export function notifyDashboardRefresh() {
   if (typeof window === "undefined") return;
@@ -31,6 +51,7 @@ export function invalidateCashCountPageCache() {
   try {
     sessionStorage.removeItem(CASH_COUNT_PAGE_CACHE_KEY);
     sessionStorage.removeItem(POS_CASH_PAGE_CACHE_KEY);
+    invalidateActiveDayListPageCache();
   } catch {
     /* ignore */
   }
@@ -100,11 +121,50 @@ export async function fetchActiveDayListPage(type: "income" | "expense"): Promis
   transactions: Transaction[];
   categories: Category[];
   dayCleared: boolean;
+  inCloseEditMode: boolean;
 }> {
   const { data } = await parseJson<{
-    data: { transactions: Transaction[]; categories: Category[]; dayCleared: boolean };
+    data: {
+      transactions: Transaction[];
+      categories: Category[];
+      dayCleared: boolean;
+      inCloseEditMode: boolean;
+    };
   }>(await fetch(`/api/transactions/list-page?type=${type}`, { cache: "no-store" }));
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.setItem(listPageCacheKey(type), JSON.stringify(data));
+    } catch {
+      /* ignore quota */
+    }
+  }
   return data;
+}
+
+export function readActiveDayListPageCache(
+  type: "income" | "expense"
+): ActiveDayListPageData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(listPageCacheKey(type));
+    return raw ? (JSON.parse(raw) as ActiveDayListPageData) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function invalidateActiveDayListPageCache(type?: "income" | "expense") {
+  if (typeof window === "undefined") return;
+  try {
+    if (type) {
+      sessionStorage.removeItem(listPageCacheKey(type));
+    } else {
+      sessionStorage.removeItem(listPageCacheKey("income"));
+      sessionStorage.removeItem(listPageCacheKey("expense"));
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function fetchCategories(type?: "income" | "expense"): Promise<Category[]> {
@@ -170,7 +230,24 @@ export async function fetchOrganization(): Promise<Organization> {
   const { data } = await parseJson<{ data: Organization }>(
     await fetch("/api/organizations", { cache: "no-store" })
   );
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.setItem(ORG_CACHE_KEY, JSON.stringify(data));
+    } catch {
+      /* ignore quota */
+    }
+  }
   return data;
+}
+
+export function readOrganizationCache(): Organization | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(ORG_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Organization) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function updateOrganizationApi(
@@ -673,4 +750,90 @@ export async function fetchAuditLogs(filters?: {
     await fetch(`/api/audit-logs${qs}`)
   );
   return data;
+}
+
+function historyPageCacheKey(
+  tab: HistoryPageTab,
+  startDate: string,
+  endDate: string,
+  action?: AuditLogAction
+): string {
+  return `${HISTORY_PAGE_CACHE_PREFIX}:${tab}:${startDate}:${endDate}:${action ?? ""}`;
+}
+
+export function readHistoryPageCache(
+  tab: HistoryPageTab,
+  startDate: string,
+  endDate: string,
+  action?: AuditLogAction
+): HistoryPageApiData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(historyPageCacheKey(tab, startDate, endDate, action));
+    return raw ? (JSON.parse(raw) as HistoryPageApiData) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeHistoryPageCache(
+  tab: HistoryPageTab,
+  startDate: string,
+  endDate: string,
+  action: AuditLogAction | undefined,
+  data: HistoryPageApiData
+) {
+  try {
+    sessionStorage.setItem(
+      historyPageCacheKey(tab, startDate, endDate, action),
+      JSON.stringify(data)
+    );
+  } catch {
+    /* ignore quota */
+  }
+}
+
+export async function fetchHistoryPageData(input: {
+  tab: HistoryPageTab;
+  startDate: string;
+  endDate: string;
+  action?: AuditLogAction;
+}): Promise<HistoryPageApiData> {
+  const params = new URLSearchParams({
+    tab: input.tab,
+    startDate: input.startDate,
+    endDate: input.endDate,
+  });
+  if (input.action) params.set("action", input.action);
+  const { data } = await parseJson<{ data: HistoryPageApiData }>(
+    await fetch(`/api/history/page-data?${params}`, { cache: "no-store" })
+  );
+  writeHistoryPageCache(input.tab, input.startDate, input.endDate, input.action, data);
+  return data;
+}
+
+export async function fetchDashboardRefresh(): Promise<{
+  summary: DashboardSummary;
+  status: import("@/types").DailyCloseStatus;
+  ledger: DailyLedgerSummary;
+}> {
+  const { data } = await parseJson<{
+    data: DashboardSummary & {
+      dailyCloseStatus: import("@/types").DailyCloseStatus;
+      ledger: DailyLedgerSummary;
+    };
+  }>(await fetch("/api/reports/dashboard", { cache: "no-store" }));
+  return {
+    summary: {
+      todayIncome: data.todayIncome,
+      todayExpense: data.todayExpense,
+      monthIncome: data.monthIncome,
+      monthExpense: data.monthExpense,
+      netProfit: data.netProfit,
+      transactionCount: data.transactionCount,
+      expectedCashBalance: data.expectedCashBalance,
+    },
+    status: data.dailyCloseStatus,
+    ledger: data.ledger,
+  };
 }

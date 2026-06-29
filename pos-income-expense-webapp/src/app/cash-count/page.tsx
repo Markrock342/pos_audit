@@ -5,10 +5,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 
+import { CloseEditModeBanner } from "@/components/cash-count/CloseEditModeBanner";
 import { DailyLedgerSummaryPanel } from "@/components/cash-count/DailyLedgerSummaryPanel";
 
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -129,7 +129,7 @@ export default function CashCountPage() {
 
   const [saving, setSaving] = useState(false);
 
-  const [message, setMessage] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [actualTouched, setActualTouched] = useState(false);
 
@@ -219,7 +219,7 @@ export default function CashCountPage() {
 
 
 
-  const load = useCallback(async (options?: { skipCache?: boolean; keepMessage?: boolean }) => {
+  const load = useCallback(async (options?: { skipCache?: boolean }) => {
 
     const cached = options?.skipCache ? null : readPageCache();
 
@@ -239,10 +239,6 @@ export default function CashCountPage() {
 
     }
 
-    if (!options?.keepMessage) {
-      setMessage(null);
-    }
-
     try {
 
       const page = await fetchCashCountPageData();
@@ -255,7 +251,7 @@ export default function CashCountPage() {
 
       if (!cached) {
 
-        setMessage(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
+        /* โหลดไม่สำเร็จ — ใช้ cache ถ้ามี */
 
       }
 
@@ -322,7 +318,7 @@ export default function CashCountPage() {
     setCountingPhase(false);
     setActualBalance("0");
     setActualTouched(false);
-    setMessage(null);
+    setFormError(null);
   };
 
 
@@ -337,13 +333,12 @@ export default function CashCountPage() {
     closePin();
     setReopening(true);
     try {
-      const result = await reopenCloseForEditApi({ updatedBy: session?.userId });
+      await reopenCloseForEditApi({ updatedBy: session?.userId });
       setCountingPhase(false);
       clearPageCache();
-      await load({ skipCache: true, keepMessage: true });
-      setMessage(result.message);
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "เปิดแก้ไขปิดยอดไม่สำเร็จ");
+      await load({ skipCache: true });
+    } catch {
+      /* เปิดแก้ไขไม่สำเร็จ — สถานะหน้าไม่เปลี่ยน */
     } finally {
       reopenSubmittingRef.current = false;
       setReopening(false);
@@ -364,9 +359,9 @@ export default function CashCountPage() {
       const result = await startNewCloseRoundApi({ updatedBy: session?.userId });
       setCountingPhase(false);
       clearPageCache();
-      await load({ skipCache: true, keepMessage: true });
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "เริ่มรอบใหม่ไม่สำเร็จ");
+      await load({ skipCache: true });
+    } catch {
+      /* เริ่มรอบใหม่ไม่สำเร็จ */
     } finally {
       newRoundSubmittingRef.current = false;
       setStartingNewRound(false);
@@ -385,16 +380,9 @@ export default function CashCountPage() {
     setCountingPhase(true);
     setActualBalance("0");
     setActualTouched(false);
-    setMessage("ลิ้นชักกำลังเปิด — นับเงินได้เลย แล้วกรอกยอด");
     closeSubmittingRef.current = false;
 
-    void openCashDrawer().then((result) => {
-      if (result.success) {
-        setMessage("ลิ้นชักเปิดแล้ว — กรอกยอดที่นับได้ แล้วกดปิดยอดเพื่อยืนยัน");
-      } else {
-        setMessage(result.message);
-      }
-    });
+    void openCashDrawer();
     return true;
   };
 
@@ -431,8 +419,6 @@ export default function CashCountPage() {
 
     if (existing && businessToday && existing.countDate !== businessToday) {
 
-      setMessage("ข้อมูลวันค้าง — กำลังโหลดวันใหม่...");
-
       await load();
 
       return;
@@ -443,7 +429,7 @@ export default function CashCountPage() {
 
     if (Number.isNaN(actual) || actual < 0) {
 
-      setMessage("กรุณากรอกยอดเงินสดที่นับได้");
+      setFormError("กรุณากรอกยอดเงินสดที่นับได้");
 
       return;
 
@@ -451,11 +437,11 @@ export default function CashCountPage() {
 
     setSaving(true);
 
-    setMessage(null);
+    setFormError(null);
 
     try {
 
-      const result = await clearDrawerAndCloseDayApi({
+      await clearDrawerAndCloseDayApi({
 
         actualBalance: actual,
 
@@ -468,25 +454,13 @@ export default function CashCountPage() {
       });
 
       setCountingPhase(false);
-      const savedVariance = actual - expectedBalance;
-      const savedStatus = getCashCountStatusFromVariance(savedVariance);
-      const varianceMsg =
-        savedStatus === "balanced"
-          ? "ตรงยอด"
-          : savedStatus === "short"
-            ? `เงินขาด ${formatCurrency(Math.abs(savedVariance))}`
-            : `เงินเกิน ${formatCurrency(savedVariance)}`;
       clearPageCache();
 
-      await load({ skipCache: true, keepMessage: true });
-
-      setMessage(
-        `${result.message || "ปิดยอดแล้ว — ยอดใน POS เคลียร์เป็น 0"} · ${varianceMsg}`
-      );
+      await load({ skipCache: true });
 
     } catch (e) {
 
-      setMessage(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ");
+      setFormError(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ");
 
     } finally {
 
@@ -527,35 +501,7 @@ export default function CashCountPage() {
 
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6">
 
-        {inCloseEditMode && (
-          <p className="shrink-0 rounded-xl border-2 border-amber-400/60 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-800 dark:text-amber-200">
-            เปิดแก้ไขปิดยอดแล้ว — แก้ไขรายการได้ · ฝาก/ถอนที่{" "}
-            <Link href="/pos-cash" className="underline">
-              เงินสดใน POS
-            </Link>{" "}
-            · กดปิดยอดใหม่เมื่อเสร็จ
-          </p>
-        )}
-
-        {message && (
-
-          <p
-
-            className={`shrink-0 rounded-xl px-4 py-3 text-sm font-bold ${
-
-              message.includes("แล้ว") ? "bg-income-light text-income" : "bg-error-light text-error"
-
-            }`}
-
-          >
-
-            {message}
-
-          </p>
-
-        )}
-
-
+        {inCloseEditMode && <CloseEditModeBanner context="cash-count" />}
 
         <DailyLedgerSummaryPanel data={ledger} loading={ledgerLoading} />
 
@@ -796,6 +742,9 @@ export default function CashCountPage() {
                             >
                               ยกเลิกการนับ
                             </Button>
+                          )}
+                          {formError && (
+                            <p className="text-center text-sm font-bold text-error">{formError}</p>
                           )}
                         </>
                       )}

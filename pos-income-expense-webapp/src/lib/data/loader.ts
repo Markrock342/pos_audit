@@ -85,6 +85,7 @@ export async function loadDashboardPageData(): Promise<DashboardPageData> {
 
   const todayLedger = await getDailyLedgerSummary(DEFAULT_ORG_ID, today, {
     dayTransactions: todayTransactions,
+    cashCount,
   });
 
   const dailyCloseStatus: DailyCloseStatus = {
@@ -114,6 +115,7 @@ export async function loadDashboardPageData(): Promise<DashboardPageData> {
     expectedCashBalance: activeCashClosing(dailyCloseStatus.cashClosing, dailyCloseStatus),
     transactionCount: monthTransactions.length,
     dailyCloseStatus,
+    ledger: todayLedger,
   };
 
   return {

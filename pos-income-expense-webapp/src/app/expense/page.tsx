@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { CloseEditModeBanner } from "@/components/cash-count/CloseEditModeBanner";
 import { TransactionTable } from "@/components/tables/TransactionTable";
 import { ExpenseVoucherPreview } from "@/components/ExpenseVoucherPreview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -23,7 +24,7 @@ function sortNewestFirst(items: Transaction[]): Transaction[] {
 export default function ExpenseListPage() {
   const [search, setSearch] = useState("");
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const { transactions, categories, loading, error, dayCleared, reload } =
+  const { transactions, categories, loading, error, dayCleared, inCloseEditMode, reload } =
     useActiveDayTransactions("expense");
 
   const filtered = useMemo(() => {
@@ -56,11 +57,7 @@ export default function ExpenseListPage() {
           </p>
         )}
 
-        {dayCleared && (
-          <p className="shrink-0 rounded-xl border-2 border-amber-400/60 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-800 dark:text-amber-200">
-            ปิดยอดแล้ว — รายการวันนี้ถูกเคลียร์ · แก้ไขได้ที่ สรุปปิดยอด → แก้ไขปิดยอด (PIN)
-          </p>
-        )}
+        {inCloseEditMode && <CloseEditModeBanner />}
 
         <Card className="shrink-0 border-t-4 border-t-expense 2xl:hidden">
           <CardContent className="py-4">

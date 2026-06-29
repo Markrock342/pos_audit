@@ -83,17 +83,27 @@ export async function getCashCount(id: string): Promise<CashCount | null> {
 
 export async function getCashCounts(
   organizationId: string,
-  options?: { limit?: number }
+  options?: { limit?: number; startDate?: string; endDate?: string }
 ): Promise<CashCount[]> {
   let q = getDb()
     .from(TABLE)
     .select("*")
     .eq("organization_id", organizationId)
     .order("count_date", { ascending: false });
+  if (options?.startDate) q = q.gte("count_date", options.startDate);
+  if (options?.endDate) q = q.lte("count_date", options.endDate);
   if (options?.limit) q = q.limit(options.limit);
   const { data, error } = await q;
   if (error || !data) return [];
   return (data as Record<string, unknown>[]).map(mapCashCount);
+}
+
+export async function getCashCountsInRange(
+  organizationId: string,
+  startDate: string,
+  endDate: string
+): Promise<CashCount[]> {
+  return getCashCounts(organizationId, { startDate, endDate });
 }
 
 export async function getCashCountByDate(

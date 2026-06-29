@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
-import { fetchOrganization } from "@/lib/api/client";
+import { fetchOrganization, readOrganizationCache } from "@/lib/api/client";
 import { SHOP_NAME } from "@/constants";
 import type { Organization } from "@/types";
 
@@ -25,21 +25,19 @@ const PUBLIC_PATHS = ["/login", "/set-password"];
 
 export function OrganizationProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [organization, setOrganization] = useState<Organization | null>(() =>
+    readOrganizationCache()
+  );
 
   const refresh = useCallback(async () => {
     try {
       const org = await fetchOrganization();
       setOrganization(org);
     } catch {
-      setOrganization(null);
+      if (!readOrganizationCache()) {
+        setOrganization(null);
+      }
     }
-  }, []);
-
-  useEffect(() => {
-    try {
-      sessionStorage.removeItem("pos-org-cache-v1");
-    } catch {}
   }, []);
 
   useEffect(() => {

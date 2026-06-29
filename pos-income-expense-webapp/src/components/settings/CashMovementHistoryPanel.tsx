@@ -38,21 +38,14 @@ export function CashMovementHistoryPanel({
 }: CashMovementHistoryPanelProps) {
   const [activeTab, setActiveTab] = useState<HistoryTab>("deposit");
 
-  const emptyMessage = dayCleared
-    ? "ปิดยอดแล้ว — รายการฝาก/ถอนวันนี้ถูกเคลียร์ · เปิดแก้ไขปิดยอดเพื่อดู/แก้ไข"
-    : activeTab === "deposit"
+  const emptyMessage =
+    activeTab === "deposit"
       ? "ยังไม่มีรายการฝากวันนี้"
       : "ยังไม่มีรายการถอนวันนี้";
 
   return (
     <div id="cash-movement-history" className="space-y-4 scroll-mt-4">
       <p className="text-sm text-text-muted">รายการฝาก/ถอนเงินสดวันนี้</p>
-
-      {dayCleared && (
-        <p className="rounded-xl border-2 border-amber-400/60 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-800 dark:text-amber-200">
-          ปิดยอดแล้ว — รายการวันนี้ถูกเคลียร์ · แก้ไขได้ที่ แก้ไขปิดยอด (PIN)
-        </p>
-      )}
 
       <SegmentTabs
         tabs={TABS}

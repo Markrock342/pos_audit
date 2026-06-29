@@ -216,17 +216,8 @@ export function HistoryAuditCard({ log }: { log: AuditLog }) {
   );
 }
 
-export type PosDaySummary = {
-  date: string;
-  sessionRound: number;
-  deposited: number;
-  withdrawn: number;
-  expectedBalance: number;
-  actualBalance: number | null;
-  variance: number | null;
-  cashCount: CashCount | null;
-  movements: AuditLog[];
-};
+export type { PosDaySummary } from "@/lib/utils/historyPosSummaries";
+import type { PosDaySummary } from "@/lib/utils/historyPosSummaries";
 
 const MOVEMENT_LIST_COLLAPSE_LIMIT = 5;
 

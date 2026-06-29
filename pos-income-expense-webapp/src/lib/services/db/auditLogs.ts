@@ -114,6 +114,18 @@ function enrichWithUserNames(
   }));
 }
 
+/** ฝาก/ถอน — ดึงทั้งสองประเภทพร้อมกัน */
+export async function getCashMovementActivityLogs(
+  organizationId: string,
+  filters?: Pick<AuditLogFilters, "startDate" | "endDate">
+): Promise<AuditLog[]> {
+  const [deposits, withdrawals] = await Promise.all([
+    getActivityLogs(organizationId, { ...filters, entityType: "cash_deposit" }),
+    getActivityLogs(organizationId, { ...filters, entityType: "cash_withdrawal" }),
+  ]);
+  return [...deposits, ...withdrawals];
+}
+
 /** รวม audit logs + รายการบันทึกเก่าที่ยังไม่มี create log */
 export async function getActivityLogs(
   organizationId: string,
@@ -125,10 +137,21 @@ export async function getActivityLogs(
     filters?.entityType !== "cash_withdrawal" &&
     filters?.entityType !== "category";
 
-  const logs = await getAuditLogs(organizationId, {
-    ...filters,
-    action: includeLegacyCreates ? filters?.action : filters?.action,
-  });
+  const [logs, legacyTransactions] = await Promise.all([
+    getAuditLogs(organizationId, {
+      ...filters,
+      action: includeLegacyCreates ? filters?.action : filters?.action,
+    }),
+    includeLegacyCreates &&
+    filters?.entityType !== "cash_deposit" &&
+    filters?.entityType !== "cash_withdrawal"
+      ? getTransactions(organizationId, {
+          type: filters?.transactionType,
+          startDate: filters?.startDate,
+          endDate: filters?.endDate,
+        })
+      : Promise.resolve([]),
+  ]);
 
   const cashMovementTypes = new Set<AuditLogEntityType>(["cash_deposit", "cash_withdrawal"]);
   const filteredLogs =
@@ -149,11 +172,7 @@ export async function getActivityLogs(
     filteredLogs.filter((l) => l.action === "create").map((l) => l.entityId)
   );
 
-  const transactions = await getTransactions(organizationId, {
-    type: filters?.transactionType,
-    startDate: filters?.startDate,
-    endDate: filters?.endDate,
-  });
+  const transactions = legacyTransactions;
 
   const legacyCreates: AuditLog[] = transactions
     .filter((t) => !createEntityIds.has(t.id))

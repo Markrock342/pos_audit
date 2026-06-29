@@ -24,7 +24,6 @@ export function CashMovementActionsPanel({
   disabledReason,
 }: CashMovementActionsPanelProps) {
   const { session } = useAuth();
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pinMode, setPinMode] = useState<PinMode>(null);
   const [pinTitle, setPinTitle] = useState("");
@@ -39,7 +38,6 @@ export function CashMovementActionsPanel({
 
   const startCashDeposit = () => {
     if (disabled) return;
-    setMessage(null);
     setError(null);
     setPinTitle("ใส่รหัสเปิดลิ้นชัก");
     setPinSubtitle("ยืนยันก่อนฝากเงินสด — รหัส 4 หลัก");
@@ -48,7 +46,6 @@ export function CashMovementActionsPanel({
 
   const startCashWithdraw = () => {
     if (disabled) return;
-    setMessage(null);
     setError(null);
     setPinTitle("ใส่รหัสเปิดลิ้นชัก");
     setPinSubtitle("ยืนยันก่อนถอนเงินสด — รหัส 4 หลัก");
@@ -73,13 +70,11 @@ export function CashMovementActionsPanel({
   const handleDepositSaved = () => {
     setDepositOpen(false);
     onMovementSaved?.();
-    setMessage("บันทึกฝากเงินสดแล้ว — ดูรายการด้านล่าง");
   };
 
   const handleWithdrawSaved = () => {
     setWithdrawOpen(false);
     onMovementSaved?.();
-    setMessage("บันทึกถอนเงินสดแล้ว — ดูรายการด้านล่าง");
   };
 
   return (
@@ -118,7 +113,6 @@ export function CashMovementActionsPanel({
         </p>
       )}
 
-      {message && <p className="text-sm font-medium text-income">{message}</p>}
       {error && !pinMode && (
         <p className="text-sm font-medium text-expense" role="alert">
           {error}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   HistoryAuditCard,
@@ -12,17 +12,15 @@ import {
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Input";
 import { SegmentTabs } from "@/components/ui/SegmentTabs";
-import { fetchAuditLogs, fetchCashCounts, fetchCloseEventsInRange } from "@/lib/api/client";
+import {
+  fetchHistoryPageData,
+  readHistoryPageCache,
+  type HistoryPageApiData,
+} from "@/lib/api/client";
 import { getAuditLogBusinessDate, getAuditLogSessionRound } from "@/lib/utils/auditLogDate";
 import { cn } from "@/lib/utils/cn";
-import { isCashCountPending } from "@/lib/utils/cashCountVariance";
 import { formatDateShort } from "@/lib/utils/format";
 import { getBusinessToday } from "@/lib/utils/businessDate";
-import {
-  dedupeCloseEventsForDisplay,
-  isCloseSummaryEvent,
-  pickCloseEventForRound,
-} from "@/lib/utils/closeEventDisplay";
 import type { AuditLog, AuditLogAction, CashCount, CashCountCloseEvent } from "@/types";
 import { CalendarRange, History, RotateCcw } from "lucide-react";
 
@@ -43,26 +41,10 @@ function clampDateRange(start: string, end: string): { start: string; end: strin
   return { start: end, end: start };
 }
 
-function isDateInRange(date: string, startDate?: string, endDate?: string): boolean {
-  if (startDate && date < startDate) return false;
-  if (endDate && date > endDate) return false;
-  return true;
-}
-
 function rangeSummary(startDate: string, endDate: string): string {
   if (!startDate && !endDate) return "ทุกช่วงเวลา";
   if (startDate === endDate) return formatDateShort(startDate);
   return `${formatDateShort(startDate)} — ${formatDateShort(endDate)}`;
-}
-
-function sumMovement(logs: AuditLog[], kind: "cash_deposit" | "cash_withdrawal"): number {
-  return logs
-    .filter((log) => log.entityType === kind)
-    .reduce((sum, log) => sum + Number(log.newValue?.amount ?? 0), 0);
-}
-
-function movementSessionRound(log: AuditLog): number {
-  return getAuditLogSessionRound(log);
 }
 
 function discoverTransactionRoundsForDate(date: string, logs: AuditLog[]): number[] {
@@ -80,70 +62,33 @@ function auditLogMatchesRound(log: AuditLog, filter: SessionRoundFilter): boolea
   return getAuditLogSessionRound(log) === filter;
 }
 
-function buildPosDaySummaries(
-  start: string,
-  end: string,
-  cashCounts: CashCount[],
-  movements: AuditLog[],
-  closeEvents: CashCountCloseEvent[]
-): PosDaySummary[] {
-  const countByDate = new Map<string, CashCount>();
-  for (const row of cashCounts) {
-    if (isDateInRange(row.countDate, start, end)) {
-      countByDate.set(row.countDate, row);
-    }
+function applyHistoryData(
+  data: HistoryPageApiData,
+  setters: {
+    setAuditLogs: (v: AuditLog[]) => void;
+    setCloseRows: (v: CashCount[]) => void;
+    setCloseEvents: (v: CashCountCloseEvent[]) => void;
+    setPosDays: (v: PosDaySummary[]) => void;
   }
-
-  const closes = closeEvents.filter(isCloseSummaryEvent);
-
-  const roundKeys = new Set<string>();
-  for (const event of closes) {
-    roundKeys.add(`${event.countDate}:${event.sessionRound ?? 1}`);
+) {
+  if (data.tab === "close") {
+    setters.setCloseEvents(data.closeEvents);
+    setters.setCloseRows(data.closeRows);
+    setters.setAuditLogs([]);
+    setters.setPosDays([]);
+    return;
   }
-  for (const log of movements) {
-    const date = getAuditLogBusinessDate(log);
-    if (!isDateInRange(date, start, end)) continue;
-    roundKeys.add(`${date}:${movementSessionRound(log)}`);
+  if (data.tab === "pos") {
+    setters.setPosDays(data.posDays);
+    setters.setAuditLogs([]);
+    setters.setCloseRows([]);
+    setters.setCloseEvents([]);
+    return;
   }
-
-  return [...roundKeys]
-    .sort((a, b) => {
-      const [dateA, roundA] = a.split(":");
-      const [dateB, roundB] = b.split(":");
-      if (dateA !== dateB) return dateB.localeCompare(dateA);
-      return Number(roundB) - Number(roundA);
-    })
-    .map((key) => {
-      const [date, roundStr] = key.split(":");
-      const sessionRound = Number(roundStr);
-      const cashCount = countByDate.get(date) ?? null;
-      const closeEvent = pickCloseEventForRound(closes, date, sessionRound);
-      const dayMovements = movements
-        .filter((log) => {
-          const logDate = getAuditLogBusinessDate(log);
-          return logDate === date && movementSessionRound(log) === sessionRound;
-        })
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-
-      const deposited = sumMovement(dayMovements, "cash_deposit");
-      const withdrawn = sumMovement(dayMovements, "cash_withdrawal");
-      const pending = closeEvent ? false : cashCount ? isCashCountPending(cashCount) : true;
-
-      return {
-        date,
-        sessionRound,
-        deposited,
-        withdrawn,
-        expectedBalance: closeEvent?.expectedBalance ?? cashCount?.expectedBalance ?? 0,
-        actualBalance:
-          closeEvent?.actualBalance ??
-          (pending || !cashCount ? null : cashCount.actualBalance),
-        variance:
-          closeEvent?.variance ?? (pending || !cashCount ? null : cashCount.variance),
-        cashCount,
-        movements: dayMovements,
-      };
-    });
+  setters.setAuditLogs(data.auditLogs);
+  setters.setCloseRows([]);
+  setters.setCloseEvents([]);
+  setters.setPosDays([]);
 }
 
 const EMPTY_MESSAGES: Record<HistoryCategory, { title: string; message: string }> = {
@@ -180,6 +125,7 @@ export default function HistoryPage() {
   const [sessionRoundFilter, setSessionRoundFilter] = useState<SessionRoundFilter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -214,72 +160,72 @@ export default function HistoryPage() {
     setEndDate(bizToday);
   };
 
-  const load = useCallback(async () => {
-    setError(null);
-    const { start, end } = dateRange;
+  const applyData = useCallback((data: HistoryPageApiData) => {
+    applyHistoryData(data, { setAuditLogs, setCloseRows, setCloseEvents, setPosDays });
+  }, []);
 
-    try {
-      if (category === "close") {
-        const events = await fetchCloseEventsInRange(start, end);
-        const closes = dedupeCloseEventsForDisplay(events);
-        if (closes.length > 0) {
-          setCloseEvents(closes);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const { start, end } = dateRange;
+      const action = actionFilter || undefined;
+      const silent = options?.silent && hasLoadedRef.current;
+
+      if (!silent) setLoading(true);
+      setError(null);
+
+      try {
+        const data = await fetchHistoryPageData({
+          tab: category,
+          startDate: start,
+          endDate: end,
+          action,
+        });
+        applyData(data);
+        hasLoadedRef.current = true;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "โหลดประวัติไม่สำเร็จ");
+        if (!silent && !hasLoadedRef.current) {
+          setAuditLogs([]);
           setCloseRows([]);
-          return;
+          setCloseEvents([]);
+          setPosDays([]);
         }
-
-        const rows = await fetchCashCounts(120);
-        const filtered = rows
-          .filter((row) => isDateInRange(row.countDate, start, end))
-          .filter((row) => row.closedAt || row.hasManualCount || row.actualBalance > 0)
-          .sort((a, b) => b.countDate.localeCompare(a.countDate));
-        setCloseEvents([]);
-        setCloseRows(filtered);
-        return;
+      } finally {
+        if (!silent) setLoading(false);
       }
+    },
+    [actionFilter, applyData, category, dateRange]
+  );
 
-      if (category === "pos") {
-        const [cashCounts, deposits, withdrawals, closeEventsInRange] = await Promise.all([
-          fetchCashCounts(120),
-          fetchAuditLogs({ startDate: start, endDate: end, entityType: "cash_deposit" }),
-          fetchAuditLogs({ startDate: start, endDate: end, entityType: "cash_withdrawal" }),
-          fetchCloseEventsInRange(start, end),
-        ]);
-        const movements = [...deposits, ...withdrawals];
-        setPosDays(buildPosDaySummaries(start, end, cashCounts, movements, closeEventsInRange));
-        return;
-      }
-
-      const data = await fetchAuditLogs({
-        startDate: start,
-        endDate: end,
-        action: actionFilter || undefined,
-        transactionType: category,
-      });
-      setAuditLogs(
-        data
-          .filter((log) => log.entityType === "transaction")
-          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "โหลดประวัติไม่สำเร็จ");
-      setAuditLogs([]);
-      setCloseRows([]);
-      setCloseEvents([]);
-      setPosDays([]);
-    } finally {
+  useEffect(() => {
+    const cached = readHistoryPageCache(
+      category,
+      dateRange.start,
+      dateRange.end,
+      actionFilter || undefined
+    );
+    if (cached) {
+      applyData(cached);
+      hasLoadedRef.current = true;
       setLoading(false);
     }
-  }, [actionFilter, category, dateRange]);
+    void load({ silent: !!cached });
+  }, [load, category, dateRange.start, dateRange.end, actionFilter, applyData]);
 
   useEffect(() => {
-    setLoading(true);
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    const id = setInterval(() => void load(), 60_000);
-    return () => clearInterval(id);
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      void load({ silent: true });
+    };
+    const id = setInterval(tick, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void load({ silent: true });
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [load]);
 
   const filteredAuditLogs = useMemo(() => {
