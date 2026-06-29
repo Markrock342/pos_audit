@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { TransactionForm } from "@/components/forms/TransactionForm";
 import { submitTransaction } from "@/lib/api/submitTransaction";
 import { fetchCategories } from "@/lib/api/client";
-import { printTransactionDocument } from "@/lib/hardware/printTransactionDocument";
+import { runPostTransactionHardware } from "@/lib/hardware/postTransactionHardware";
 import type { Category } from "@/types";
 
 interface AddExpensePageClientProps {
@@ -50,9 +50,7 @@ export function AddExpensePageClient({ categories }: AddExpensePageClientProps) 
           successRedirect="/expense"
           onSubmit={async (data, { print }) => {
             const transaction = await submitTransaction(data);
-            if (print) {
-              void printTransactionDocument(transaction, { categories: items }).catch(() => {});
-            }
+            await runPostTransactionHardware(transaction, { print, categories: items });
           }}
         />
       </div>

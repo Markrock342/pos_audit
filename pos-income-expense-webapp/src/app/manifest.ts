@@ -6,6 +6,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "บัญชีร้าน",
     description: "ระบบบันทึกรายรับ-รายจ่ายสำหรับร้านค้า",
     start_url: "/dashboard",
+    scope: "/",
+    id: "/",
     display: "standalone",
     background_color: "#f8fafc",
     theme_color: "#FF6B35",

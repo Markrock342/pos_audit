@@ -371,10 +371,6 @@ input, textarea, button {
     display: block !important;
   }
 
-  .pos-kiosk-hide-mobile-save {
-    display: none !important;
-  }
-
   .pos-txn-grid {
     display: none !important;
   }
@@ -543,7 +539,39 @@ input, textarea, button {
 
 }
 
-/* แถบปุ่มบันทึก — desktop อยู่ใน flow ปกติ, tablet ลอยเหนือ bottom nav */
+/* แถบปุ่มบันทึก — ชุดเดียว: มือถือลอยล่าง, POS/จอใหญ่ อยู่คอลัมน์ขวา */
+@media (max-width: 1023px) {
+  .pos-txn-page .pos-txn-save-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: 35;
+    margin-top: 0 !important;
+    border-top: 2px solid var(--border-default);
+    background: var(--surface-elevated);
+    padding: 0.75rem 1rem;
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.12);
+  }
+
+  .pos-txn-page .pos-txn-save-bar .pos-txn-save-row button {
+    min-height: 3rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 1023px) and (orientation: landscape) and (min-width: 720px) and (max-height: 1200px) {
+  .pos-txn-page .pos-txn-save-bar {
+    position: static;
+    z-index: auto;
+    border-top-width: 1px;
+    padding: 0.5rem 0 0;
+    background: transparent;
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+  }
+}
+
+/* แถบปุ่มบันทึก — modal แก้ไขรายการ */
 .tablet-sticky-action {
   display: flex;
   gap: 0.75rem;

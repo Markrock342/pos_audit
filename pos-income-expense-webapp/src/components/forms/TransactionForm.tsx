@@ -313,8 +313,8 @@ export function TransactionForm({
                 onAdd={() => lineDraft.handleAdd(handleAddLine)}
               />
 
-              <div className="pos-txn-actions mt-auto shrink-0 space-y-1.5 border-t border-border-default pt-2">
-                <div className="grid grid-cols-2 gap-2">
+              <div className="pos-txn-actions pos-txn-save-bar mt-auto shrink-0 space-y-1.5 border-t border-border-default pt-2">
+                <div className="pos-txn-save-row grid grid-cols-2 gap-2">
                   <Button
                     type="submit"
                     disabled={busy || cartLines.length === 0}
@@ -343,34 +343,6 @@ export function TransactionForm({
                 )}
               </div>
             </section>
-          </div>
-
-          <div className="pos-kiosk-hide-mobile-save tablet-sticky-action lg:hidden">
-            <Button
-              type="submit"
-              disabled={busy || cartLines.length === 0}
-              variant={primaryVariant}
-              size="lg"
-              className="flex-1 text-lg font-bold"
-              onClick={() => beginSave("save")}
-            >
-              {saveLabel}
-            </Button>
-            <Button
-              type="submit"
-              disabled={busy || cartLines.length === 0}
-              variant={primaryVariant}
-              size="lg"
-              className="flex-1 text-lg font-bold"
-              onClick={() => beginSave("save-print")}
-            >
-              {savePrintLabel}
-            </Button>
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel} size="lg" className="flex-1">
-                ยกเลิก
-              </Button>
-            )}
           </div>
         </form>
       </CardContent>

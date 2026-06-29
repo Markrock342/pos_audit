@@ -4,6 +4,7 @@ import { LoginPinSettingsPanel } from "@/components/settings/LoginPinSettingsPan
 import { ClearTodayDataPanel } from "@/components/settings/ClearTodayDataPanel";
 import { SettingsCashPanels } from "@/components/settings/SettingsCashPanels";
 import { ShopSettingsForm } from "@/components/settings/ShopSettingsForm";
+import { MobileInstallPanel } from "@/components/settings/MobileInstallPanel";
 
 export default function SettingsPage() {
   return (
@@ -23,6 +24,17 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             <ShopSettingsForm />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>ใช้บนมือถือ / แท็บเล็ต</CardTitle>
+            <p className="text-sm font-normal text-text-muted">
+              ลิงก์เปิดระบบ · ส่งใน LINE ได้ · ติดตั้งเป็นแอป
+            </p>
+          </CardHeader>
+          <CardContent>
+            <MobileInstallPanel />
           </CardContent>
         </Card>
         <SettingsCashPanels />
