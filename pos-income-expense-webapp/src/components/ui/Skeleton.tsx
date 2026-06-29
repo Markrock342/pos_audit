@@ -14,11 +14,12 @@ const roundedMap = {
 };
 
 export function Skeleton({ className, rounded = "lg" }: SkeletonProps) {
+  const soft = className?.includes("skeleton-soft");
   return (
     <div
       className={cn(
-        "animate-pulse bg-surface-hover",
         roundedMap[rounded],
+        soft ? "skeleton-soft" : "animate-pulse bg-surface-hover",
         className
       )}
     />

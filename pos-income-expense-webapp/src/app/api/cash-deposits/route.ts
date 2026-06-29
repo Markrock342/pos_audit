@@ -6,6 +6,7 @@ import {
   refreshExpectedBalanceQuick,
 } from "@/lib/services/db/cashCounts";
 import { safeCreateAuditLog } from "@/lib/services/db/safeAuditLog";
+import { withCloseEditAuditMeta } from "@/lib/services/db/closeEdit";
 import { assertTransactionDateAllowed } from "@/lib/api/transactionDateLock";
 import { isAdminRequest } from "@/lib/api/requestRole";
 import { getBusinessToday } from "@/lib/utils/businessDate";
@@ -94,19 +95,22 @@ export async function POST(request: Request) {
       recordedBy,
     });
 
-    await safeCreateAuditLog({
-      organizationId: DEFAULT_ORG_ID,
-      userId: recordedBy,
-      entityType: "cash_deposit",
-      entityId: created.id,
-      entityTitle: "ฝากเงินสด",
-      action: "create",
-      reason: DEPOSIT_AUDIT_REASON,
-      newValue: {
-        amount: created.amount,
-        depositDate: created.depositDate,
-      },
-    });
+    await safeCreateAuditLog(
+      await withCloseEditAuditMeta(DEFAULT_ORG_ID, depositDate, {
+        organizationId: DEFAULT_ORG_ID,
+        userId: recordedBy,
+        entityType: "cash_deposit",
+        entityId: created.id,
+        entityTitle: "ฝากเงินสด",
+        action: "create",
+        reason: DEPOSIT_AUDIT_REASON,
+        newValue: {
+          amount: created.amount,
+          depositDate: created.depositDate,
+          sessionRound: created.sessionRound,
+        },
+      })
+    );
 
     await refreshExpectedBalanceQuick(DEFAULT_ORG_ID, depositDate);
 

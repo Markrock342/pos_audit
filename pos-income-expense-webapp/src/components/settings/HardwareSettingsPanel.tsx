@@ -2,34 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { CashDepositDialog } from "@/components/settings/CashDepositDialog";
-import { CashWithdrawDialog } from "@/components/settings/CashWithdrawDialog";
-import { PinPadDialog } from "@/components/settings/PinPadDialog";
-import { useAuth } from "@/components/providers/AuthProvider";
-import { openCashDrawer } from "@/lib/hardware/cashDrawer";
+import { PinPadDialog, type PinCompleteResult } from "@/components/settings/PinPadDialog";
 import {
   DRAWER_PIN_STORAGE_KEY,
   setDrawerPin,
   verifyDrawerPin,
 } from "@/lib/hardware/drawerPinStorage";
+import { openCashDrawer } from "@/lib/hardware/cashDrawer";
 import { printTestPage } from "@/lib/hardware/testPrint";
-import { ArrowDownToLine, ArrowUpFromLine, Lock, Printer, Wallet } from "lucide-react";
+import { Lock, Printer, Wallet } from "lucide-react";
 
-type PinMode =
-  | "open-drawer"
-  | "cash-deposit"
-  | "cash-withdraw"
-  | "change-current"
-  | "change-new"
-  | "change-confirm"
-  | null;
+type PinMode = "open-drawer" | "change-current" | "change-new" | "change-confirm" | null;
 
-interface HardwareSettingsPanelProps {
-  onMovementSaved?: () => void;
-}
-
-export function HardwareSettingsPanel({ onMovementSaved }: HardwareSettingsPanelProps) {
-  const { session } = useAuth();
+export function HardwareSettingsPanel() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pinMode, setPinMode] = useState<PinMode>(null);
@@ -39,8 +24,6 @@ export function HardwareSettingsPanel({ onMovementSaved }: HardwareSettingsPanel
   const [openingDrawer, setOpeningDrawer] = useState(false);
   const [testingPrint, setTestingPrint] = useState(false);
   const [hasCustomPin, setHasCustomPin] = useState(false);
-  const [depositOpen, setDepositOpen] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -64,22 +47,6 @@ export function HardwareSettingsPanel({ onMovementSaved }: HardwareSettingsPanel
     setPinMode("open-drawer");
   };
 
-  const startCashDeposit = () => {
-    setMessage(null);
-    setError(null);
-    setPinTitle("ใส่รหัสเปิดลิ้นชัก");
-    setPinSubtitle("ยืนยันก่อนฝากเงินสด — รหัส 4 หลัก");
-    setPinMode("cash-deposit");
-  };
-
-  const startCashWithdraw = () => {
-    setMessage(null);
-    setError(null);
-    setPinTitle("ใส่รหัสเปิดลิ้นชัก");
-    setPinSubtitle("ยืนยันก่อนถอนเงินสด — รหัส 4 หลัก");
-    setPinMode("cash-withdraw");
-  };
-
   const startChangePin = () => {
     setMessage(null);
     setError(null);
@@ -89,11 +56,11 @@ export function HardwareSettingsPanel({ onMovementSaved }: HardwareSettingsPanel
     setPinMode("change-current");
   };
 
-  const handlePinComplete = async (pin: string) => {
+  const handlePinComplete = async (pin: string): Promise<PinCompleteResult> => {
     if (pinMode === "open-drawer") {
       if (!verifyDrawerPin(pin)) {
         setError("รหัสไม่ถูกต้อง");
-        return;
+        return false;
       }
       closePin();
       setOpeningDrawer(true);
@@ -107,30 +74,10 @@ export function HardwareSettingsPanel({ onMovementSaved }: HardwareSettingsPanel
       return;
     }
 
-    if (pinMode === "cash-deposit") {
-      if (!verifyDrawerPin(pin)) {
-        setError("รหัสไม่ถูกต้อง");
-        return;
-      }
-      closePin();
-      setDepositOpen(true);
-      return;
-    }
-
-    if (pinMode === "cash-withdraw") {
-      if (!verifyDrawerPin(pin)) {
-        setError("รหัสไม่ถูกต้อง");
-        return;
-      }
-      closePin();
-      setWithdrawOpen(true);
-      return;
-    }
-
     if (pinMode === "change-current") {
       if (!verifyDrawerPin(pin)) {
         setError("รหัสเดิมไม่ถูกต้อง");
-        return;
+        return false;
       }
       setError(null);
       setPendingNewPin("");
@@ -156,7 +103,7 @@ export function HardwareSettingsPanel({ onMovementSaved }: HardwareSettingsPanel
         setPinSubtitle("รหัส 4 หลัก");
         setPinMode("change-new");
         setPendingNewPin("");
-        return;
+        return false;
       }
       try {
         setDrawerPin(pin);
@@ -184,18 +131,6 @@ export function HardwareSettingsPanel({ onMovementSaved }: HardwareSettingsPanel
     }
   };
 
-  const handleDepositSaved = () => {
-    setDepositOpen(false);
-    onMovementSaved?.();
-    setMessage("บันทึกฝากเงินสดแล้ว — ดูรายการด้านล่าง");
-  };
-
-  const handleWithdrawSaved = () => {
-    setWithdrawOpen(false);
-    onMovementSaved?.();
-    setMessage("บันทึกถอนเงินสดแล้ว — ดูรายการด้านล่าง");
-  };
-
   const maskedPin = "••••";
 
   return (
@@ -221,14 +156,6 @@ export function HardwareSettingsPanel({ onMovementSaved }: HardwareSettingsPanel
         >
           <Wallet size={20} />
           {openingDrawer ? "กำลังเปิด..." : "เปิดลิ้นชัก"}
-        </Button>
-        <Button type="button" variant="income" className="gap-2" onClick={startCashDeposit}>
-          <ArrowDownToLine size={20} />
-          ฝากเงินสด
-        </Button>
-        <Button type="button" variant="danger" className="gap-2" onClick={startCashWithdraw}>
-          <ArrowUpFromLine size={20} />
-          ถอนเงินสด
         </Button>
         <Button type="button" variant="outline" className="gap-2" onClick={startChangePin}>
           <Lock size={20} />
@@ -261,20 +188,6 @@ export function HardwareSettingsPanel({ onMovementSaved }: HardwareSettingsPanel
         error={error}
         onComplete={handlePinComplete}
         onCancel={closePin}
-      />
-
-      <CashDepositDialog
-        open={depositOpen}
-        onClose={() => setDepositOpen(false)}
-        onSaved={handleDepositSaved}
-        recordedBy={session?.userId}
-      />
-
-      <CashWithdrawDialog
-        open={withdrawOpen}
-        onClose={() => setWithdrawOpen(false)}
-        onSaved={handleWithdrawSaved}
-        recordedBy={session?.userId}
       />
     </div>
   );

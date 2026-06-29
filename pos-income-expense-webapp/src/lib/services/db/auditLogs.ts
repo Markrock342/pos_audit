@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db/supabase";
-import { businessDayEndIso, businessDayStartIso } from "@/lib/utils/businessDate";
+import { businessDayEndIso, businessDayStartIso, shiftBusinessDate } from "@/lib/utils/businessDate";
+import { filterAuditLogsByBusinessDate } from "@/lib/utils/auditLogDate";
 import { mapAuditLog, toAuditLogInsert } from "@/lib/utils/dbMap";
 import { transactionAuditSnapshot } from "@/lib/utils/auditSnapshot";
 import { getTransactions } from "@/lib/services/db/transactions";
@@ -35,6 +36,7 @@ export interface CreateAuditLogInput {
   reason: string;
   oldValue?: Record<string, unknown> | null;
   newValue?: Record<string, unknown> | null;
+  closeEditGeneration?: number;
 }
 
 export async function createAuditLog(input: CreateAuditLogInput): Promise<AuditLog> {
@@ -67,10 +69,10 @@ export async function getAuditLogs(
     q = q.eq("transaction_type", filters.transactionType);
   }
   if (filters?.startDate) {
-    q = q.gte("created_at", businessDayStartIso(filters.startDate));
+    q = q.gte("created_at", businessDayStartIso(shiftBusinessDate(filters.startDate, -2)));
   }
   if (filters?.endDate) {
-    q = q.lte("created_at", businessDayEndIso(filters.endDate));
+    q = q.lte("created_at", businessDayEndIso(shiftBusinessDate(filters.endDate, 2)));
   }
 
   const { data, error } = await q;
@@ -79,16 +81,7 @@ export async function getAuditLogs(
 }
 
 function applyDateFilters(logs: AuditLog[], filters?: AuditLogFilters): AuditLog[] {
-  let result = logs;
-  if (filters?.startDate) {
-    const start = businessDayStartIso(filters.startDate);
-    result = result.filter((l) => l.createdAt >= start);
-  }
-  if (filters?.endDate) {
-    const end = businessDayEndIso(filters.endDate);
-    result = result.filter((l) => l.createdAt <= end);
-  }
-  return result;
+  return filterAuditLogsByBusinessDate(logs, filters?.startDate, filters?.endDate);
 }
 
 function buildUserNameMap(organizationId: string, users: Awaited<ReturnType<typeof getUsers>>) {
@@ -121,6 +114,18 @@ function enrichWithUserNames(
   }));
 }
 
+/** ฝาก/ถอน — ดึงทั้งสองประเภทพร้อมกัน */
+export async function getCashMovementActivityLogs(
+  organizationId: string,
+  filters?: Pick<AuditLogFilters, "startDate" | "endDate">
+): Promise<AuditLog[]> {
+  const [deposits, withdrawals] = await Promise.all([
+    getActivityLogs(organizationId, { ...filters, entityType: "cash_deposit" }),
+    getActivityLogs(organizationId, { ...filters, entityType: "cash_withdrawal" }),
+  ]);
+  return [...deposits, ...withdrawals];
+}
+
 /** รวม audit logs + รายการบันทึกเก่าที่ยังไม่มี create log */
 export async function getActivityLogs(
   organizationId: string,
@@ -132,10 +137,21 @@ export async function getActivityLogs(
     filters?.entityType !== "cash_withdrawal" &&
     filters?.entityType !== "category";
 
-  const logs = await getAuditLogs(organizationId, {
-    ...filters,
-    action: includeLegacyCreates ? filters?.action : filters?.action,
-  });
+  const [logs, legacyTransactions] = await Promise.all([
+    getAuditLogs(organizationId, {
+      ...filters,
+      action: includeLegacyCreates ? filters?.action : filters?.action,
+    }),
+    includeLegacyCreates &&
+    filters?.entityType !== "cash_deposit" &&
+    filters?.entityType !== "cash_withdrawal"
+      ? getTransactions(organizationId, {
+          type: filters?.transactionType,
+          startDate: filters?.startDate,
+          endDate: filters?.endDate,
+        })
+      : Promise.resolve([]),
+  ]);
 
   const cashMovementTypes = new Set<AuditLogEntityType>(["cash_deposit", "cash_withdrawal"]);
   const filteredLogs =
@@ -149,16 +165,14 @@ export async function getActivityLogs(
     filters?.entityType === "cash_withdrawal"
   ) {
     const users = await getUsers(organizationId);
-    return enrichWithUserNames(filteredLogs, organizationId, users);
+    return enrichWithUserNames(applyDateFilters(filteredLogs, filters), organizationId, users);
   }
 
   const createEntityIds = new Set(
     filteredLogs.filter((l) => l.action === "create").map((l) => l.entityId)
   );
 
-  const transactions = await getTransactions(organizationId, {
-    type: filters?.transactionType,
-  });
+  const transactions = legacyTransactions;
 
   const legacyCreates: AuditLog[] = transactions
     .filter((t) => !createEntityIds.has(t.id))
@@ -196,4 +210,21 @@ export async function getActivityLogs(
 
   const users = await getUsers(organizationId);
   return enrichWithUserNames(merged, organizationId, users);
+}
+
+/** รายการที่แก้ระหว่างเปิดแก้ไขปิดยอด (มี close_edit_generation) */
+export async function getCloseEditAuditLogsForDate(
+  organizationId: string,
+  countDate: string
+): Promise<AuditLog[]> {
+  const logs = await getAuditLogs(organizationId, {
+    startDate: countDate,
+    endDate: countDate,
+  });
+  const editLogs = logs
+    .filter((l) => l.closeEditGeneration != null)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  const users = await getUsers(organizationId);
+  return enrichWithUserNames(editLogs, organizationId, users);
 }

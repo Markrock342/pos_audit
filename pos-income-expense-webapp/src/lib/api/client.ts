@@ -5,6 +5,7 @@ import type {
   AuditLogAction,
   BalanceSummary,
   CashCount,
+  CashCountCloseEvent,
   CashDeposit,
   CashWithdrawal,
   CashWithdrawalsTodaySummary,
@@ -17,7 +18,28 @@ import type {
 } from "@/types";
 
 export const CASH_COUNT_PAGE_CACHE_KEY = "pos-cash-count-page-v1";
+export const POS_CASH_PAGE_CACHE_KEY = "pos-cash-page-v1";
+export const ORG_CACHE_KEY = "pos-org-cache-v1";
+export const HISTORY_PAGE_CACHE_PREFIX = "pos-history-page-v1";
 export const DASHBOARD_REFRESH_EVENT = "pos-dashboard-refresh";
+
+function listPageCacheKey(type: "income" | "expense") {
+  return `pos-list-page-v1-${type}`;
+}
+
+export interface ActiveDayListPageData {
+  transactions: Transaction[];
+  categories: Category[];
+  dayCleared: boolean;
+  inCloseEditMode: boolean;
+}
+
+export type HistoryPageTab = "income" | "expense" | "pos" | "close";
+
+export type HistoryPageApiData =
+  | { tab: "income" | "expense"; auditLogs: AuditLog[] }
+  | { tab: "pos"; posDays: import("@/lib/utils/historyPosSummaries").PosDaySummary[] }
+  | { tab: "close"; closeEvents: CashCountCloseEvent[]; closeRows: CashCount[] };
 
 export function notifyDashboardRefresh() {
   if (typeof window === "undefined") return;
@@ -28,9 +50,15 @@ export function invalidateCashCountPageCache() {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(CASH_COUNT_PAGE_CACHE_KEY);
+    sessionStorage.removeItem(POS_CASH_PAGE_CACHE_KEY);
+    invalidateActiveDayListPageCache();
   } catch {
     /* ignore */
   }
+}
+
+export function invalidatePosCashPageCache() {
+  invalidateCashCountPageCache();
 }
 
 export interface CategoryReportItem {
@@ -73,13 +101,70 @@ function jsonAuthHeaders(): HeadersInit {
   return { "Content-Type": "application/json", ...kioskAuthHeaders() };
 }
 
-export async function fetchTransactions(type?: "income" | "expense"): Promise<Transaction[]> {
-  const params = new URLSearchParams({ status: "active" });
+export async function fetchTransactions(
+  type?: "income" | "expense",
+  businessDate?: string
+): Promise<Transaction[]> {
+  const params = new URLSearchParams({ status: "active", includeLineItems: "false" });
   if (type) params.set("type", type);
+  if (businessDate) {
+    params.set("startDate", businessDate);
+    params.set("endDate", businessDate);
+  }
   const { data } = await parseJson<{ data: Transaction[] }>(
     await fetch(`/api/transactions?${params}`)
   );
   return data;
+}
+
+export async function fetchActiveDayListPage(type: "income" | "expense"): Promise<{
+  transactions: Transaction[];
+  categories: Category[];
+  dayCleared: boolean;
+  inCloseEditMode: boolean;
+}> {
+  const { data } = await parseJson<{
+    data: {
+      transactions: Transaction[];
+      categories: Category[];
+      dayCleared: boolean;
+      inCloseEditMode: boolean;
+    };
+  }>(await fetch(`/api/transactions/list-page?type=${type}`, { cache: "no-store" }));
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.setItem(listPageCacheKey(type), JSON.stringify(data));
+    } catch {
+      /* ignore quota */
+    }
+  }
+  return data;
+}
+
+export function readActiveDayListPageCache(
+  type: "income" | "expense"
+): ActiveDayListPageData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(listPageCacheKey(type));
+    return raw ? (JSON.parse(raw) as ActiveDayListPageData) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function invalidateActiveDayListPageCache(type?: "income" | "expense") {
+  if (typeof window === "undefined") return;
+  try {
+    if (type) {
+      sessionStorage.removeItem(listPageCacheKey(type));
+    } else {
+      sessionStorage.removeItem(listPageCacheKey("income"));
+      sessionStorage.removeItem(listPageCacheKey("expense"));
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function fetchCategories(type?: "income" | "expense"): Promise<Category[]> {
@@ -99,7 +184,7 @@ export async function fetchBalanceSummary(
   if (end) params.set("end", end);
   const qs = params.toString() ? `?${params}` : "";
   const { data } = await parseJson<{ data: BalanceSummary }>(
-    await fetch(`/api/reports/balance-summary${qs}`)
+    await fetch(`/api/reports/balance-summary${qs}`, { cache: "no-store" })
   );
   return data;
 }
@@ -109,7 +194,9 @@ export async function fetchReportSummary(start?: string, end?: string): Promise<
   if (start) params.set("start", start);
   if (end) params.set("end", end);
   const qs = params.toString() ? `?${params}` : "";
-  const { data } = await parseJson<{ data: ReportSummary }>(await fetch(`/api/reports/summary${qs}`));
+  const { data } = await parseJson<{ data: ReportSummary }>(
+    await fetch(`/api/reports/summary${qs}`, { cache: "no-store" })
+  );
   return data;
 }
 
@@ -122,7 +209,7 @@ export async function fetchByCategoryReport(
   if (end) params.set("end", end);
   const qs = params.toString() ? `?${params}` : "";
   const { data } = await parseJson<{ data: CategoryReportItem[] }>(
-    await fetch(`/api/reports/by-category${qs}`)
+    await fetch(`/api/reports/by-category${qs}`, { cache: "no-store" })
   );
   return data;
 }
@@ -143,7 +230,24 @@ export async function fetchOrganization(): Promise<Organization> {
   const { data } = await parseJson<{ data: Organization }>(
     await fetch("/api/organizations", { cache: "no-store" })
   );
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.setItem(ORG_CACHE_KEY, JSON.stringify(data));
+    } catch {
+      /* ignore quota */
+    }
+  }
   return data;
+}
+
+export function readOrganizationCache(): Organization | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(ORG_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Organization) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function updateOrganizationApi(
@@ -198,6 +302,8 @@ export async function createTransactionApi(
       body: JSON.stringify(body),
     })
   );
+  invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
 }
 
@@ -212,6 +318,8 @@ export async function updateTransactionApi(
       body: JSON.stringify(body),
     })
   );
+  invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
 }
 
@@ -227,6 +335,8 @@ export async function voidTransactionApi(
       body: JSON.stringify({ voidReason, voidedBy }),
     })
   );
+  invalidateCashCountPageCache();
+  notifyDashboardRefresh();
   return data;
 }
 
@@ -303,6 +413,25 @@ export type CashCountPageData = {
 /** โหลดหน้าปิดยอดครั้งเดียว (สรุป 2 กระเป๋า + นับเงิน + ถอน + ประวัติ) */
 export async function fetchCashCountPageData(): Promise<CashCountPageData> {
   return parseJson(await fetch("/api/cash-count/page-data", { cache: "no-store" }));
+}
+
+export type PosCashPageData = {
+  businessToday: string;
+  readOnly: boolean;
+  dayCleared: boolean;
+  inCloseEditMode: boolean;
+  deposits: CashDeposit[];
+  withdrawals: CashWithdrawal[];
+  depositTotal: number;
+  withdrawTotal: number;
+};
+
+/** โหลดหน้าเงินสดใน POS ครั้งเดียว — สถานะปิดยอด + ฝาก/ถอนวันนี้ */
+export async function fetchPosCashPageData(): Promise<PosCashPageData> {
+  const { data } = await parseJson<{ data: PosCashPageData }>(
+    await fetch("/api/pos-cash/page-data", { cache: "no-store" })
+  );
+  return data;
 }
 
 export async function fetchCashCountByDate(date: string): Promise<CashCount | null> {
@@ -483,20 +612,228 @@ export async function clearDrawerAndCloseDayApi(body?: {
   return data;
 }
 
+export async function reopenCloseForEditApi(body?: {
+  updatedBy?: string;
+}): Promise<{
+  reopened: boolean;
+  alreadyOpen?: boolean;
+  cashCount: CashCount | null;
+  restoredClosingCash?: number;
+  message: string;
+}> {
+  const { data } = await parseJson<{
+    data: {
+      reopened: boolean;
+      alreadyOpen?: boolean;
+      cashCount: CashCount | null;
+      restoredClosingCash?: number;
+      message: string;
+    };
+  }>(
+    await fetch("/api/cash-counts/today/reopen-for-edit", {
+      method: "POST",
+      headers: jsonAuthHeaders(),
+      body: JSON.stringify(body ?? {}),
+    })
+  );
+  invalidateCashCountPageCache();
+  notifyDashboardRefresh();
+  return data;
+}
+
+export async function startNewCloseRoundApi(body?: {
+  updatedBy?: string;
+}): Promise<{
+  started: boolean;
+  sessionRound: number;
+  cashCount: CashCount | null;
+  message: string;
+}> {
+  const { data } = await parseJson<{
+    data: {
+      started: boolean;
+      sessionRound: number;
+      cashCount: CashCount | null;
+      message: string;
+    };
+  }>(
+    await fetch("/api/cash-counts/today/start-new-round", {
+      method: "POST",
+      headers: jsonAuthHeaders(),
+      body: JSON.stringify(body ?? {}),
+    })
+  );
+  invalidateCashCountPageCache();
+  notifyDashboardRefresh();
+  return data;
+}
+
+export async function clearTodayDataApi(): Promise<{
+  cleared: boolean;
+  countDate: string;
+  businessToday: string;
+  transactions: number;
+  cashDeposits: number;
+  cashWithdrawals: number;
+  closeEvents: number;
+  cashCounts: number;
+  message: string;
+}> {
+  const { data } = await parseJson<{
+    data: {
+      cleared: boolean;
+      countDate: string;
+      businessToday: string;
+      transactions: number;
+      cashDeposits: number;
+      cashWithdrawals: number;
+      closeEvents: number;
+      cashCounts: number;
+      message: string;
+    };
+  }>(
+    await fetch("/api/admin/clear-today", {
+      method: "POST",
+      headers: jsonAuthHeaders(),
+    })
+  );
+  invalidateCashCountPageCache();
+  notifyDashboardRefresh();
+  return data;
+}
+
+export async function fetchCloseHistoryForDate(date: string): Promise<import("@/lib/services/db/closeEdit").CloseHistoryForDate> {
+  const { data } = await parseJson<{
+    data: import("@/lib/services/db/closeEdit").CloseHistoryForDate;
+  }>(
+    await fetch(`/api/cash-counts/close-events?date=${encodeURIComponent(date)}`, {
+      cache: "no-store",
+    })
+  );
+  return data;
+}
+
+export async function fetchCloseEventsInRange(
+  startDate: string,
+  endDate: string
+): Promise<CashCountCloseEvent[]> {
+  const { data } = await parseJson<{ data: { events: CashCountCloseEvent[] } }>(
+    await fetch(
+      `/api/cash-counts/close-events?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+      { cache: "no-store" }
+    )
+  );
+  return data.events;
+}
+
+/** @deprecated ใช้ fetchCloseHistoryForDate */
+export async function fetchCloseEventsForDate(date: string): Promise<CashCountCloseEvent[]> {
+  const history = await fetchCloseHistoryForDate(date);
+  return history.events;
+}
+
 export async function fetchAuditLogs(filters?: {
   startDate?: string;
   endDate?: string;
   action?: AuditLogAction;
   transactionType?: "income" | "expense";
+  entityType?: "transaction" | "category" | "cash_deposit" | "cash_withdrawal";
 }): Promise<AuditLog[]> {
   const params = new URLSearchParams();
   if (filters?.startDate) params.set("startDate", filters.startDate);
   if (filters?.endDate) params.set("endDate", filters.endDate);
   if (filters?.action) params.set("action", filters.action);
   if (filters?.transactionType) params.set("transactionType", filters.transactionType);
+  if (filters?.entityType) params.set("entityType", filters.entityType);
   const qs = params.toString() ? `?${params}` : "";
   const { data } = await parseJson<{ data: AuditLog[] }>(
     await fetch(`/api/audit-logs${qs}`)
   );
   return data;
+}
+
+function historyPageCacheKey(
+  tab: HistoryPageTab,
+  startDate: string,
+  endDate: string,
+  action?: AuditLogAction
+): string {
+  return `${HISTORY_PAGE_CACHE_PREFIX}:${tab}:${startDate}:${endDate}:${action ?? ""}`;
+}
+
+export function readHistoryPageCache(
+  tab: HistoryPageTab,
+  startDate: string,
+  endDate: string,
+  action?: AuditLogAction
+): HistoryPageApiData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(historyPageCacheKey(tab, startDate, endDate, action));
+    return raw ? (JSON.parse(raw) as HistoryPageApiData) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeHistoryPageCache(
+  tab: HistoryPageTab,
+  startDate: string,
+  endDate: string,
+  action: AuditLogAction | undefined,
+  data: HistoryPageApiData
+) {
+  try {
+    sessionStorage.setItem(
+      historyPageCacheKey(tab, startDate, endDate, action),
+      JSON.stringify(data)
+    );
+  } catch {
+    /* ignore quota */
+  }
+}
+
+export async function fetchHistoryPageData(input: {
+  tab: HistoryPageTab;
+  startDate: string;
+  endDate: string;
+  action?: AuditLogAction;
+}): Promise<HistoryPageApiData> {
+  const params = new URLSearchParams({
+    tab: input.tab,
+    startDate: input.startDate,
+    endDate: input.endDate,
+  });
+  if (input.action) params.set("action", input.action);
+  const { data } = await parseJson<{ data: HistoryPageApiData }>(
+    await fetch(`/api/history/page-data?${params}`, { cache: "no-store" })
+  );
+  writeHistoryPageCache(input.tab, input.startDate, input.endDate, input.action, data);
+  return data;
+}
+
+export async function fetchDashboardRefresh(): Promise<{
+  summary: DashboardSummary;
+  status: import("@/types").DailyCloseStatus;
+  ledger: DailyLedgerSummary;
+}> {
+  const { data } = await parseJson<{
+    data: DashboardSummary & {
+      dailyCloseStatus: import("@/types").DailyCloseStatus;
+      ledger: DailyLedgerSummary;
+    };
+  }>(await fetch("/api/reports/dashboard", { cache: "no-store" }));
+  return {
+    summary: {
+      todayIncome: data.todayIncome,
+      todayExpense: data.todayExpense,
+      monthIncome: data.monthIncome,
+      monthExpense: data.monthExpense,
+      netProfit: data.netProfit,
+      transactionCount: data.transactionCount,
+      expectedCashBalance: data.expectedCashBalance,
+    },
+    status: data.dailyCloseStatus,
+    ledger: data.ledger,
+  };
 }

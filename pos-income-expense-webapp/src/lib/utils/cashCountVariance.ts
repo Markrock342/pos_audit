@@ -16,7 +16,7 @@ export const CASH_COUNT_STATUS_LABEL: Record<CashCountStatus, string> = {
 export const CASH_COUNT_PENDING_LABEL = "ยังไม่ได้นับ";
 
 export const CASH_COUNT_VARIANCE_HINT =
-  "ยอดเงินคงเหลือ − ยอดที่นับได้ = เงินขาด/เงินเกิน · ใช้ตรวจว่าเงินสดในลิ้นชักตรงกับที่บันทึก";
+  "เงินในลิ้นชัก (คำนวณ) − ยอดที่นับได้ = เงินขาด/เงินเกิน";
 
 export function isCashCountPending(row: Pick<CashCount, "hasManualCount" | "closedAt">): boolean {
   return !row.hasManualCount && !row.closedAt;

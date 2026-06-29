@@ -3,11 +3,23 @@ import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { isBusinessDateClosed } from "@/lib/services/db/cashCounts";
 import { isPastBusinessDate } from "@/lib/utils/businessDate";
 
-/** staff ห้ามแก้/void รายการของวันที่ lock หรือปิดยอดแล้ว */
+/** ห้ามบันทึก/แก้/void เมื่อวันนั้นปิดยอดแล้ว (ทุก role รวม admin) */
 export async function assertTransactionDateAllowed(
   txDate: string,
   isAdmin: boolean
 ): Promise<NextResponse | null> {
+  if (await isBusinessDateClosed(DEFAULT_ORG_ID, txDate)) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "DAY_CLOSED",
+          message: "วันนี้ปิดยอดแล้ว — ไม่สามารถบันทึกรายการได้",
+        },
+      },
+      { status: 403 }
+    );
+  }
+
   if (isAdmin) return null;
 
   if (isPastBusinessDate(txDate)) {
@@ -16,18 +28,6 @@ export async function assertTransactionDateAllowed(
         error: {
           code: "DATE_LOCKED",
           message: "ไม่สามารถบันทึกย้อนหลังวันที่ปิดยอดแล้ว — ติดต่อ admin",
-        },
-      },
-      { status: 403 }
-    );
-  }
-
-  if (await isBusinessDateClosed(DEFAULT_ORG_ID, txDate)) {
-    return NextResponse.json(
-      {
-        error: {
-          code: "DAY_CLOSED",
-          message: "วันนี้ปิดยอดเงินสดแล้ว — ไม่สามารถเพิ่มรายการได้",
         },
       },
       { status: 403 }

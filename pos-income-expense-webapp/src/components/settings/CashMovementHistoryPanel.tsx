@@ -1,9 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { SegmentTabs } from "@/components/ui/SegmentTabs";
-import { fetchCashDeposits, fetchCashWithdrawals } from "@/lib/api/client";
-import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
 import {
   formatCurrency,
   formatDateShort,
@@ -11,6 +9,7 @@ import {
   formatWithdrawalAmount,
 } from "@/lib/utils/format";
 import type { CashDeposit, CashWithdrawal } from "@/types";
+import { CashMovementListScroll } from "@/components/cash-movement/CashMovementListScroll";
 
 type HistoryTab = "deposit" | "withdraw";
 
@@ -20,50 +19,33 @@ const TABS = [
 ];
 
 interface CashMovementHistoryPanelProps {
-  refreshKey?: number;
+  /** ปิดยอดแล้ว — ซ่อนรายการวันนี้ (โชว์กลับเมื่อเปิดแก้ไขปิดยอด) */
+  dayCleared?: boolean;
+  deposits: CashDeposit[];
+  withdrawals: CashWithdrawal[];
+  depositTotal: number;
+  withdrawTotal: number;
+  loading?: boolean;
 }
 
-export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistoryPanelProps) {
-  const endDate = getBusinessToday();
-  const startDate = shiftBusinessDate(endDate, -30);
+export function CashMovementHistoryPanel({
+  dayCleared = false,
+  deposits,
+  withdrawals,
+  depositTotal,
+  withdrawTotal,
+  loading = false,
+}: CashMovementHistoryPanelProps) {
   const [activeTab, setActiveTab] = useState<HistoryTab>("deposit");
-  const [deposits, setDeposits] = useState<CashDeposit[]>([]);
-  const [withdrawals, setWithdrawals] = useState<CashWithdrawal[]>([]);
-  const [depositTotal, setDepositTotal] = useState(0);
-  const [withdrawTotal, setWithdrawTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [depositResult, withdrawResult] = await Promise.all([
-        fetchCashDeposits({ startDate, endDate }),
-        fetchCashWithdrawals({ startDate, endDate }),
-      ]);
-      setDeposits(depositResult.data);
-      setDepositTotal(depositResult.totalDeposited);
-      setWithdrawals(withdrawResult.data);
-      setWithdrawTotal(withdrawResult.totalWithdrawn);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "โหลดประวัติไม่สำเร็จ");
-      setDeposits([]);
-      setWithdrawals([]);
-      setDepositTotal(0);
-      setWithdrawTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [startDate, endDate]);
-
-  useEffect(() => {
-    void load();
-  }, [load, refreshKey]);
+  const emptyMessage =
+    activeTab === "deposit"
+      ? "ยังไม่มีรายการฝากวันนี้"
+      : "ยังไม่มีรายการถอนวันนี้";
 
   return (
     <div id="cash-movement-history" className="space-y-4 scroll-mt-4">
-      <p className="text-sm text-text-muted">แสดงรายการ 30 วันล่าสุด</p>
+      <p className="text-sm text-text-muted">รายการฝาก/ถอนเงินสดวันนี้</p>
 
       <SegmentTabs
         tabs={TABS}
@@ -71,14 +53,10 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
         onChange={(id) => setActiveTab(id as HistoryTab)}
       />
 
-      {error && (
-        <p className="rounded-xl bg-error-light px-4 py-3 text-sm font-bold text-error">{error}</p>
-      )}
-
       {activeTab === "deposit" && (
         <div className="space-y-3">
           <div className="rounded-xl bg-surface-inset px-4 py-3">
-            <p className="text-xs text-text-muted">ฝากรวมช่วงนี้</p>
+            <p className="text-xs text-text-muted">ฝากรวมวันนี้</p>
             <p className="text-xl font-black text-income">
               {loading ? "…" : formatCurrency(depositTotal)}
             </p>
@@ -87,9 +65,9 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
           {loading ? (
             <p className="text-text-muted">กำลังโหลด...</p>
           ) : deposits.length === 0 ? (
-            <p className="py-4 text-center text-sm text-text-muted">ยังไม่มีรายการฝากในช่วงนี้</p>
+            <p className="py-4 text-center text-sm text-text-muted">{emptyMessage}</p>
           ) : (
-            <div className="space-y-2">
+            <CashMovementListScroll>
               {deposits.map((row) => (
                 <div
                   key={row.id}
@@ -105,7 +83,7 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
                   <p className="shrink-0 font-black text-income">+{formatCurrency(row.amount)}</p>
                 </div>
               ))}
-            </div>
+            </CashMovementListScroll>
           )}
         </div>
       )}
@@ -113,7 +91,7 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
       {activeTab === "withdraw" && (
         <div className="space-y-3">
           <div className="rounded-xl bg-surface-inset px-4 py-3">
-            <p className="text-xs text-text-muted">ถอนรวมช่วงนี้</p>
+            <p className="text-xs text-text-muted">ถอนรวมวันนี้</p>
             <p className="text-xl font-black text-expense">
               {loading ? "…" : formatWithdrawalAmount(withdrawTotal)}
             </p>
@@ -122,9 +100,9 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
           {loading ? (
             <p className="text-text-muted">กำลังโหลด...</p>
           ) : withdrawals.length === 0 ? (
-            <p className="py-4 text-center text-sm text-text-muted">ยังไม่มีรายการถอนในช่วงนี้</p>
+            <p className="py-4 text-center text-sm text-text-muted">{emptyMessage}</p>
           ) : (
-            <div className="space-y-2">
+            <CashMovementListScroll>
               {withdrawals.map((row) => (
                 <div
                   key={row.id}
@@ -142,7 +120,7 @@ export function CashMovementHistoryPanel({ refreshKey = 0 }: CashMovementHistory
                   </p>
                 </div>
               ))}
-            </div>
+            </CashMovementListScroll>
           )}
         </div>
       )}

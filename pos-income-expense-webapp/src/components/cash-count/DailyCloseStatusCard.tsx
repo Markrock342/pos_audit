@@ -1,6 +1,10 @@
 import Link from "next/link";
+import {
+  activeCashClosing,
+  activeNetTotal,
+  isTodayBusinessClosed,
+} from "@/lib/utils/activeDayDisplay";
 import { formatCurrency } from "@/lib/utils/format";
-import { activeCashClosing, activeNetTotal, isTodayBusinessClosed } from "@/lib/utils/activeDayDisplay";
 import { Card, CardContent } from "@/components/ui/Card";
 import type { DailyCloseStatus } from "@/types";
 import { cn } from "@/lib/utils/cn";
@@ -13,7 +17,7 @@ interface DailyCloseStatusCardProps {
 export function DailyCloseStatusCard({ status }: DailyCloseStatusCardProps) {
   const dayClosed = isTodayBusinessClosed(status);
   const statusLabel = dayClosed
-    ? "ปิดยอดแล้ว · เคลียร์หมด"
+    ? "ปิดยอดแล้ว"
     : status.hasManualCount
       ? "เปิดอยู่ · นับแล้ว"
       : "เปิดอยู่ · ยังไม่นับ";
@@ -59,21 +63,12 @@ export function DailyCloseStatusCard({ status }: DailyCloseStatusCardProps) {
           </div>
 
           <p className="text-sm font-bold text-text-muted">
-            {dayClosed ? (
-              <>
-                รายรับ-จ่ายวันนี้เคลียร์แล้ว · ดูยอดจริงที่{" "}
-                <span className="text-brand">สรุปปิดยอด → ประวัติ</span>
-              </>
-            ) : (
-              <>
-                สุทธิธุรกิจวันนี้{" "}
-                <span className={netDisplay >= 0 ? "text-income" : "text-expense"}>
-                  {netDisplay >= 0 ? "+" : ""}
-                  {formatCurrency(netDisplay)}
-                </span>
-                <span className="font-normal"> · แตะเพื่อดูรายละเอียด</span>
-              </>
-            )}
+            สุทธิธุรกิจวันนี้{" "}
+            <span className={netDisplay >= 0 ? "text-income" : "text-expense"}>
+              {netDisplay >= 0 ? "+" : ""}
+              {formatCurrency(netDisplay)}
+            </span>
+            <span className="font-normal"> · แตะเพื่อดูรายละเอียด</span>
           </p>
         </CardContent>
       </Card>

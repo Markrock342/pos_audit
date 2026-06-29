@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { AUDIT_CREATE_REASON } from "@/lib/services/db/auditLogs";
 import { safeCreateAuditLog } from "@/lib/services/db/safeAuditLog";
+import { withCloseEditAuditMeta } from "@/lib/services/db/closeEdit";
 import {
   getTransactions,
   createTransaction,
@@ -25,13 +26,14 @@ export async function GET(request: Request) {
   const status = searchParams.get("status") as Transaction["status"] | null;
   const startDate = searchParams.get("startDate") ?? undefined;
   const endDate = searchParams.get("endDate") ?? undefined;
+  const includeLineItems = searchParams.get("includeLineItems") !== "false";
 
   const data = await getTransactions(DEFAULT_ORG_ID, {
     type: type ?? undefined,
     status: status ?? undefined,
     startDate,
     endDate,
-  });
+  }, { includeLineItems });
 
   return NextResponse.json({ data, total: data.length });
 }
@@ -74,18 +76,20 @@ export async function POST(request: Request) {
     );
 
     after(async () => {
-      await safeCreateAuditLog({
-        organizationId: DEFAULT_ORG_ID,
-        userId,
-        entityType: "transaction",
-        entityId: newTransaction.id,
-        transactionType: newTransaction.type,
-        entityTitle: newTransaction.title,
-        action: "create",
-        reason: AUDIT_CREATE_REASON,
-        oldValue: null,
-        newValue: transactionAuditSnapshot(newTransaction),
-      });
+      await safeCreateAuditLog(
+        await withCloseEditAuditMeta(DEFAULT_ORG_ID, txDate, {
+          organizationId: DEFAULT_ORG_ID,
+          userId,
+          entityType: "transaction",
+          entityId: newTransaction.id,
+          transactionType: newTransaction.type,
+          entityTitle: newTransaction.title,
+          action: "create",
+          reason: AUDIT_CREATE_REASON,
+          oldValue: null,
+          newValue: transactionAuditSnapshot(newTransaction),
+        })
+      );
 
       await syncTodayLedgerAfterMutation(DEFAULT_ORG_ID, txDate, newTransaction, "apply");
     });

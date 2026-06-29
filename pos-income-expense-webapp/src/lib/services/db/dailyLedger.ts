@@ -9,6 +9,7 @@ import { getTotalDepositedForDate } from "./cashDeposits";
 import { getOrganization } from "./organizations";
 import { getTransactions } from "./transactions";
 import { isFullDailyReset } from "@/lib/utils/dailyResetMode";
+import { isInCloseEditMode } from "@/lib/utils/closeEditUtils";
 import type { CashCount, DailyCloseStatus, DailyLedgerSummary, PaymentMethod, Transaction } from "@/types";
 
 /** เงินโอน/บัญชีในสมุด — ทุกช่องทางที่ไม่ใช่เงินสด */
@@ -86,9 +87,11 @@ async function getCashOpeningForDate(
 
 async function getTransferOpeningForDate(
   organizationId: string,
-  countDate: string
+  countDate: string,
+  existingRow?: CashCount | null
 ): Promise<number> {
-  const row = await getCashCountByDate(organizationId, countDate);
+  const row =
+    existingRow !== undefined ? existingRow : await getCashCountByDate(organizationId, countDate);
   if (row) return row.openingTransfer ?? 0;
 
   const org = await getOrganization(organizationId);
@@ -165,18 +168,41 @@ export function applyTransactionToLedgerSummary(
   return { ...summary, cash, transfer, business };
 }
 
+/** หลังถอนเคลียร์ลิ้นชัก — อัปเดต snapshot โดยไม่ query ทั้งวันใหม่ */
+export function ledgerAfterDrawerClear(
+  summary: DailyLedgerSummary,
+  clearedAmount: number
+): DailyLedgerSummary {
+  if (clearedAmount <= 0) return summary;
+  return {
+    ...summary,
+    cash: {
+      ...summary.cash,
+      withdrawn: summary.cash.withdrawn + clearedAmount,
+      closing: 0,
+    },
+  };
+}
+
 export async function getDailyLedgerSummary(
   organizationId: string,
   countDate: string,
-  options?: { dayTransactions?: Transaction[]; forceRecalc?: boolean }
+  options?: { dayTransactions?: Transaction[]; forceRecalc?: boolean; cashCount?: CashCount | null }
 ): Promise<DailyLedgerSummary> {
   const businessToday = getBusinessToday();
-  const cashCount = await getCashCountByDate(organizationId, countDate);
+  const cashCount =
+    options?.cashCount !== undefined
+      ? options.cashCount
+      : await getCashCountByDate(organizationId, countDate);
 
   if (!options?.forceRecalc && cashCount?.closedAt) {
     const stored = summaryFromStoredLedgerFields(cashCount, countDate, businessToday);
     if (stored) return stored;
   }
+
+  const useSessionRound =
+    !cashCount?.closedAt || isInCloseEditMode(cashCount) || options?.forceRecalc;
+  const sessionRound = useSessionRound ? (cashCount?.sessionRound ?? 1) : undefined;
 
   const transactions =
     options?.dayTransactions ??
@@ -186,6 +212,7 @@ export async function getDailyLedgerSummary(
         status: "active",
         startDate: countDate,
         endDate: countDate,
+        ...(sessionRound != null ? { sessionRound } : {}),
       },
       { includeLineItems: false }
     ));
@@ -211,9 +238,9 @@ export async function getDailyLedgerSummary(
 
   const [cashOpening, transferOpening, cashWithdrawn, cashDeposited] = await Promise.all([
     getCashOpeningForDate(organizationId, countDate),
-    getTransferOpeningForDate(organizationId, countDate),
-    getTotalWithdrawnForDate(organizationId, countDate),
-    getTotalDepositedForDate(organizationId, countDate),
+    getTransferOpeningForDate(organizationId, countDate, cashCount),
+    getTotalWithdrawnForDate(organizationId, countDate, sessionRound),
+    getTotalDepositedForDate(organizationId, countDate, sessionRound),
   ]);
 
   const cashClosing = cashOpening + cashIncome - cashExpense - cashWithdrawn + cashDeposited;
@@ -254,20 +281,28 @@ export async function getDailyLedgerSummary(
 
 export async function getDailyCloseStatus(
   organizationId: string,
-  options?: { dayTransactions?: Transaction[] }
+  options?: { dayTransactions?: Transaction[]; cashCount?: CashCount | null }
 ): Promise<DailyCloseStatus> {
   const businessToday = getBusinessToday();
-  const summary = await getDailyLedgerSummary(organizationId, businessToday, options);
-  const cashCount = await getCashCountByDate(organizationId, businessToday);
+  const cashCount =
+    options?.cashCount !== undefined
+      ? options.cashCount
+      : await getCashCountByDate(organizationId, businessToday);
+  const summary = await getDailyLedgerSummary(organizationId, businessToday, {
+    dayTransactions: options?.dayTransactions,
+    cashCount,
+  });
 
   return {
     countDate: businessToday,
-    isLocked: summary.isLocked,
+    isLocked: summary.isLocked && !isInCloseEditMode(cashCount),
     closedAt: summary.closedAt,
     autoClosed: summary.autoClosed,
     hasManualCount: !!cashCount?.hasManualCount,
     cashClosing: summary.cash.closing,
     transferClosing: summary.transfer.closing,
     netTotal: summary.business.netTotal,
+    inCloseEditMode: isInCloseEditMode(cashCount),
+    closeEditGeneration: cashCount?.closeEditGeneration,
   };
 }

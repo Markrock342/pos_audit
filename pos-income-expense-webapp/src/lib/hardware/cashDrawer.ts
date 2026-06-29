@@ -16,7 +16,11 @@ export interface DrawerKickOptions {
   onMs?: number;
   offMs?: number;
   hardwareConfig?: HardwareConfig;
+  /** ไม่รอ hardware นานเกินไป — default 4s */
+  timeoutMs?: number;
 }
+
+export const DRAWER_OPEN_TIMEOUT_MS = 4000;
 
 async function resolveHardwareConfig(
   hardwareConfig?: HardwareConfig
@@ -44,7 +48,7 @@ async function openDrawerViaImin(hw: HardwareConfig): Promise<{ success: boolean
   return { success: true, message: "เปิดลิ้นชักแล้ว (iMin)" };
 }
 
-export async function openCashDrawer(
+async function openCashDrawerOnce(
   options?: DrawerKickOptions
 ): Promise<{ success: boolean; message: string }> {
   const hw = await resolveHardwareConfig(options?.hardwareConfig);
@@ -62,10 +66,15 @@ export async function openCashDrawer(
     }
   }
 
+  const timeoutMs = options?.timeoutMs ?? DRAWER_OPEN_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const res = await fetch("/api/hardware/drawer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
       body: JSON.stringify({
         pin: options?.pin,
         hardwareConfig: options?.hardwareConfig ?? hw,
@@ -88,6 +97,40 @@ export async function openCashDrawer(
       success: true,
       message: json.data?.message ?? "ส่งคำสั่งเปิดลิ้นชักแล้ว",
     };
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      return {
+        success: false,
+        message: "เปิดลิ้นชักใช้เวลานาน — เปิดด้วยมือแล้วนับเงิน",
+      };
+    }
+    return {
+      success: false,
+      message: e instanceof Error ? e.message : "เปิดลิ้นชักไม่สำเร็จ",
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function openCashDrawer(
+  options?: DrawerKickOptions
+): Promise<{ success: boolean; message: string }> {
+  const timeoutMs = options?.timeoutMs ?? DRAWER_OPEN_TIMEOUT_MS;
+  try {
+    return await Promise.race([
+      openCashDrawerOnce(options),
+      new Promise<{ success: boolean; message: string }>((resolve) => {
+        setTimeout(
+          () =>
+            resolve({
+              success: false,
+              message: "เปิดลิ้นชักใช้เวลานาน — เปิดด้วยมือแล้วนับเงิน",
+            }),
+          timeoutMs
+        );
+      }),
+    ]);
   } catch (e) {
     return {
       success: false,

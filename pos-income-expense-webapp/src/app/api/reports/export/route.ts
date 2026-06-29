@@ -3,11 +3,17 @@ import { getTransactions } from "@/lib/services/db/transactions";
 import { getCategories } from "@/lib/services/db/categories";
 import { transactionsToCsv } from "@/lib/utils/csvExport";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
+import {
+  getReportDefaultEndDate,
+  getReportDefaultStartDate,
+} from "@/lib/utils/reportDateRange";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const start = searchParams.get("start") ?? getFirstDayOfMonth();
-  const end = searchParams.get("end") ?? getToday();
+  const start = searchParams.get("start") ?? getReportDefaultStartDate();
+  const end = searchParams.get("end") ?? getReportDefaultEndDate();
 
   const transactions = await getTransactions(DEFAULT_ORG_ID, {
     startDate: start,
@@ -24,15 +30,7 @@ export async function GET(request: Request) {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "no-store, no-cache, must-revalidate",
     },
   });
-}
-
-function getToday(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getFirstDayOfMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 }

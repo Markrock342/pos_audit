@@ -29,7 +29,7 @@ import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 interface TransactionFormProps {
   type: TransactionType;
   categories: Category[];
-  onSubmit?: (data: TransactionFormValues) => void | Promise<void>;
+  onSubmit?: (data: TransactionFormValues, options: { print: boolean }) => void | Promise<void>;
   onCancel?: () => void;
   successRedirect?: string;
 }
@@ -37,6 +37,8 @@ interface TransactionFormProps {
 function newLocalId() {
   return `line-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+
+type SaveAction = "save" | "save-print";
 
 export function TransactionForm({
   type,
@@ -47,13 +49,14 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const router = useRouter();
   const savingRef = useRef(false);
-  const saveModeRef = useRef<"redirect" | "new">("redirect");
+  const pendingSaveRef = useRef<SaveAction | null>(null);
   const filteredCategories = categories.filter((c) => c.type === type);
 
   const [cartLines, setCartLines] = useState<CartLine[]>([]);
   const [draftLine, setDraftLine] = useState<LineItemFormValues | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [savingAction, setSavingAction] = useState<SaveAction | null>(null);
 
   const {
     register,
@@ -77,6 +80,16 @@ export function TransactionForm({
   const transactionDate = watch("transactionDate");
   const billNote = watch("note");
   const dismissToast = useCallback(() => setToast(null), []);
+
+  const beginSave = (action: SaveAction) => {
+    pendingSaveRef.current = action;
+    setSavingAction(action);
+  };
+
+  const clearPendingSave = () => {
+    pendingSaveRef.current = null;
+    setSavingAction(null);
+  };
 
   const lineDraft = useTransactionLineDraft(filteredCategories, setDraftLine);
 
@@ -128,10 +141,13 @@ export function TransactionForm({
     setToast(null);
 
     try {
-      await onSubmit?.(parsed.data);
+      await onSubmit?.(parsed.data, {
+        print: pendingSaveRef.current === "save-print",
+      });
     } catch (e) {
       savingRef.current = false;
       setIsSaving(false);
+      clearPendingSave();
       const detail = e instanceof Error && e.message.trim() ? e.message.trim() : null;
       setToast({
         type: "error",
@@ -140,10 +156,9 @@ export function TransactionForm({
       return;
     }
 
-    const mode = saveModeRef.current;
-    saveModeRef.current = "redirect";
+    clearPendingSave();
 
-    if (mode === "redirect" && successRedirect) {
+    if (successRedirect) {
       router.replace(successRedirect);
       return;
     }
@@ -156,6 +171,11 @@ export function TransactionForm({
 
   const busy = isSubmitting || isSaving;
   const accentBorder = type === "income" ? "border-t-income" : "border-t-expense";
+  const primaryVariant = type === "income" ? "income" : "danger";
+  const saveLabel =
+    busy && savingAction === "save" ? "กำลังบันทึก..." : "บันทึก";
+  const savePrintLabel =
+    busy && savingAction === "save-print" ? "กำลังบันทึก..." : "บันทึก + พิมพ์";
 
   return (
     <Card className={`pos-page pos-txn-page pb-24 lg:pb-0 border-t-4 ${accentBorder}`}>
@@ -294,37 +314,33 @@ export function TransactionForm({
               />
 
               <div className="pos-txn-actions mt-auto shrink-0 space-y-1.5 border-t border-border-default pt-2">
-                <Button
-                  type="submit"
-                  disabled={busy || cartLines.length === 0}
-                  variant={type === "income" ? "income" : "danger"}
-                  size="md"
-                  className="w-full text-base font-black"
-                  onClick={() => {
-                    saveModeRef.current = successRedirect ? "redirect" : "new";
-                  }}
-                >
-                  {busy ? "กำลังบันทึก..." : "บันทึก"}
-                </Button>
-                <div className={`grid gap-2 ${onCancel ? "grid-cols-2" : "grid-cols-1"}`}>
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="submit"
                     disabled={busy || cartLines.length === 0}
-                    variant="secondary"
+                    variant={primaryVariant}
                     size="md"
-                    className="w-full font-bold"
-                    onClick={() => {
-                      saveModeRef.current = "new";
-                    }}
+                    className="w-full text-base font-black"
+                    onClick={() => beginSave("save")}
                   >
-                    บันทึก &amp; ใหม่
+                    {saveLabel}
                   </Button>
-                  {onCancel && (
-                    <Button type="button" variant="outline" size="md" className="w-full font-bold" onClick={onCancel}>
-                      ยกเลิก
-                    </Button>
-                  )}
+                  <Button
+                    type="submit"
+                    disabled={busy || cartLines.length === 0}
+                    variant={primaryVariant}
+                    size="md"
+                    className="w-full text-base font-black"
+                    onClick={() => beginSave("save-print")}
+                  >
+                    {savePrintLabel}
+                  </Button>
                 </div>
+                {onCancel && (
+                  <Button type="button" variant="outline" size="md" className="w-full font-bold" onClick={onCancel}>
+                    ยกเลิก
+                  </Button>
+                )}
               </div>
             </section>
           </div>
@@ -333,11 +349,22 @@ export function TransactionForm({
             <Button
               type="submit"
               disabled={busy || cartLines.length === 0}
-              variant={type === "income" ? "income" : "danger"}
+              variant={primaryVariant}
               size="lg"
-              className="flex-1 text-xl font-bold"
+              className="flex-1 text-lg font-bold"
+              onClick={() => beginSave("save")}
             >
-              {busy ? "กำลังบันทึก..." : "บันทึก"}
+              {saveLabel}
+            </Button>
+            <Button
+              type="submit"
+              disabled={busy || cartLines.length === 0}
+              variant={primaryVariant}
+              size="lg"
+              className="flex-1 text-lg font-bold"
+              onClick={() => beginSave("save-print")}
+            >
+              {savePrintLabel}
             </Button>
             {onCancel && (
               <Button type="button" variant="outline" onClick={onCancel} size="lg" className="flex-1">

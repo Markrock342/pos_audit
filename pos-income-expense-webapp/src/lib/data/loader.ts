@@ -1,6 +1,7 @@
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
+import { getCashCountByDate } from "@/lib/services/db/cashCounts";
 import { getCategories } from "@/lib/services/db/categories";
-import { getDailyCloseStatus, getDailyLedgerSummary } from "@/lib/services/db/dailyLedger";
+import { getDailyLedgerSummary } from "@/lib/services/db/dailyLedger";
 import type { DashboardData } from "@/lib/services/db/reports";
 import { getTransactions } from "@/lib/services/db/transactions";
 import {
@@ -8,9 +9,10 @@ import {
   activeTodayExpense,
   activeTodayIncome,
 } from "@/lib/utils/activeDayDisplay";
+import { isInCloseEditMode } from "@/lib/utils/closeEditUtils";
 import { getBusinessToday, shiftBusinessDate } from "@/lib/utils/businessDate";
-import type { Category, Transaction, TransactionType } from "@/types";
-
+import { filterTodayTransactionsForSession } from "@/lib/utils/sessionRound";
+import type { Category, DailyCloseStatus, Transaction, TransactionType } from "@/types";
 type TransactionFilters = {
   type?: TransactionType;
   status?: "active" | "void";
@@ -42,7 +44,7 @@ export async function loadRecentTransactions(limit = 5): Promise<Transaction[]> 
   );
 }
 
-export async function loadChartTransactions(days = 6): Promise<Transaction[]> {
+export async function loadChartTransactions(days = 7): Promise<Transaction[]> {
   const startDate = shiftBusinessDate(getBusinessToday(), -(days - 1));
 
   return getTransactions(
@@ -55,40 +57,49 @@ export async function loadChartTransactions(days = 6): Promise<Transaction[]> {
 export type DashboardPageData = {
   dashboardData: DashboardData;
   todayLedger: Awaited<ReturnType<typeof getDailyLedgerSummary>> | null;
-  categories: Category[];
-  chartTransactions: Transaction[];
-  recentTransactions: Transaction[];
 };
 
 /** โหลด dashboard ครั้งเดียว — ลด query ซ้ำไป Supabase */
 export async function loadDashboardPageData(): Promise<DashboardPageData> {
   const today = getBusinessToday();
   const monthStart = `${today.slice(0, 7)}-01`;
-  const chartStart = shiftBusinessDate(today, -5);
-  const queryStart = chartStart < monthStart ? chartStart : monthStart;
 
-  const [transactions, categories] = await Promise.all([
+  const [transactions, cashCount] = await Promise.all([
     getTransactions(
       DEFAULT_ORG_ID,
-      { status: "active", startDate: queryStart, endDate: today },
+      { status: "active", startDate: monthStart, endDate: today },
       { includeLineItems: false }
     ),
-    getCategories(DEFAULT_ORG_ID),
+    getCashCountByDate(DEFAULT_ORG_ID, today),
   ]);
 
-  const todayTransactions = transactions.filter((t) => t.transactionDate === today);
+  const sessionRound = cashCount?.sessionRound ?? 1;
+  const todayTransactions = filterTodayTransactionsForSession(
+    transactions,
+    today,
+    sessionRound
+  );
   const monthTransactions = transactions.filter(
     (t) => t.transactionDate >= monthStart && t.transactionDate <= today
   );
 
-  const dailyCloseStatus = await getDailyCloseStatus(DEFAULT_ORG_ID, {
-    dayTransactions: todayTransactions,
-  });
-
   const todayLedger = await getDailyLedgerSummary(DEFAULT_ORG_ID, today, {
     dayTransactions: todayTransactions,
+    cashCount,
   });
 
+  const dailyCloseStatus: DailyCloseStatus = {
+    countDate: today,
+    isLocked: todayLedger.isLocked && !isInCloseEditMode(cashCount),
+    closedAt: todayLedger.closedAt,
+    autoClosed: todayLedger.autoClosed,
+    hasManualCount: !!cashCount?.hasManualCount,
+    cashClosing: todayLedger.cash.closing,
+    transferClosing: todayLedger.transfer.closing,
+    netTotal: todayLedger.business.netTotal,
+    inCloseEditMode: isInCloseEditMode(cashCount),
+    closeEditGeneration: cashCount?.closeEditGeneration,
+  };
   const sum = (rows: Transaction[], type: "income" | "expense") =>
     rows.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
 
@@ -104,13 +115,11 @@ export async function loadDashboardPageData(): Promise<DashboardPageData> {
     expectedCashBalance: activeCashClosing(dailyCloseStatus.cashClosing, dailyCloseStatus),
     transactionCount: monthTransactions.length,
     dailyCloseStatus,
+    ledger: todayLedger,
   };
 
   return {
     dashboardData,
     todayLedger,
-    categories,
-    chartTransactions: transactions.filter((t) => t.transactionDate >= chartStart),
-    recentTransactions: transactions.slice(0, 5),
   };
 }

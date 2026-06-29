@@ -74,7 +74,7 @@ export function RecentTransactionList({
                 {formatCurrency(t.amount)}
               </p>
               <p className="text-xs text-text-muted">
-                {formatDateShort(t.createdAt)}
+                {formatDateShort(t.transactionDate)}
               </p>
             </div>
           </div>

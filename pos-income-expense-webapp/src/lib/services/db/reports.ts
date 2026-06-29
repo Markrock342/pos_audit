@@ -1,15 +1,18 @@
 import { getTransactions } from "./transactions";
+import { getCashCountByDate } from "./cashCounts";
 import { getOrganization } from "./organizations";
-import { getDailyCloseStatus } from "./dailyLedger";
+import { getDailyLedgerSummary } from "./dailyLedger";
+import { isInCloseEditMode } from "@/lib/utils/closeEditUtils";
 import {
   activeCashClosing,
   activeTodayExpense,
   activeTodayIncome,
 } from "@/lib/utils/activeDayDisplay";
+import { filterTodayTransactionsForSession } from "@/lib/utils/sessionRound";
 import { getDb } from "@/lib/db/supabase";
 import { DEFAULT_ORG_ID } from "@/constants/organizations";
 import { getBusinessToday } from "@/lib/utils/businessDate";
-import type { BalanceSummary, DailyCloseStatus } from "@/types";
+import type { BalanceSummary, DailyCloseStatus, DailyLedgerSummary } from "@/types";
 
 export interface DashboardData {
   todayIncome: number;
@@ -20,6 +23,7 @@ export interface DashboardData {
   expectedCashBalance: number;
   transactionCount: number;
   dailyCloseStatus: DailyCloseStatus;
+  ledger: DailyLedgerSummary;
 }
 
 export interface CategoryReportItem {
@@ -135,49 +139,57 @@ export async function getDailyChart(
 export async function getDashboard(): Promise<DashboardData> {
   const today = getBusinessToday();
   const monthStart = `${today.slice(0, 7)}-01`;
-  const monthEnd = today;
 
-  // Active transactions for today
-  const todayTransactions = await getTransactions(DEFAULT_ORG_ID, {
-    startDate: today,
-    endDate: today,
-    status: "active",
+  const [monthTransactions, cashCount] = await Promise.all([
+    getTransactions(
+      DEFAULT_ORG_ID,
+      { startDate: monthStart, endDate: today, status: "active" },
+      { includeLineItems: false }
+    ),
+    getCashCountByDate(DEFAULT_ORG_ID, today),
+  ]);
+
+  const sessionRound = cashCount?.sessionRound ?? 1;
+  const todayTransactions = filterTodayTransactionsForSession(
+    monthTransactions,
+    today,
+    sessionRound
+  );
+
+  const sum = (rows: typeof monthTransactions, type: "income" | "expense") =>
+    rows.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
+
+  const ledger = await getDailyLedgerSummary(DEFAULT_ORG_ID, today, {
+    dayTransactions: todayTransactions,
+    cashCount,
   });
 
-  const todayIncome = todayTransactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const dailyCloseStatus: DailyCloseStatus = {
+    countDate: today,
+    isLocked: ledger.isLocked && !isInCloseEditMode(cashCount),
+    closedAt: ledger.closedAt,
+    autoClosed: ledger.autoClosed,
+    hasManualCount: !!cashCount?.hasManualCount,
+    cashClosing: ledger.cash.closing,
+    transferClosing: ledger.transfer.closing,
+    netTotal: ledger.business.netTotal,
+    inCloseEditMode: isInCloseEditMode(cashCount),
+    closeEditGeneration: cashCount?.closeEditGeneration,
+  };
 
-  const todayExpense = todayTransactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  // Active transactions for current month
-  const monthTransactions = await getTransactions(DEFAULT_ORG_ID, {
-    startDate: monthStart,
-    endDate: monthEnd,
-    status: "active",
-  });
-
-  const monthIncome = monthTransactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const monthExpense = monthTransactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const dailyCloseStatus = await getDailyCloseStatus(DEFAULT_ORG_ID);
+  const monthIncome = sum(monthTransactions, "income");
+  const monthExpense = sum(monthTransactions, "expense");
 
   return {
-    todayIncome: activeTodayIncome(todayIncome, dailyCloseStatus),
-    todayExpense: activeTodayExpense(todayExpense, dailyCloseStatus),
+    todayIncome: activeTodayIncome(sum(todayTransactions, "income"), dailyCloseStatus),
+    todayExpense: activeTodayExpense(sum(todayTransactions, "expense"), dailyCloseStatus),
     monthIncome,
     monthExpense,
     netProfit: monthIncome - monthExpense,
     expectedCashBalance: activeCashClosing(dailyCloseStatus.cashClosing, dailyCloseStatus),
     transactionCount: monthTransactions.length,
     dailyCloseStatus,
+    ledger,
   };
 }
 

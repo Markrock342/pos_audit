@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db/supabase";
 import { mapCashWithdrawal } from "@/lib/utils/dbMap";
+import { getSessionRoundForNewEntry } from "@/lib/utils/sessionRound";
 import type { CashWithdrawal } from "@/types";
 
 const TABLE = "cash_withdrawals";
@@ -8,6 +9,7 @@ export interface CashWithdrawalFilters {
   startDate?: string;
   endDate?: string;
   withdrawalDate?: string;
+  sessionRound?: number;
 }
 
 export async function getCashWithdrawals(
@@ -29,6 +31,9 @@ export async function getCashWithdrawals(
   if (filters?.endDate) {
     query = query.lte("withdrawal_date", filters.endDate);
   }
+  if (filters?.sessionRound != null) {
+    query = query.eq("session_round", filters.sessionRound);
+  }
 
   const { data, error } = await query;
   if (error || !data) return [];
@@ -37,9 +42,10 @@ export async function getCashWithdrawals(
 
 export async function getTotalWithdrawnForDate(
   organizationId: string,
-  withdrawalDate: string
+  withdrawalDate: string,
+  sessionRound?: number
 ): Promise<number> {
-  const rows = await getCashWithdrawals(organizationId, { withdrawalDate });
+  const rows = await getCashWithdrawals(organizationId, { withdrawalDate, sessionRound });
   return rows.reduce((sum, row) => sum + row.amount, 0);
 }
 
@@ -59,6 +65,8 @@ export async function createCashWithdrawal(data: {
   note: string;
   recordedBy?: string;
 }): Promise<CashWithdrawal> {
+  const sessionRound = await getSessionRoundForNewEntry(data.organizationId, data.withdrawalDate);
+
   const { data: inserted, error } = await getDb()
     .from(TABLE)
     .insert({
@@ -67,6 +75,7 @@ export async function createCashWithdrawal(data: {
       amount: data.amount,
       note: data.note.trim(),
       recorded_by: data.recordedBy ?? null,
+      session_round: sessionRound,
       created_at: new Date().toISOString(),
     })
     .select()

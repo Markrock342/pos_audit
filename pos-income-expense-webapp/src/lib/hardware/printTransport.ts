@@ -40,18 +40,32 @@ export async function sendRawToPrinter(
 
 export async function sendViaBridge(
   bridgeUrl: string,
-  payload: { host: string; port: number; data: Uint8Array }
+  payload: { host: string; port: number; data: Uint8Array },
+  timeoutMs = 8000
 ): Promise<void> {
   const base = bridgeUrl.replace(/\/$/, "");
-  const res = await fetch(`${base}/print`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      host: payload.host,
-      port: payload.port,
-      data: Buffer.from(payload.data).toString("base64"),
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(`${base}/print`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        host: payload.host,
+        port: payload.port,
+        data: Buffer.from(payload.data).toString("base64"),
+      }),
+    });
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error("เชื่อมต่อ Bridge timeout");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -72,7 +86,8 @@ export function resolvePrinterTarget(config: HardwareConfig): {
 
 export async function dispatchPrintJob(
   config: HardwareConfig,
-  data: Uint8Array
+  data: Uint8Array,
+  timeoutMs = 8000
 ): Promise<{ mode: "direct" | "bridge" }> {
   const target = resolvePrinterTarget(config);
   if (!target) {
@@ -80,10 +95,10 @@ export async function dispatchPrintJob(
   }
 
   if (config.bridgeUrl?.trim()) {
-    await sendViaBridge(config.bridgeUrl.trim(), { ...target, data });
+    await sendViaBridge(config.bridgeUrl.trim(), { ...target, data }, timeoutMs);
     return { mode: "bridge" };
   }
 
-  await sendRawToPrinter({ ...target, data });
+  await sendRawToPrinter({ ...target, data }, timeoutMs);
   return { mode: "direct" };
 }

@@ -9,6 +9,7 @@ import {
   refreshExpectedBalanceQuick,
 } from "@/lib/services/db/cashCounts";
 import { safeCreateAuditLog } from "@/lib/services/db/safeAuditLog";
+import { withCloseEditAuditMeta } from "@/lib/services/db/closeEdit";
 import { assertTransactionDateAllowed } from "@/lib/api/transactionDateLock";
 import { isAdminRequest } from "@/lib/api/requestRole";
 import { getBusinessToday } from "@/lib/utils/businessDate";
@@ -102,20 +103,23 @@ export async function POST(request: Request) {
       recordedBy,
     });
 
-    await safeCreateAuditLog({
-      organizationId: DEFAULT_ORG_ID,
-      userId: recordedBy,
-      entityType: "cash_withdrawal",
-      entityId: created.id,
-      entityTitle: "ถอนเงินสด",
-      action: "create",
-      reason: WITHDRAW_AUDIT_REASON,
-      newValue: {
-        amount: created.amount,
-        withdrawalDate: created.withdrawalDate,
-        note: created.note,
-      },
-    });
+    await safeCreateAuditLog(
+      await withCloseEditAuditMeta(DEFAULT_ORG_ID, withdrawalDate, {
+        organizationId: DEFAULT_ORG_ID,
+        userId: recordedBy,
+        entityType: "cash_withdrawal",
+        entityId: created.id,
+        entityTitle: "ถอนเงินสด",
+        action: "create",
+        reason: WITHDRAW_AUDIT_REASON,
+        newValue: {
+          amount: created.amount,
+          withdrawalDate: created.withdrawalDate,
+          note: created.note,
+          sessionRound: created.sessionRound,
+        },
+      })
+    );
 
     await refreshExpectedBalanceQuick(DEFAULT_ORG_ID, withdrawalDate);
 

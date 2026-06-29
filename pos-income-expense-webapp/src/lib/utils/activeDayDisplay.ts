@@ -2,7 +2,7 @@ import type { DailyCloseStatus } from "@/types";
 
 /** วันนี้ปิดยอดแล้ว (เคลียร์ลิ้นชัก) — หน้าหลักแสดงศูนย์ ประวัติเก็บใน cash_counts */
 export function isTodayBusinessClosed(status: DailyCloseStatus): boolean {
-  return status.isLocked && !!status.closedAt;
+  return status.isLocked && !!status.closedAt && !status.inCloseEditMode;
 }
 
 export function activeTodayIncome(income: number, status: DailyCloseStatus): number {

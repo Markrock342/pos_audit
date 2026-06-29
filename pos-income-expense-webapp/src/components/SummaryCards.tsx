@@ -3,7 +3,7 @@ import type { DashboardSummary, DailyCloseStatus } from "@/types";
 import { formatCurrency } from "@/lib/utils/format";
 import { isTodayBusinessClosed } from "@/lib/utils/activeDayDisplay";
 import { StatCard } from "@/components/ui/StatCard";
-import { DollarSign, ArrowDownCircle, TrendingUp, Wallet } from "lucide-react";
+import { DollarSign, ArrowDownCircle, Wallet } from "lucide-react";
 
 interface SummaryCardsProps {
   summary: DashboardSummary;
@@ -14,7 +14,7 @@ export function SummaryCards({ summary, dailyCloseStatus }: SummaryCardsProps) {
   const dayClosed = dailyCloseStatus ? isTodayBusinessClosed(dailyCloseStatus) : false;
 
   return (
-    <div className="grid grid-cols-2 gap-3 2xl:grid-cols-4 2xl:gap-4">
+    <div className="grid grid-cols-2 gap-3 2xl:grid-cols-3 2xl:gap-4">
       <StatCard
         title="รายรับวันนี้"
         value={formatCurrency(summary.todayIncome)}
@@ -29,14 +29,10 @@ export function SummaryCards({ summary, dailyCloseStatus }: SummaryCardsProps) {
         icon={ArrowDownCircle}
         trend="down"
       />
-      <StatCard
-        title="กำไรสุทธิ (เดือนนี้)"
-        value={formatCurrency(summary.netProfit)}
-        subtitle={`รายรับ ${formatCurrency(summary.monthIncome)}`}
-        icon={TrendingUp}
-        trend={summary.netProfit >= 0 ? "up" : "down"}
-      />
-      <Link href="/cash-count" className="block active:scale-[0.98] transition-transform">
+      <Link
+        href="/pos-cash"
+        className="col-span-2 block active:scale-[0.98] transition-transform 2xl:col-span-1"
+      >
         <StatCard
           title="เงินสดใน POS"
           value={formatCurrency(summary.expectedCashBalance ?? 0)}

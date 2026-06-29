@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { CashCountCloseEventsPanel } from "@/components/cash-count/CashCountCloseEventsPanel";
 import { CashCountDayMeta } from "@/components/cash-count/CashCountDayMeta";
 import { CashMovementDayPanel } from "@/components/cash-count/CashMovementDayPanel";
 import { DailyLedgerSummaryPanel } from "@/components/cash-count/DailyLedgerSummaryPanel";
@@ -114,7 +115,12 @@ export default function CashCountDayPage() {
 
             <DailyLedgerSummaryPanel data={ledger} loading={false} dateLabel={formatDateShort(date)} />
 
-            <CashCountDayMeta cashCount={cashCount} expectedBalance={ledger.cash.closing} />
+            <CashCountDayMeta
+              cashCount={cashCount}
+              expectedBalance={
+                cashCount?.closedAt ? cashCount.expectedBalance : ledger.cash.closing
+              }
+            />
 
             <CashMovementDayPanel
               deposits={deposits}
@@ -122,6 +128,8 @@ export default function CashCountDayPage() {
               withdrawals={withdrawals}
               withdrawTotal={withdrawTotal}
             />
+
+            <CashCountCloseEventsPanel countDate={date} />
 
             {isToday && (
               <Link

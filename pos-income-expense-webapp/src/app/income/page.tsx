@@ -3,15 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { TodayClosedBanner } from "@/components/TodayClosedBanner";
+import { CloseEditModeBanner } from "@/components/cash-count/CloseEditModeBanner";
 import { TransactionTable } from "@/components/tables/TransactionTable";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { useTodaySession } from "@/hooks/useTodaySession";
-import { useTransactions } from "@/hooks/useTransactions";
+import { useActiveDayTransactions } from "@/hooks/useActiveDayTransactions";
 import { formatCurrency } from "@/lib/utils/format";
 import { resolveReceiptNumber } from "@/lib/utils/receiptFormat";
 import type { Transaction } from "@/types";
@@ -26,31 +25,21 @@ function sortNewestFirst(items: Transaction[]): Transaction[] {
 export default function IncomeListPage() {
   const [search, setSearch] = useState("");
   const [receiptTransaction, setReceiptTransaction] = useState<Transaction | null>(null);
-  const { transactions, categories, loading, error, reload } = useTransactions("income");
-  const { businessToday, isClosed, loading: sessionLoading } = useTodaySession();
-
-  const todayTransactions = useMemo(
-    () =>
-      transactions.filter(
-        (t) => t.status === "active" && t.transactionDate === businessToday
-      ),
-    [transactions, businessToday]
-  );
+  const { transactions, categories, loading, error, dayCleared, inCloseEditMode, reload } =
+    useActiveDayTransactions("income");
 
   const filtered = useMemo(() => {
-    if (isClosed) return [];
     const list = search
-      ? todayTransactions.filter(
+      ? transactions.filter(
           (t) =>
             t.title.toLowerCase().includes(search.toLowerCase()) ||
             t.note?.toLowerCase().includes(search.toLowerCase())
         )
-      : todayTransactions;
-    return sortNewestFirst(list);
-  }, [todayTransactions, search, isClosed]);
+      : transactions;
+    return sortNewestFirst(list.filter((t) => t.status === "active"));
+  }, [transactions, search]);
 
-  const totalIncome = isClosed ? 0 : filtered.reduce((sum, t) => sum + t.amount, 0);
-  const listLoading = loading || sessionLoading;
+  const totalIncome = filtered.reduce((sum, t) => sum + t.amount, 0);
 
   useEffect(() => {
     setReceiptTransaction((prev) => {
@@ -69,26 +58,28 @@ export default function IncomeListPage() {
           </p>
         )}
 
-        {isClosed && <TodayClosedBanner />}
+        {inCloseEditMode && <CloseEditModeBanner />}
 
         <Card className="shrink-0 border-t-4 border-t-income 2xl:hidden">
           <CardContent className="py-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-bold text-text-secondary">รายรับวันนี้</p>
+                <p className="text-sm font-bold text-text-secondary">ยอดรวมรายรับ</p>
                 <p className="text-3xl font-black text-income">
-                  {listLoading ? "..." : formatCurrency(totalIncome)}
+                  {loading ? "..." : formatCurrency(totalIncome)}
                 </p>
                 <p className="mt-1 text-sm font-bold text-income">
-                  {listLoading ? "..." : isClosed ? "ปิดยอดแล้ว" : `${filtered.length} รายการวันนี้`}
+                  {loading ? "..." : `${filtered.length} รายการ`}
                 </p>
               </div>
-              <Link href="/income/add">
-                <Button variant="income" size="lg" className="min-h-[56px] gap-2 px-5">
-                  <ArrowUpCircle size={22} />
-                  เพิ่ม
-                </Button>
-              </Link>
+              {!dayCleared && (
+                <Link href="/income/add">
+                  <Button variant="income" size="lg" className="min-h-[56px] gap-2 px-5">
+                    <ArrowUpCircle size={22} />
+                    เพิ่ม
+                  </Button>
+                </Link>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -102,20 +93,14 @@ export default function IncomeListPage() {
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-income-light">
                     <Wallet size={22} className="text-income" />
                   </div>
-                  <p className="text-base font-bold text-text-secondary">รายรับวันนี้</p>
+                  <p className="text-base font-bold text-text-secondary">ยอดรวมรายรับ</p>
                 </div>
                 <p className="text-4xl font-black tracking-tight text-income">
-                  {listLoading ? "..." : formatCurrency(totalIncome)}
+                  {loading ? "..." : formatCurrency(totalIncome)}
                 </p>
                 <div className="mt-2 flex items-center gap-2 text-sm font-bold text-income">
                   <TrendingUp size={16} />
-                  <span>
-                    {listLoading
-                      ? "..."
-                      : isClosed
-                        ? "ปิดยอดแล้ว"
-                        : `${filtered.length} รายการวันนี้`}
-                  </span>
+                  <span>{loading ? "..." : `${filtered.length} รายการ`}</span>
                 </div>
               </CardContent>
             </Card>
@@ -152,12 +137,14 @@ export default function IncomeListPage() {
                 placeholder="ค้นหารายการรายรับ..."
                 wrapperClassName="flex-1"
               />
-              <Link href="/income/add">
-                <Button variant="income" size="lg" className="gap-1 whitespace-nowrap px-4">
-                  <ArrowUpCircle size={20} />
-                  เพิ่ม
-                </Button>
-              </Link>
+              {!dayCleared && (
+                <Link href="/income/add">
+                  <Button variant="income" size="lg" className="gap-1 whitespace-nowrap px-4">
+                    <ArrowUpCircle size={20} />
+                    เพิ่ม
+                  </Button>
+                </Link>
+              )}
             </div>
 
             <SearchBar
@@ -198,20 +185,20 @@ export default function IncomeListPage() {
                 </p>
               </CardHeader>
               <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
-                {listLoading ? (
+                {loading ? (
                   <p className="py-12 text-center text-text-muted">กำลังโหลด...</p>
                 ) : filtered.length === 0 ? (
                   <EmptyState
-                    title={isClosed ? "ปิดยอดวันนี้แล้ว" : "ไม่พบรายการ"}
+                    title={dayCleared ? "ปิดยอดแล้ว" : "ไม่พบรายการ"}
                     message={
-                      isClosed
-                        ? "รายรับวันนี้เคลียร์แล้ว — ดูสรุปได้ที่ สรุปปิดยอด → ประวัติ"
+                      dayCleared
+                        ? "รายการวันนี้ถูกเคลียร์ — เปิดแก้ไขปิดยอดที่หน้าสรุปปิดยอดเพื่อดู/แก้ไข"
                         : search
-                          ? `ไม่พบ "${search}" ในรายรับวันนี้`
-                          : "ยังไม่มีรายรับวันนี้ — เริ่มบันทึกรายการแรก"
+                          ? `ไม่พบ "${search}" ในรายการรายรับ`
+                          : "ยังไม่มีรายรับ — เริ่มบันทึกรายการแรก"
                     }
-                    actionHref={isClosed ? "/cash-count" : "/income/add"}
-                    actionLabel={isClosed ? "ดูสรุปปิดยอด" : "+ เพิ่มรายรับ"}
+                    actionHref={dayCleared ? undefined : "/income/add"}
+                    actionLabel={dayCleared ? undefined : "+ เพิ่มรายรับ"}
                     actionVariant="income"
                   />
                 ) : (

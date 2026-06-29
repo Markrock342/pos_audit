@@ -1,20 +1,19 @@
 import { NextResponse } from "next/server";
 import { getBalanceSummary } from "@/lib/services/db/reports";
+import {
+  getReportDefaultEndDate,
+  getReportDefaultStartDate,
+} from "@/lib/utils/reportDateRange";
 
-function getToday(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+export const dynamic = "force-dynamic";
 
-function getFirstDayOfMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-}
+const NO_STORE = { "Cache-Control": "no-store, no-cache, must-revalidate" };
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const start = searchParams.get("start") ?? getFirstDayOfMonth();
-  const end = searchParams.get("end") ?? getToday();
+  const start = searchParams.get("start") ?? getReportDefaultStartDate();
+  const end = searchParams.get("end") ?? getReportDefaultEndDate();
 
   const data = await getBalanceSummary(start, end);
-  return NextResponse.json({ data });
+  return NextResponse.json({ data }, { headers: NO_STORE });
 }

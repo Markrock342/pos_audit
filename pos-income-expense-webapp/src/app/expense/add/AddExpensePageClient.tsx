@@ -48,9 +48,11 @@ export function AddExpensePageClient({ categories }: AddExpensePageClientProps) 
           categories={items}
           onCancel={() => router.back()}
           successRedirect="/expense"
-          onSubmit={async (data) => {
+          onSubmit={async (data, { print }) => {
             const transaction = await submitTransaction(data);
-            void printTransactionDocument(transaction, { categories: items }).catch(() => {});
+            if (print) {
+              void printTransactionDocument(transaction, { categories: items }).catch(() => {});
+            }
           }}
         />
       </div>

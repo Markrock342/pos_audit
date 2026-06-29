@@ -25,6 +25,7 @@ export function transactionAuditSnapshot(
     type: t.type,
     status: t.status,
     voidReason: t.voidReason ?? null,
+    sessionRound: t.sessionRound ?? 1,
     lineItems: (t.lineItems ?? []).map(lineItemSnapshot),
   };
 }

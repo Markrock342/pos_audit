@@ -8,31 +8,27 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
   downloadReportCsv,
+  DASHBOARD_REFRESH_EVENT,
   fetchByCategoryReport,
   fetchReportSummary,
   type CategoryReportItem,
 } from "@/lib/api/client";
 import { buildChartData } from "@/lib/reports/summary";
+import {
+  getReportDefaultEndDate,
+  getReportDefaultStartDate,
+} from "@/lib/utils/reportDateRange";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
 import { Coins, Wallet, TrendingUp, Download } from "lucide-react";
 import type { ReportSummary, Transaction } from "@/types";
-
-function getFirstDayOfMonth() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-}
-
-function getToday() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 interface ReportsViewProps {
   initialTransactions: Transaction[];
 }
 
 export function ReportsView({ initialTransactions }: ReportsViewProps) {
-  const [start, setStart] = useState(getFirstDayOfMonth());
-  const [end, setEnd] = useState(getToday());
+  const [start, setStart] = useState(getReportDefaultStartDate());
+  const [end, setEnd] = useState(getReportDefaultEndDate());
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [byCategory, setByCategory] = useState<CategoryReportItem[]>([]);
   const [transactions, setTransactions] = useState(initialTransactions);
@@ -51,7 +47,8 @@ export function ReportsView({ initialTransactions }: ReportsViewProps) {
       setSummary(sum);
       setByCategory(cats);
       const res = await fetch(
-        `/api/transactions?startDate=${start}&endDate=${end}&status=active`
+        `/api/transactions?startDate=${start}&endDate=${end}&status=active`,
+        { cache: "no-store" }
       );
       const json = (await res.json()) as { data: Transaction[] };
       setTransactions(json.data.filter((t) => t.status === "active"));
@@ -66,7 +63,13 @@ export function ReportsView({ initialTransactions }: ReportsViewProps) {
     void load();
   }, [load]);
 
-  const chartData = buildChartData(transactions);
+  useEffect(() => {
+    const refresh = () => void load();
+    window.addEventListener(DASHBOARD_REFRESH_EVENT, refresh);
+    return () => window.removeEventListener(DASHBOARD_REFRESH_EVENT, refresh);
+  }, [load]);
+
+  const chartData = buildChartData(transactions, 7);
   const totalIncome = summary?.totalIncome ?? 0;
   const totalExpense = summary?.totalExpense ?? 0;
   const netProfit = summary?.netProfit ?? 0;
@@ -147,6 +150,7 @@ export function ReportsView({ initialTransactions }: ReportsViewProps) {
       <Card>
         <CardHeader>
           <CardTitle>กราฟรายรับ-รายจ่าย</CardTitle>
+          <p className="text-sm text-text-muted">7 วันล่าสุด (ครบ 1 สัปดาห์)</p>
         </CardHeader>
         <CardContent>
           <IncomeExpenseChart data={chartData} />
